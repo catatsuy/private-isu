@@ -1,0 +1,8 @@
+# A sample Gemfile
+source "https://rubygems.org"
+
+gem "sinatra"
+gem "foreman"
+gem "unicorn"
+gem "mysql2"
+gem "mysql2-cs-bind"
