@@ -1,16 +1,29 @@
-<h1>ログイン</h1>
+<h1>Iscogram</h1>
 
 <%= escape_html session[:user][:account_name] %>さん
 
 <div class="submit">
-  <form method="post" action="/login">
+  <form method="post" action="/" enctype="multipart/form-data">
+    <div class="form-file">
+      <span>画像ファイル</span>
+      <input type="file" name="file" value="file">
+    </div>
     <div class="form-text">
       <span>本文</span>
-      <input type="text" name="body">
+      <textarea name="body"></textarea>
     </div>
     <div class="form-submit">
       <input type="hidden" name="csrf_token" value="<%= escape_html session.id %>">
       <input type="submit" name="submit" value="submit">
     </div>
   </form>
+</div>
+
+<div>
+  <% posts.each do |p| %>
+  <div>
+    <img src="/image/<%= p[:id] %>" class="isu-image">
+    <p><%= escape_html p[:body] %></p>
+  </div>
+  <% end %>
 </div>

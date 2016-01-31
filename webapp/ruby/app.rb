@@ -148,12 +148,54 @@ module Isuconp
     end
 
     get '/' do
+      posts = db.xquery('SELECT * FROM posts ORDER BY created_at DESC')
+
       if session[:user]
-        erb :index, layout: :layout
+        erb :index, layout: :layout, locals: { posts: posts }
       else
         erb :not_login, layout: :layout
       end
     end
 
+    post '/' do
+      if params["csrf_token"] != session.id
+        return "csrf_token error"
+      end
+
+      if params["file"]
+        mime = ""
+        # 投稿の拡張子からファイルのタイプを決定する
+        if params["file"][:type].include? "jpeg"
+          mime = "image/jpeg"
+        elsif params["file"][:type].include? "png"
+          mime = "image/png"
+        elsif params["file"][:type].include? "gif"
+          mime = "image/gif"
+        else
+          return "投稿できる画像形式はjpgとpngとgifだけです"
+        end
+
+        query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`, `private`) VALUES (?,?,?,?,?)'
+        db.xquery(query,
+          session[:user][:id],
+          mime,
+          params["file"][:tempfile].read,
+          params["body"],
+          0
+        )
+      else
+        return "画像が必須です"
+      end
+    end
+
+    get '/image/:id' do
+      if params[:id].to_i == 0
+        return ""
+      end
+
+      post = db.xquery('SELECT * FROM posts WHERE id = ?', params[:id].to_i).first
+      headers['Content-Type'] = post[:mime]
+      post[:imgdata]
+    end
   end
 end
