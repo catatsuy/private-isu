@@ -40,7 +40,7 @@ module Isuconp
       end
 
       def try_login(account_name, password)
-        user = db.xquery('SELECT * FROM users WHERE account_name = ?', account_name).first
+        user = db.xquery('SELECT * FROM users WHERE account_name = ? AND del_flg = 0', account_name).first
 
         if user && calculate_passhash(password, user[:account_name]) == user[:passhash]
           return user
@@ -52,6 +52,15 @@ module Isuconp
       end
 
       def register_user(account_name: ,email:, password:)
+        validated = validate_user(
+          account_name: account_name,
+          email: email,
+          passhash: password
+        )
+        if !validated
+          return false
+        end
+
         user = db.xquery('SELECT 1 FROM users WHERE `account_name` = ? OR `email` = ?', account_name, email).first
         if user
           return false
@@ -59,6 +68,23 @@ module Isuconp
 
         query = 'INSERT INTO `users` (`account_name`, `email`, `passhash`) VALUES (?,?,?)'
         db.xquery(query, account_name, email, calculate_passhash(password, account_name))
+
+        return true
+      end
+
+      def validate_user(account_name: ,email:, password:)
+        if /\A[a-zA-Z_]{3,}\z/.match(account_name)
+          return false
+        end
+
+        if /\A[^@]+@[^@]+\z/.match(email)
+          return false
+        end
+
+        if password.legth > 8
+          return false
+        end
+
         return true
       end
 
@@ -73,8 +99,8 @@ module Isuconp
     end
 
     get '/login' do
-      if session[:user_id]
-        pp session
+      if session[:user]
+        pp session[:user]
         redirect '/'
       end
       erb :login, layout: :layout
@@ -82,9 +108,13 @@ module Isuconp
 
     post '/login' do
       user = try_login(params['account_name'], params['password'])
-      pp user
       if user
-        session[:user_id] = user['id']
+        pp user
+        session[:user] = {
+          id: user[:id],
+          account_name: user[:account_name],
+          email: user[:email]
+        }
         redirect '/'
       else
         flash[:notice] = "アカウント名かユーザー名が間違っています"
@@ -93,6 +123,9 @@ module Isuconp
     end
 
     get '/register' do
+      if session[:user]
+        return "ログイン中です"
+      end
       erb :register, layout: :layout
     end
 
@@ -106,6 +139,19 @@ module Isuconp
         redirect("/")
       else
         return "アカウント名かE-mailがすでに使われています"
+      end
+    end
+
+    get '/logout' do
+      session.delete(:user)
+      redirect '/'
+    end
+
+    get '/' do
+      if session[:user]
+        erb :index, layout: :layout
+      else
+        erb :not_login, layout: :layout
       end
     end
 
