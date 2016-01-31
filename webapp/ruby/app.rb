@@ -1,11 +1,14 @@
 require 'sinatra/base'
 require 'mysql2'
 require 'mysql2-cs-bind'
-require 'pp'
+require 'rack-flash'
 require 'digest/md5'
+require 'pp'
 
 module Isuconp
   class App < Sinatra::Base
+    use Rack::Session::Cookie, secret: ENV['ISUCONP_SESSION_SECRET'] || 'sendagaya'
+    use Rack::Flash
     set :public_folder, File.expand_path('../../public', __FILE__)
 
     helpers do
@@ -36,8 +39,16 @@ module Isuconp
         client
       end
 
-      def try_login(login, password)
-        user = db.xquery('SELECT * FROM users WHERE login = ?', login).first
+      def try_login(account_name, password)
+        user = db.xquery('SELECT * FROM users WHERE account_name = ?', account_name).first
+
+        if user && calculate_passhash(password, user[:account_name]) == user[:passhash]
+          return user
+        elsif user
+          return nil
+        else
+          return nil
+        end
       end
 
       def register_user(account_name: ,email:, password:)
@@ -47,11 +58,12 @@ module Isuconp
         end
 
         query = 'INSERT INTO `users` (`account_name`, `email`, `passhash`) VALUES (?,?,?)'
-        db.xquery(query, account_name, email, calculate_passhash(password, calculate_salt(account_name)))
+        db.xquery(query, account_name, email, calculate_passhash(password, account_name))
         return true
       end
 
-      def calculate_passhash(password, salt)
+      def calculate_passhash(password, account_name)
+        salt = calculate_salt(account_name)
         Digest::SHA256.hexdigest("#{password}:#{salt}")
       end
 
@@ -61,7 +73,23 @@ module Isuconp
     end
 
     get '/login' do
-      register_user(account_name: "catatsuy", email: "catatsuy@catatsuy.org", password: "aa")
+      if session[:user_id]
+        pp session
+        redirect '/'
+      end
+      erb :login, layout: :layout
+    end
+
+    post '/login' do
+      user = try_login(params['account_name'], params['password'])
+      pp user
+      if user
+        session[:user_id] = user['id']
+        redirect '/'
+      else
+        flash[:notice] = "アカウント名かユーザー名が間違っています"
+        redirect '/login'
+      end
     end
 
     get '/register' do
