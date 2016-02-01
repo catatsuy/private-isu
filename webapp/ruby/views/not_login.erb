@@ -1,0 +1,10 @@
+<h1>ログイン前</h1>
+
+<div>
+  <% posts.each do |p| %>
+  <div>
+    <img src="/image/<%= p[:id] %>" class="isu-image">
+    <p><%= escape_html p[:body] %></p>
+  </div>
+  <% end %>
+</div>

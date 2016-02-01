@@ -153,7 +153,7 @@ module Isuconp
       if session[:user]
         erb :index, layout: :layout, locals: { posts: posts }
       else
-        erb :not_login, layout: :layout
+        erb :not_login, layout: :layout, locals: { posts: posts }
       end
     end
 
