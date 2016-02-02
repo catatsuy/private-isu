@@ -1,4 +1,42 @@
+div {
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  width: 600px;
+  margin: 0 auto;
+}
+
+.isu-post {
+  border: 1px solid gray;
+  margin-bottom: 15px;
+  padding: 15px;
+}
+
+.isu-post-text {
+  margin: 10px 15px 15px 15px;
+}
+
+.isu-post-image {
+  text-align: center;
+}
+
 .isu-image {
   max-width: 540px;
   max-height: 1000px;
+}
+
+.isu-submit {
+  margin-bottom: 25px;
+}
+
+textarea {
+  width: 600px;
+  height: 200px;
+  padding: 0;
+}
+
+.isu-form {
+  margin-top: 10px;
 }

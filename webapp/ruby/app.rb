@@ -183,6 +183,8 @@ module Isuconp
           params["body"],
           0
         )
+
+        redirect '/'
       else
         return "画像が必須です"
       end
