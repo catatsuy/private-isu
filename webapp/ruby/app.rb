@@ -101,7 +101,6 @@ module Isuconp
 
     get '/login' do
       if session[:user]
-        pp session[:user]
         redirect '/'
       end
       erb :login, layout: :layout
@@ -110,7 +109,6 @@ module Isuconp
     post '/login' do
       user = try_login(params['account_name'], params['password'])
       if user
-        pp user
         session[:user] = {
           id: user[:id],
           account_name: user[:account_name],
@@ -159,8 +157,6 @@ module Isuconp
           comments[c[:post_id]].push(c)
         end
       end
-
-      pp comments
 
       if session[:user]
         erb :index, layout: :layout, locals: { posts: posts, comments: comments }
@@ -227,5 +223,17 @@ module Isuconp
       redirect '/'
     end
 
+    get '/notify' do
+      comments = db.xquery('SELECT * FROM comments ORDER BY created_at DESC')
+      notifies = []
+
+      comments.each do |c|
+        if c[:user_id] == session[:user][:id]
+          notifies.push(c)
+        end
+      end
+
+      erb :notify, layout: :layout, locals: { notifies: notifies }
+    end
   end
 end
