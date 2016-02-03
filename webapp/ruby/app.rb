@@ -32,6 +32,7 @@ module Isuconp
           username: config[:db][:username],
           password: config[:db][:password],
           database: config[:db][:database],
+          encoding: 'utf8mb4',
           reconnect: true,
         )
         client.query_options.merge!(symbolize_keys: true)
@@ -149,9 +150,20 @@ module Isuconp
 
     get '/' do
       posts = db.xquery('SELECT * FROM posts ORDER BY created_at DESC')
+      cs = db.xquery('SELECT * FROM comments ORDER BY created_at DESC')
+      comments = {}
+      cs.each do |c|
+        if !comments[c[:post_id]]
+          comments[c[:post_id]] = [c]
+        else
+          comments[c[:post_id]].push(c)
+        end
+      end
+
+      pp comments
 
       if session[:user]
-        erb :index, layout: :layout, locals: { posts: posts }
+        erb :index, layout: :layout, locals: { posts: posts, comments: comments }
       else
         erb :not_login, layout: :layout, locals: { posts: posts }
       end
@@ -199,5 +211,21 @@ module Isuconp
       headers['Content-Type'] = post[:mime]
       post[:imgdata]
     end
+
+    post '/comment' do
+      if params["csrf_token"] != session.id
+        return "csrf_token error"
+      end
+
+      query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)'
+      db.xquery(query,
+        params['post_id'],
+        session[:user][:id],
+        params['comment']
+      )
+
+      redirect '/'
+    end
+
   end
 end
