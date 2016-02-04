@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
   `email` varchar(255) CHARACTER SET utf8 NOT NULL UNIQUE,
   `passhash` varchar(128) NOT NULL, -- SHA2 512 non-binary (hex)
   `authority` tinyint(1) NOT NULL DEFAULT 0,
-  `del_flg` tinyint(1) NOT NULL DEFAULT 0
+  `del_flg` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) DEFAULT CHARSET=utf8mb4;
 
 -- DROP TABLE IF EXISTS posts;

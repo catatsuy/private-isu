@@ -110,9 +110,7 @@ module Isuconp
       user = try_login(params['account_name'], params['password'])
       if user
         session[:user] = {
-          id: user[:id],
-          account_name: user[:account_name],
-          email: user[:email]
+          id: user[:id]
         }
         redirect '/'
       else
@@ -235,5 +233,49 @@ module Isuconp
 
       erb :notify, layout: :layout, locals: { notifies: notifies }
     end
+
+    get '/admin/banned' do
+      if !session[:user]
+        redirect '/login'
+      end
+
+      user = db.xquery('SELECT * FROM `users` WHERE `id` = ?',
+        session[:user][:id]
+      ).first
+
+      if user[:authority] == 0
+        return '管理ユーザーではありません'
+      end
+
+      users = db.query('SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC')
+
+      erb :banned, layout: :layout, locals: { users: users }
+    end
+
+    post '/admin/banned' do
+      user = db.xquery('SELECT * FROM `users` WHERE `id` = ?',
+        session[:user][:id]
+      ).first
+
+      if user[:authority] == 0
+        return '管理ユーザーではありません'
+      end
+
+      if params['csrf_token'] != session.id
+        return 'csrf_token error'
+      end
+
+      query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?'
+
+      params['uid'].each do |id|
+        db.xquery(query,
+          1,
+          id.to_i
+        )
+      end
+
+      redirect '/admin/banned'
+    end
+
   end
 end
