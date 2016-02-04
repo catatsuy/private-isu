@@ -116,14 +116,14 @@ module Isuconp
         }
         redirect '/'
       else
-        flash[:notice] = "アカウント名かユーザー名が間違っています"
+        flash[:notice] = 'アカウント名かユーザー名が間違っています'
         redirect '/login'
       end
     end
 
     get '/register' do
       if session[:user]
-        return "ログイン中です"
+        return 'ログイン中です'
       end
       erb :register, layout: :layout
     end
@@ -135,9 +135,9 @@ module Isuconp
         password: params['password']
       )
       if result
-        redirect("/")
+        redirect('/')
       else
-        return "アカウント名かE-mailがすでに使われています"
+        return 'アカウント名かE-mailがすでに使われています'
       end
     end
 
@@ -166,12 +166,12 @@ module Isuconp
     end
 
     post '/' do
-      if params["csrf_token"] != session.id
-        return "csrf_token error"
+      if params['csrf_token'] != session.id
+        return 'csrf_token error'
       end
 
-      if params["file"]
-        mime = ""
+      if params['file']
+        mime = ''
         # 投稿の拡張子からファイルのタイプを決定する
         if params["file"][:type].include? "jpeg"
           mime = "image/jpeg"
@@ -224,7 +224,7 @@ module Isuconp
     end
 
     get '/notify' do
-      comments = db.xquery('SELECT * FROM comments ORDER BY created_at DESC')
+      comments = db.xquery('SELECT * FROM `comments` ORDER BY `created_at` DESC')
       notifies = []
 
       comments.each do |c|
