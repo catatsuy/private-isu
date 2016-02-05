@@ -277,5 +277,45 @@ module Isuconp
       redirect '/admin/banned'
     end
 
+    get '/me' do
+      posts_all = db.xquery('SELECT * FROM `posts` ORDER BY `created_at` DESC')
+      comments_all = db.xquery('SELECT * FROM `comments` ORDER BY `created_at` DESC')
+      posts = []
+      comments = []
+
+      posts_all.each do |p|
+        if p[:user_id] == session[:user][:id]
+          posts.push(p)
+        end
+      end
+
+      comments_all.each do |c|
+        if c[:user_id] == session[:user][:id]
+          comments.push(c)
+        end
+      end
+
+      mixed = []
+      index = 0
+
+      (0..(posts.length - 1)).each do |pi|
+        if comments[index][:created_at] > posts[pi][:created_at]
+          mixed.push(comments[index])
+        else
+          mixed.push(posts[pi])
+        end
+
+        if index < comments.length - 1
+          index += 1
+        else
+          (pi..(posts.length - 1)).each do |i|
+            mixed.push(posts[i])
+          end
+        end
+      end
+
+      erb :me, layout: :layout, locals: { mixed: mixed }
+    end
+
   end
 end
