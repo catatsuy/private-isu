@@ -1,7 +1,9 @@
 <h1>ログイン</h1>
 
 <% if flash[:notice] %>
-<div id="notice-message" class="alert alert-danger" role="alert"><%= flash[:notice] %></div>
+<div id="notice-message" class="alert alert-danger" role="alert">
+  <%= escape_html(flash[:notice]) %>
+</div>
 <% end %>
 
 <div class="submit">
