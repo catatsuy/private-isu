@@ -31,7 +31,9 @@
     <div>
       <% if comments[p[:id]] %>
       <%   comments[p[:id]].each do |c| %>
-      <%=    c[:comment] %>
+      <div class="isu-comment-text">
+        <%= escape_html(c[:comment]) %>
+      </div>
       <%   end %>
       <% end %>
       <form method="post" action="/comment">

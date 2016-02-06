@@ -1,9 +1,18 @@
 <div>
   <% mixed.each do |m| %>
   <div class="isu-mixed">
+    <% if m[:type] == :post %>
     <div class="isu-post-image">
-      <img src="/image/<%= m[:id] %>" class="isu-image">
+      <img src="/image/<%= m[:value][:id] %>" class="isu-image">
     </div>
+    <div class="isu-post-text">
+      <%= escape_html(m[:value][:body]).gsub(/\r?\n/, '<br>') %>
+    </div>
+    <% elsif m[:type] == :comment %>
+    <div class="isu-comment-text">
+      <%= escape_html(m[:value][:comment]) %>
+    </div>
+    <% end %>
   </div>
   <% end %>
 </div>

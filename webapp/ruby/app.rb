@@ -278,6 +278,10 @@ module Isuconp
     end
 
     get '/me' do
+      if !session[:user]
+        redirect '/'
+      end
+
       posts_all = db.xquery('SELECT * FROM `posts` ORDER BY `created_at` DESC')
       comments_all = db.xquery('SELECT * FROM `comments` ORDER BY `created_at` DESC')
       posts = []
@@ -300,16 +304,16 @@ module Isuconp
 
       (0..(posts.length - 1)).each do |pi|
         if comments[index][:created_at] > posts[pi][:created_at]
-          mixed.push(comments[index])
+          mixed.push({type: :comment, value: comments[index]})
         else
-          mixed.push(posts[pi])
+          mixed.push({type: :post, value: posts[pi]})
         end
 
         if index < comments.length - 1
           index += 1
         else
           (pi..(posts.length - 1)).each do |i|
-            mixed.push(posts[i])
+            mixed.push({type: :post, value: posts[i]})
           end
         end
       end
