@@ -47,7 +47,10 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	_ = target
+	w := NewWorker(target)
+	s1 := NewScenario("GET", "/")
+
+	s1.Play(w)
 
 	return ExitCodeOK
 }
