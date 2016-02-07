@@ -7,6 +7,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"sync/atomic"
 )
 
 const (
@@ -82,8 +83,8 @@ func (w *Worker) SendRequest(req *http.Request, simple bool) (resp *http.Respons
 }
 
 func (w *Worker) Success(point int64) {
-	// atomic.AddInt32(&w.Successes, 1)
-	// atomic.AddInt64(&w.Score, point)
+	atomic.AddInt32(&w.Successes, 1)
+	atomic.AddInt64(&w.Score, point)
 }
 
 func (w *Worker) Fail(req *http.Request, err error) error {

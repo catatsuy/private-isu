@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"time"
 )
 
 // Exit codes are int values that represent an exit code for a particular error.
@@ -47,10 +48,53 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	w := NewWorker(target)
-	s1 := NewScenario("GET", "/")
+	ec := time.After(10 * time.Second)
 
-	s1.Play(w)
+	go func() {
+		<-ec
+	}()
+
+	workers := []*Worker(make([]*Worker, 5))
+
+	for i := 0; i < 5; i++ {
+		workers[i] = NewWorker(target)
+	}
+
+	go loadLoop(workers)
+
+	<-ec
+
+	var totalScore int64
+	var totalSuccesses int32
+
+	for _, w := range workers {
+		totalScore += w.Score
+		totalSuccesses += w.Successes
+	}
+
+	fmt.Printf("score: %d, suceess: %d\n", totalScore, totalSuccesses)
 
 	return ExitCodeOK
+}
+
+func checkLoop() {
+
+}
+
+func loadLoop(workers []*Worker) {
+	toppage := NewScenario("GET", "/me")
+	login := NewScenario("POST", "/login")
+
+	for {
+		for _, worker := range workers {
+			toppage.Play(worker)
+
+			login.PostData = map[string]string{
+				"account_name": "catatsuy",
+				"password":     "kaneko",
+			}
+			login.Play(worker)
+			toppage.Play(worker)
+		}
+	}
 }
