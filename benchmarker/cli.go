@@ -60,41 +60,49 @@ func (cli *CLI) Run(args []string) int {
 		workers[i] = NewWorker(target)
 	}
 
-	go loadLoop(workers)
+	go checkLoop(workers)
 
 	<-ec
 
 	var totalScore int64
 	var totalSuccesses int32
+	var totalFails int32
+	var errs []error
 
 	for _, w := range workers {
 		totalScore += w.Score
 		totalSuccesses += w.Successes
+		totalFails += w.Fails
+		errs = append(errs, w.Errors...)
 	}
 
-	fmt.Printf("score: %d, suceess: %d\n", totalScore, totalSuccesses)
+	fmt.Printf("score: %d, suceess: %d, fail: %d\n", totalScore, totalSuccesses, totalFails)
+
+	for _, err := range errs {
+		fmt.Println(err)
+	}
 
 	return ExitCodeOK
 }
 
-func checkLoop() {
+func checkLoop(workers []*Worker) {
+	toppageNotLogin := NewScenario("GET", "/me")
+	toppageNotLogin.ExpectedStatusCode = 200
+	toppageNotLogin.ExpectedLocation = "/"
 
-}
-
-func loadLoop(workers []*Worker) {
-	toppage := NewScenario("GET", "/me")
 	login := NewScenario("POST", "/login")
 
-	for {
-		for _, worker := range workers {
-			toppage.Play(worker)
+	toppage := NewScenario("GET", "/me")
+	toppage.ExpectedStatusCode = 200
 
-			login.PostData = map[string]string{
-				"account_name": "catatsuy",
-				"password":     "kaneko",
-			}
-			login.Play(worker)
-			toppage.Play(worker)
+	for {
+		toppageNotLogin.Play(workers[0])
+
+		login.PostData = map[string]string{
+			"account_name": "catatsuy",
+			"password":     "kaneko",
 		}
+		login.Play(workers[1])
+		toppage.Play(workers[1])
 	}
 }

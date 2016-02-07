@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -23,6 +24,7 @@ type Worker struct {
 	Successes int32
 	Fails     int32
 	Score     int64
+	Errors    []error
 
 	logger *log.Logger
 }
@@ -88,5 +90,11 @@ func (w *Worker) Success(point int64) {
 }
 
 func (w *Worker) Fail(req *http.Request, err error) error {
+	atomic.AddInt32(&w.Fails, 1)
+	if req != nil {
+		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
+	}
+
+	w.Errors = append(w.Errors, err)
 	return nil
 }
