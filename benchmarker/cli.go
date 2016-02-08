@@ -91,18 +91,23 @@ func checkLoop(workers []*Worker) {
 	toppageNotLogin.ExpectedLocation = "/"
 
 	login := NewScenario("POST", "/login")
+	login.ExpectedStatusCode = 200
+	login.ExpectedLocation = "/"
 
-	toppage := NewScenario("GET", "/me")
-	toppage.ExpectedStatusCode = 200
+	mepage := NewScenario("GET", "/me")
+	mepage.ExpectedStatusCode = 200
+	mepage.ExpectedLocation = "/me"
 
 	for {
+		workers[0].RefreshClient()
 		toppageNotLogin.Play(workers[0])
 
 		login.PostData = map[string]string{
 			"account_name": "catatsuy",
 			"password":     "kaneko",
 		}
+		workers[1].RefreshClient()
 		login.Play(workers[1])
-		toppage.Play(workers[1])
+		mepage.Play(workers[1])
 	}
 }

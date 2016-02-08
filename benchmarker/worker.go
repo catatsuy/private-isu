@@ -69,6 +69,15 @@ func (w *Worker) NewRequest(method, uri string, body io.Reader) (*http.Request, 
 	return req, err
 }
 
+func (w *Worker) RefreshClient() {
+	jar, _ := cookiejar.New(&cookiejar.Options{})
+	w.Transport = &http.Transport{}
+	w.Client = &http.Client{
+		Transport: w.Transport,
+		Jar:       jar,
+	}
+}
+
 func (w *Worker) SendRequest(req *http.Request, simple bool) (resp *http.Response, err error) {
 	reqCh := make(chan bool)
 
