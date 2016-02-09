@@ -50,17 +50,15 @@ func (cli *CLI) Run(args []string) int {
 
 	ec := time.After(10 * time.Second)
 
-	go func() {
-		<-ec
-	}()
+	workers1 := []*Worker(make([]*Worker, 10))
+	workers2 := []*Worker(make([]*Worker, 10))
 
-	workers := []*Worker(make([]*Worker, 5))
-
-	for i := 0; i < 5; i++ {
-		workers[i] = NewWorker(target)
+	for i := 0; i < 10; i++ {
+		workers1[i] = NewWorker(target)
+		workers2[i] = NewWorker(target)
 	}
 
-	go checkLoop(workers)
+	go checkLoop(workers1, workers2)
 
 	<-ec
 
@@ -69,7 +67,14 @@ func (cli *CLI) Run(args []string) int {
 	var totalFails int32
 	var errs []error
 
-	for _, w := range workers {
+	for _, w := range workers1 {
+		totalScore += w.Score
+		totalSuccesses += w.Successes
+		totalFails += w.Fails
+		errs = append(errs, w.Errors...)
+	}
+
+	for _, w := range workers2 {
 		totalScore += w.Score
 		totalSuccesses += w.Successes
 		totalFails += w.Fails
@@ -85,7 +90,7 @@ func (cli *CLI) Run(args []string) int {
 	return ExitCodeOK
 }
 
-func checkLoop(workers []*Worker) {
+func checkLoop(workers1 []*Worker, workers2 []*Worker) {
 	toppageNotLogin := NewScenario("GET", "/me")
 	toppageNotLogin.ExpectedStatusCode = 200
 	toppageNotLogin.ExpectedLocation = "/"
@@ -98,16 +103,28 @@ func checkLoop(workers []*Worker) {
 	mepage.ExpectedStatusCode = 200
 	mepage.ExpectedLocation = "/me"
 
-	for {
-		workers[0].RefreshClient()
-		toppageNotLogin.Play(workers[0])
-
-		login.PostData = map[string]string{
-			"account_name": "catatsuy",
-			"password":     "kaneko",
+	// not login
+	go func(workers []*Worker) {
+		for {
+			for _, w := range workers {
+				toppageNotLogin.Play(w)
+			}
 		}
-		workers[1].RefreshClient()
-		login.Play(workers[1])
-		mepage.Play(workers[1])
-	}
+	}(workers1)
+
+	// use login
+	go func(workers []*Worker) {
+		for {
+			for _, w := range workers {
+				login.PostData = map[string]string{
+					"account_name": "catatsuy",
+					"password":     "kaneko",
+				}
+				login.Play(workers[1])
+				mepage.Play(workers[1])
+				w.RefreshClient()
+			}
+		}
+	}(workers2)
+
 }
