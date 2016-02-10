@@ -13,6 +13,8 @@ const (
 	ExitCodeError int = 1 + iota
 )
 
+var scoreTotal = NewScore()
+
 // CLI is the command line object
 type CLI struct {
 	// outStream and errStream are the stdout and stderr
@@ -62,26 +64,21 @@ func (cli *CLI) Run(args []string) int {
 
 	<-ec
 
-	var totalScore int64
-	var totalSuccesses int32
-	var totalFails int32
 	var errs []error
 
 	for _, w := range workers1 {
-		totalScore += w.Score
-		totalSuccesses += w.Successes
-		totalFails += w.Fails
 		errs = append(errs, w.Errors...)
 	}
 
 	for _, w := range workers2 {
-		totalScore += w.Score
-		totalSuccesses += w.Successes
-		totalFails += w.Fails
 		errs = append(errs, w.Errors...)
 	}
 
-	fmt.Printf("score: %d, suceess: %d, fail: %d\n", totalScore, totalSuccesses, totalFails)
+	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
+		scoreTotal.GetScore(),
+		scoreTotal.GetSucesses(),
+		scoreTotal.GetFails(),
+	)
 
 	for _, err := range errs {
 		fmt.Println(err)

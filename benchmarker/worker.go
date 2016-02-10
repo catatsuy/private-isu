@@ -8,7 +8,6 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
-	"sync/atomic"
 )
 
 const (
@@ -94,12 +93,11 @@ func (w *Worker) SendRequest(req *http.Request, simple bool) (resp *http.Respons
 }
 
 func (w *Worker) Success(point int64) {
-	atomic.AddInt32(&w.Successes, 1)
-	atomic.AddInt64(&w.Score, point)
+	scoreTotal.SetScore(point)
 }
 
 func (w *Worker) Fail(req *http.Request, err error) error {
-	atomic.AddInt32(&w.Fails, 1)
+	scoreTotal.SetFails()
 	if req != nil {
 		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
 	}
