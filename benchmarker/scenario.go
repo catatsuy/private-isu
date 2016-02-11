@@ -3,8 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 type Scenario struct {
@@ -72,10 +73,13 @@ func (s *Scenario) Play(w *Worker) error {
 		}
 	}
 
-	body, _ := ioutil.ReadAll(res.Body)
+	doc, _ := goquery.NewDocumentFromReader(res.Body)
 	defer res.Body.Close()
 
-	_ = body
+	doc.Find("a").Each(func(_ int, s *goquery.Selection) {
+		url, _ := s.Attr("href")
+		fmt.Println(url)
+	})
 
 	w.Success(1)
 
