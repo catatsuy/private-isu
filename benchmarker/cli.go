@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 )
 
@@ -53,6 +54,7 @@ func (cli *CLI) Run(args []string) int {
 	ec := time.After(10 * time.Second)
 	quitC := make(chan bool)
 	quit := false
+	var mu sync.RWMutex
 
 	workersC := make(chan *Worker, 20)
 
@@ -60,16 +62,20 @@ func (cli *CLI) Run(args []string) int {
 		for {
 			workersC <- NewWorker(target)
 
+			mu.RLock()
 			if quit {
 				break
 			}
+			mu.RUnlock()
 		}
 	}()
 
 	go func() {
 		// for stopping goroutines
 		<-quitC
+		mu.Lock()
 		quit = true
+		mu.Unlock()
 	}()
 
 	toppageNotLogin := NewScenario("GET", "/me")
@@ -81,9 +87,11 @@ func (cli *CLI) Run(args []string) int {
 		for {
 			toppageNotLogin.Play(<-workersC)
 
+			mu.RLock()
 			if quit {
 				break
 			}
+			mu.RUnlock()
 		}
 	}()
 
@@ -105,9 +113,11 @@ func (cli *CLI) Run(args []string) int {
 			login.Play(w)
 			mepage.Play(w)
 
+			mu.RLock()
 			if quit {
 				break
 			}
+			mu.RUnlock()
 		}
 	}()
 
