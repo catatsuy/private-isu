@@ -51,28 +51,70 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	ec := time.After(10 * time.Second)
+	quitC := make(chan bool)
+	quit := false
 
-	workers1 := []*Worker(make([]*Worker, 10))
-	workers2 := []*Worker(make([]*Worker, 10))
+	workersC := make(chan *Worker, 20)
 
-	for i := 0; i < 10; i++ {
-		workers1[i] = NewWorker(target)
-		workers2[i] = NewWorker(target)
-	}
+	go func() {
+		for {
+			workersC <- NewWorker(target)
 
-	go checkLoop(workers1, workers2)
+			if quit {
+				break
+			}
+		}
+	}()
+
+	go func() {
+		// for stopping goroutines
+		<-quitC
+		quit = true
+	}()
+
+	toppageNotLogin := NewScenario("GET", "/me")
+	toppageNotLogin.ExpectedStatusCode = 200
+	toppageNotLogin.ExpectedLocation = "/"
+
+	go func() {
+		// not login
+		for {
+			toppageNotLogin.Play(<-workersC)
+
+			if quit {
+				break
+			}
+		}
+	}()
+
+	login := NewScenario("POST", "/login")
+	login.ExpectedStatusCode = 200
+	login.ExpectedLocation = "/"
+
+	mepage := NewScenario("GET", "/me")
+	mepage.ExpectedStatusCode = 200
+	mepage.ExpectedLocation = "/me"
+
+	go func() {
+		for {
+			login.PostData = map[string]string{
+				"account_name": "catatsuy",
+				"password":     "kaneko",
+			}
+			w := <-workersC
+			login.Play(w)
+			mepage.Play(w)
+
+			if quit {
+				break
+			}
+		}
+	}()
 
 	<-ec
+	quitC <- true
 
 	var errs []error
-
-	for _, w := range workers1 {
-		errs = append(errs, w.Errors...)
-	}
-
-	for _, w := range workers2 {
-		errs = append(errs, w.Errors...)
-	}
 
 	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
 		scoreTotal.GetScore(),
@@ -85,43 +127,4 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	return ExitCodeOK
-}
-
-func checkLoop(workers1 []*Worker, workers2 []*Worker) {
-	toppageNotLogin := NewScenario("GET", "/me")
-	toppageNotLogin.ExpectedStatusCode = 200
-	toppageNotLogin.ExpectedLocation = "/"
-
-	login := NewScenario("POST", "/login")
-	login.ExpectedStatusCode = 200
-	login.ExpectedLocation = "/"
-
-	mepage := NewScenario("GET", "/me")
-	mepage.ExpectedStatusCode = 200
-	mepage.ExpectedLocation = "/me"
-
-	// not login
-	go func(workers []*Worker) {
-		for {
-			for _, w := range workers {
-				toppageNotLogin.Play(w)
-			}
-		}
-	}(workers1)
-
-	// use login
-	go func(workers []*Worker) {
-		for {
-			for _, w := range workers {
-				login.PostData = map[string]string{
-					"account_name": "catatsuy",
-					"password":     "kaneko",
-				}
-				login.Play(workers[1])
-				mepage.Play(workers[1])
-				w.RefreshClient()
-			}
-		}
-	}(workers2)
-
 }
