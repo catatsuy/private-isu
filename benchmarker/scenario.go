@@ -3,9 +3,8 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net/url"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
 type Scenario struct {
@@ -20,6 +19,9 @@ type Scenario struct {
 	ExpectedHeaders    map[string]string
 	ExpectedAssets     map[string]string
 	ExpectedHTML       map[string]string
+
+	Checked   bool
+	CheckFunc func(w *Worker, body io.Reader)
 }
 
 func NewScenario(method, path string) *Scenario {
@@ -28,6 +30,8 @@ func NewScenario(method, path string) *Scenario {
 		Path:   path,
 
 		ExpectedStatusCode: 200,
+
+		Checked: false,
 	}
 }
 
@@ -73,13 +77,11 @@ func (s *Scenario) Play(w *Worker) error {
 		}
 	}
 
-	doc, _ := goquery.NewDocumentFromReader(res.Body)
-	defer res.Body.Close()
+	if s.Checked {
+		s.CheckFunc(w, res.Body)
+	}
 
-	doc.Find("a").Each(func(_ int, s *goquery.Selection) {
-		url, _ := s.Attr("href")
-		fmt.Println(url)
-	})
+	defer res.Body.Close()
 
 	w.Success(1)
 

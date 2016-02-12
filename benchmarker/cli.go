@@ -6,6 +6,8 @@ import (
 	"io"
 	"sync"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
 )
 
 // Exit codes are int values that represent an exit code for a particular error.
@@ -81,6 +83,17 @@ func (cli *CLI) Run(args []string) int {
 	toppageNotLogin := NewScenario("GET", "/me")
 	toppageNotLogin.ExpectedStatusCode = 200
 	toppageNotLogin.ExpectedLocation = "/"
+	toppageNotLogin.Checked = true
+	toppageNotLogin.CheckFunc = func(w *Worker, body io.Reader) {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		doc.Find("img").Each(func(_ int, s *goquery.Selection) {
+			url, _ := s.Attr("src")
+			imgReq := NewScenario("GET", url)
+			imgReq.ExpectedStatusCode = 200
+			imgReq.Play(w)
+		})
+	}
 
 	go func() {
 		// not login
