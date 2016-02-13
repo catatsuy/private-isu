@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/catatsuy/private-isu/benchmarker/worker"
 )
 
 // Exit codes are int values that represent an exit code for a particular error.
@@ -15,8 +16,6 @@ const (
 	ExitCodeOK    int = 0
 	ExitCodeError int = 1 + iota
 )
-
-var scoreTotal = NewScore()
 
 // CLI is the command line object
 type CLI struct {
@@ -58,11 +57,11 @@ func (cli *CLI) Run(args []string) int {
 	quit := false
 	var mu sync.RWMutex
 
-	workersC := make(chan *Worker, 20)
+	workersC := make(chan *worker.Worker, 20)
 
 	go func() {
 		for {
-			workersC <- NewWorker(target)
+			workersC <- worker.NewWorker(target)
 
 			mu.RLock()
 			if quit {
@@ -80,16 +79,16 @@ func (cli *CLI) Run(args []string) int {
 		mu.Unlock()
 	}()
 
-	toppageNotLogin := NewScenario("GET", "/me")
+	toppageNotLogin := worker.NewScenario("GET", "/me")
 	toppageNotLogin.ExpectedStatusCode = 200
 	toppageNotLogin.ExpectedLocation = "/"
 	toppageNotLogin.Checked = true
-	toppageNotLogin.CheckFunc = func(w *Worker, body io.Reader) {
+	toppageNotLogin.CheckFunc = func(w *worker.Worker, body io.Reader) {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		doc.Find("img").Each(func(_ int, s *goquery.Selection) {
 			url, _ := s.Attr("src")
-			imgReq := NewScenario("GET", url)
+			imgReq := worker.NewScenario("GET", url)
 			imgReq.ExpectedStatusCode = 200
 			imgReq.Play(w)
 		})
@@ -108,11 +107,11 @@ func (cli *CLI) Run(args []string) int {
 		}
 	}()
 
-	login := NewScenario("POST", "/login")
+	login := worker.NewScenario("POST", "/login")
 	login.ExpectedStatusCode = 200
 	login.ExpectedLocation = "/"
 
-	mepage := NewScenario("GET", "/me")
+	mepage := worker.NewScenario("GET", "/me")
 	mepage.ExpectedStatusCode = 200
 	mepage.ExpectedLocation = "/me"
 
@@ -140,9 +139,9 @@ func (cli *CLI) Run(args []string) int {
 	var errs []error
 
 	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
-		scoreTotal.GetScore(),
-		scoreTotal.GetSucesses(),
-		scoreTotal.GetFails(),
+		worker.ScoreTotal.GetScore(),
+		worker.ScoreTotal.GetSucesses(),
+		worker.ScoreTotal.GetFails(),
 	)
 
 	for _, err := range errs {

@@ -1,4 +1,4 @@
-package main
+package worker
 
 import (
 	"fmt"
@@ -93,11 +93,11 @@ func (w *Worker) SendRequest(req *http.Request, simple bool) (resp *http.Respons
 }
 
 func (w *Worker) Success(point int64) {
-	scoreTotal.SetScore(point)
+	ScoreTotal.SetScore(point)
 }
 
 func (w *Worker) Fail(req *http.Request, err error) error {
-	scoreTotal.SetFails()
+	ScoreTotal.SetFails()
 	if req != nil {
 		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
 	}

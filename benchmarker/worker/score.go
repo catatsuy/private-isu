@@ -1,6 +1,8 @@
-package main
+package worker
 
 import "sync"
+
+var ScoreTotal = NewScore()
 
 type score struct {
 	sync.RWMutex
