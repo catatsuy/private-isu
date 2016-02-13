@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/catatsuy/private-isu/benchmarker/score"
 	"github.com/catatsuy/private-isu/benchmarker/worker"
 )
 
@@ -139,9 +140,9 @@ func (cli *CLI) Run(args []string) int {
 	var errs []error
 
 	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
-		worker.ScoreTotal.GetScore(),
-		worker.ScoreTotal.GetSucesses(),
-		worker.ScoreTotal.GetFails(),
+		score.GetInstance().GetScore(),
+		score.GetInstance().GetSucesses(),
+		score.GetInstance().GetFails(),
 	)
 
 	for _, err := range errs {

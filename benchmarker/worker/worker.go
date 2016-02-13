@@ -8,6 +8,8 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+
+	"github.com/catatsuy/private-isu/benchmarker/score"
 )
 
 const (
@@ -93,11 +95,11 @@ func (w *Worker) SendRequest(req *http.Request, simple bool) (resp *http.Respons
 }
 
 func (w *Worker) Success(point int64) {
-	ScoreTotal.SetScore(point)
+	score.GetInstance().SetScore(point)
 }
 
 func (w *Worker) Fail(req *http.Request, err error) error {
-	ScoreTotal.SetFails()
+	score.GetInstance().SetFails()
 	if req != nil {
 		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
 	}
