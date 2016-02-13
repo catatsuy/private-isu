@@ -1,13 +1,18 @@
 package worker
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
+	"net/textproto"
 	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/catatsuy/private-isu/benchmarker/score"
 )
@@ -64,6 +69,66 @@ func (w *Worker) NewRequest(method, uri string, body io.Reader) (*http.Request, 
 	req, err := http.NewRequest(method, parsedURL.String(), body)
 
 	if err != nil {
+		return nil, err
+	}
+
+	return req, err
+}
+
+func escapeQuotes(s string) string {
+	return strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(s)
+}
+
+func (w *Worker) NewFileUploadRequest(uri string, params map[string]string, paramName, path string) (*http.Request, error) {
+	parsedURL, err := url.Parse(uri)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if parsedURL.Scheme == "" {
+		parsedURL.Scheme = "http"
+	}
+
+	if parsedURL.Host == "" {
+		parsedURL.Host = w.Host
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	// part, err := writer.CreateFormFile(paramName, filepath.Base(path))
+	// Content-Typeを指定できないので該当コードから実装
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			escapeQuotes(paramName), escapeQuotes(filepath.Base(path))))
+	h.Set("Content-Type", params["type"])
+	part, err := writer.CreatePart(h)
+
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(part, file)
+
+	for key, val := range params {
+		_ = writer.WriteField(key, val)
+	}
+
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", parsedURL.String(), body)
+	if err == nil {
+		req.Header.Add("Content-Type", writer.FormDataContentType())
+	} else {
 		return nil, err
 	}
 

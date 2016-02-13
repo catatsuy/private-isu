@@ -134,6 +134,45 @@ func (cli *CLI) Run(args []string) int {
 		}
 	}()
 
+	postTopImg := worker.NewScenario("POST", "/")
+	postTopImg.ExpectedStatusCode = 200
+	postTopImg.ExpectedLocation = "/"
+
+	getIndexAfterPostImg := worker.NewScenario("GET", "/")
+	getIndexAfterPostImg.ExpectedStatusCode = 200
+	getIndexAfterPostImg.Checked = true
+
+	getIndexAfterPostImg.CheckFunc = func(w *worker.Worker, body io.Reader) {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+		postTopImg.PostData = map[string]string{
+			"body":       "aaaaaaaaa",
+			"csrf_token": token,
+			"type":       "image/jpeg",
+		}
+		postTopImg.Asset = &worker.Asset{Path: "./userdata/img/data.jpg"}
+		postTopImg.PlayWithFile(w, "file")
+	}
+
+	go func() {
+		for {
+			login.PostData = map[string]string{
+				"account_name": "catatsuy",
+				"password":     "kaneko",
+			}
+			w := <-workersC
+			login.Play(w)
+			getIndexAfterPostImg.Play(w)
+
+			mu.RLock()
+			if quit {
+				break
+			}
+			mu.RUnlock()
+		}
+	}()
+
 	<-ec
 	quitC <- true
 
