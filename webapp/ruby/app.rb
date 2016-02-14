@@ -170,7 +170,7 @@ module Isuconp
 
       if params['file']
         mime = ''
-        # 投稿の拡張子からファイルのタイプを決定する
+        # 投稿のContent-Typeからファイルのタイプを決定する
         if params["file"][:type].include? "jpeg"
           mime = "image/jpeg"
         elsif params["file"][:type].include? "png"
