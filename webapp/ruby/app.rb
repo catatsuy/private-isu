@@ -52,43 +52,6 @@ module Isuconp
         end
       end
 
-      def register_user(account_name: ,email:, password:)
-        validated = validate_user(
-          account_name: account_name,
-          email: email,
-          passhash: password
-        )
-        if !validated
-          return false
-        end
-
-        user = db.xquery('SELECT 1 FROM users WHERE `account_name` = ? OR `email` = ?', account_name, email).first
-        if user
-          return false
-        end
-
-        query = 'INSERT INTO `users` (`account_name`, `email`, `passhash`) VALUES (?,?,?)'
-        db.xquery(query, account_name, email, calculate_passhash(password, account_name))
-
-        return true
-      end
-
-      def validate_user(account_name: ,email:, password:)
-        if /\A[a-zA-Z_]{3,}\z/.match(account_name)
-          return false
-        end
-
-        if /\A[^@]+@[^@]+\z/.match(email)
-          return false
-        end
-
-        if password.legth > 8
-          return false
-        end
-
-        return true
-      end
-
       def calculate_passhash(password, account_name)
         salt = calculate_salt(account_name)
         Digest::SHA256.hexdigest("#{password}:#{salt}")
@@ -116,26 +79,6 @@ module Isuconp
       else
         flash[:notice] = 'アカウント名かユーザー名が間違っています'
         redirect '/login'
-      end
-    end
-
-    get '/register' do
-      if session[:user]
-        return 'ログイン中です'
-      end
-      erb :register, layout: :layout
-    end
-
-    post '/register' do
-      result = register_user(
-        account_name: params['account_name'],
-        email: params['email'],
-        password: params['password']
-      )
-      if result
-        redirect('/')
-      else
-        return 'アカウント名かE-mailがすでに使われています'
       end
     end
 
