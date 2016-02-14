@@ -22,7 +22,7 @@ type Scenario struct {
 	ExpectedHTML       map[string]string
 
 	Checked   bool
-	CheckFunc func(w *Worker, body io.Reader)
+	CheckFunc func(w *Worker, body io.Reader) error
 }
 
 type Asset struct {
@@ -127,7 +127,13 @@ func (s *Scenario) PlayWithFile(w *Worker, paramName string) error {
 	}
 
 	if s.Checked {
-		s.CheckFunc(w, res.Body)
+		err := s.CheckFunc(w, res.Body)
+		if err != nil {
+			return w.Fail(
+				res.Request,
+				err,
+			)
+		}
 	}
 
 	defer res.Body.Close()

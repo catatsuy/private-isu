@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/md5"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"sync"
 	"time"
 
@@ -84,15 +86,24 @@ func (cli *CLI) Run(args []string) int {
 	toppageNotLogin.ExpectedStatusCode = 200
 	toppageNotLogin.ExpectedLocation = "/"
 	toppageNotLogin.Checked = true
-	toppageNotLogin.CheckFunc = func(w *worker.Worker, body io.Reader) {
+	toppageNotLogin.CheckFunc = func(w *worker.Worker, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
-		doc.Find("img").Each(func(_ int, s *goquery.Selection) {
+		exit := 0
+		doc.Find("img").EachWithBreak(func(_ int, s *goquery.Selection) bool {
 			url, _ := s.Attr("src")
 			imgReq := worker.NewScenario("GET", url)
 			imgReq.ExpectedStatusCode = 200
 			imgReq.Play(w)
+			if exit > 15 {
+				return false
+			} else {
+				exit += 1
+				return true
+			}
 		})
+
+		return nil
 	}
 
 	go func() {
@@ -138,11 +149,34 @@ func (cli *CLI) Run(args []string) int {
 	postTopImg.ExpectedStatusCode = 200
 	postTopImg.ExpectedLocation = "/"
 
+	mepageCheck := worker.NewScenario("GET", "/me")
+	mepageCheck.ExpectedStatusCode = 200
+	mepageCheck.Checked = true
+
+	mepageCheck.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		url, _ := doc.Find(`img`).First().Attr("src")
+		imgReq := worker.NewScenario("GET", url)
+		imgReq.ExpectedStatusCode = 200
+		imgReq.Checked = true
+		imgReq.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+			if getMD5ByIO(body) == postTopImg.Asset.MD5 {
+				return nil
+			} else {
+				return fmt.Errorf("Error")
+			}
+		}
+		imgReq.Play(w)
+
+		return nil
+	}
+
 	getIndexAfterPostImg := worker.NewScenario("GET", "/")
 	getIndexAfterPostImg.ExpectedStatusCode = 200
 	getIndexAfterPostImg.Checked = true
 
-	getIndexAfterPostImg.CheckFunc = func(w *worker.Worker, body io.Reader) {
+	getIndexAfterPostImg.CheckFunc = func(w *worker.Worker, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
@@ -151,8 +185,14 @@ func (cli *CLI) Run(args []string) int {
 			"csrf_token": token,
 			"type":       "image/jpeg",
 		}
-		postTopImg.Asset = &worker.Asset{Path: "./userdata/img/data.jpg"}
+		postTopImg.Asset = &worker.Asset{
+			Path: "./userdata/img/data.jpg",
+			MD5:  "a5243f84e4859a9647ecc508239a9a51",
+		}
 		postTopImg.PlayWithFile(w, "file")
+		mepageCheck.Play(w)
+
+		return nil
 	}
 
 	go func() {
@@ -189,4 +229,13 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	return ExitCodeOK
+}
+
+func getMD5(data []byte) string {
+	return fmt.Sprintf("%x", md5.Sum(data))
+}
+
+func getMD5ByIO(r io.Reader) string {
+	bytes, _ := ioutil.ReadAll(r)
+	return getMD5(bytes)
 }
