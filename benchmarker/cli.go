@@ -82,7 +82,7 @@ func (cli *CLI) Run(args []string) int {
 		mu.Unlock()
 	}()
 
-	toppageNotLogin := worker.NewScenario("GET", "/me")
+	toppageNotLogin := worker.NewScenario("GET", "/mypage")
 	toppageNotLogin.ExpectedStatusCode = 200
 	toppageNotLogin.ExpectedLocation = "/"
 	toppageNotLogin.Checked = true
@@ -123,9 +123,9 @@ func (cli *CLI) Run(args []string) int {
 	login.ExpectedStatusCode = 200
 	login.ExpectedLocation = "/"
 
-	mepage := worker.NewScenario("GET", "/me")
+	mepage := worker.NewScenario("GET", "/mypage")
 	mepage.ExpectedStatusCode = 200
-	mepage.ExpectedLocation = "/me"
+	mepage.ExpectedLocation = "/mypage"
 
 	go func() {
 		for {
@@ -149,7 +149,7 @@ func (cli *CLI) Run(args []string) int {
 	postTopImg.ExpectedStatusCode = 200
 	postTopImg.ExpectedLocation = "/"
 
-	mepageCheck := worker.NewScenario("GET", "/me")
+	mepageCheck := worker.NewScenario("GET", "/mypage")
 	mepageCheck.ExpectedStatusCode = 200
 	mepageCheck.Checked = true
 

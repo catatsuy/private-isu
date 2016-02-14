@@ -277,7 +277,7 @@ module Isuconp
       redirect '/admin/banned'
     end
 
-    get '/me' do
+    get '/mypage' do
       if !session[:user]
         redirect '/'
       end
