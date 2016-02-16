@@ -28,7 +28,7 @@
     <div class="isu-post-text">
       <%= escape_html(p[:body]).gsub(/\r?\n/, '<br>') %>
     </div>
-    <div>
+    <div class="isu-post-comment">
       <% if comments[p[:id]] %>
       <%   comments[p[:id]].each do |c| %>
       <div class="isu-comment-text">
