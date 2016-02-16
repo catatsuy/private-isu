@@ -55,7 +55,7 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	ec := time.After(10 * time.Second)
+	ec := time.After(15 * time.Second)
 	quitC := make(chan bool)
 	quit := false
 	var mu sync.RWMutex
@@ -195,6 +195,29 @@ func (cli *CLI) Run(args []string) int {
 		return nil
 	}
 
+	postComment := worker.NewScenario("POST", "/comment")
+	postComment.ExpectedStatusCode = 200
+	postComment.ExpectedLocation = "/"
+
+	getIndexAfterPostComment := worker.NewScenario("GET", "/")
+	getIndexAfterPostComment.ExpectedStatusCode = 200
+	getIndexAfterPostComment.Checked = true
+
+	getIndexAfterPostComment.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+		postID, _ := doc.Find(`input[name="post_id"]`).First().Attr("value")
+		postComment.PostData = map[string]string{
+			"post_id":    postID,
+			"comment":    "comment",
+			"csrf_token": token,
+		}
+		postComment.Play(w)
+
+		return nil
+	}
+
 	go func() {
 		for {
 			login.PostData = map[string]string{
@@ -204,6 +227,7 @@ func (cli *CLI) Run(args []string) int {
 			w := <-workersC
 			login.Play(w)
 			getIndexAfterPostImg.Play(w)
+			getIndexAfterPostComment.Play(w)
 
 			mu.RLock()
 			if quit {
