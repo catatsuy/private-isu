@@ -96,7 +96,7 @@ module Isuconp
 
     get '/login' do
       if session[:user]
-        redirect '/'
+        redirect '/', 302
       end
       erb :login, layout: :layout
     end
@@ -107,10 +107,10 @@ module Isuconp
         session[:user] = {
           id: user[:id]
         }
-        redirect '/'
+        redirect '/', 302
       else
         flash[:notice] = 'アカウント名かユーザー名が間違っています'
-        redirect '/login'
+        redirect '/login', 302
       end
     end
 
@@ -127,7 +127,7 @@ module Isuconp
         password: params['password']
       )
       if result
-        redirect('/')
+        redirect '/', 302
       else
         return 'アカウント名がすでに使われています'
       end
@@ -135,7 +135,7 @@ module Isuconp
 
     get '/logout' do
       session.delete(:user)
-      redirect '/'
+      redirect '/', 302
     end
 
     get '/' do
@@ -184,7 +184,7 @@ module Isuconp
           0
         )
 
-        redirect '/'
+        redirect '/', 302
       else
         return "画像が必須です"
       end
@@ -212,7 +212,7 @@ module Isuconp
         params['comment']
       )
 
-      redirect '/'
+      redirect '/', 302
     end
 
     get '/notify' do
@@ -230,7 +230,7 @@ module Isuconp
 
     get '/admin/banned' do
       if !session[:user]
-        redirect '/login'
+        redirect '/login', 302
       end
 
       user = db.xquery('SELECT * FROM `users` WHERE `id` = ?',
@@ -268,12 +268,12 @@ module Isuconp
         )
       end
 
-      redirect '/admin/banned'
+      redirect '/admin/banned', 302
     end
 
     get '/mypage' do
       if !session[:user]
-        redirect '/'
+        redirect '/', 302
       end
 
       posts_all = db.xquery('SELECT * FROM `posts` ORDER BY `created_at` DESC')
