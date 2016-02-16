@@ -78,7 +78,6 @@ module Isuconp
         end
 
         if password.length <= 7
-          p password.length
           return false
         end
 
