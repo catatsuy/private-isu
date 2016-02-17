@@ -55,8 +55,8 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	ec := time.After(15 * time.Second)
-	quitC := make(chan bool)
+	timeUp := time.After(15 * time.Second)
+	done := make(chan bool)
 	quit := false
 	var mu sync.RWMutex
 
@@ -65,21 +65,13 @@ func (cli *CLI) Run(args []string) int {
 	go func() {
 		for {
 			workersC <- worker.NewWorker(target)
-
 			mu.RLock()
 			if quit {
+				done <- true
 				break
 			}
 			mu.RUnlock()
 		}
-	}()
-
-	go func() {
-		// for stopping goroutines
-		<-quitC
-		mu.Lock()
-		quit = true
-		mu.Unlock()
 	}()
 
 	toppageNotLogin := worker.NewScenario("GET", "/mypage")
@@ -110,12 +102,6 @@ func (cli *CLI) Run(args []string) int {
 		// not login
 		for {
 			toppageNotLogin.Play(<-workersC)
-
-			mu.RLock()
-			if quit {
-				break
-			}
-			mu.RUnlock()
 		}
 	}()
 
@@ -136,12 +122,6 @@ func (cli *CLI) Run(args []string) int {
 			w := <-workersC
 			login.Play(w)
 			mepage.Play(w)
-
-			mu.RLock()
-			if quit {
-				break
-			}
-			mu.RUnlock()
 		}
 	}()
 
@@ -228,17 +208,17 @@ func (cli *CLI) Run(args []string) int {
 			login.Play(w)
 			getIndexAfterPostImg.Play(w)
 			getIndexAfterPostComment.Play(w)
-
-			mu.RLock()
-			if quit {
-				break
-			}
-			mu.RUnlock()
 		}
 	}()
 
-	<-ec
-	quitC <- true
+	<-timeUp
+
+	mu.Lock()
+	quit = true
+	mu.Unlock()
+
+	<-done
+	close(workersC)
 
 	var errs []error
 
