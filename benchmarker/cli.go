@@ -62,6 +62,9 @@ func (cli *CLI) Run(args []string) int {
 
 	workersC := make(chan *worker.Worker, 20)
 
+	// workersCにworkerを用意しておく
+	// キューとして使って並列度が高くなりすぎないようにするのと、
+	// 時間が来たらcloseする
 	go func() {
 		for {
 			workersC <- worker.NewWorker(target)
@@ -77,6 +80,7 @@ func (cli *CLI) Run(args []string) int {
 	toppageNotLogin := worker.NewScenario("GET", "/mypage")
 	toppageNotLogin.ExpectedStatusCode = 200
 	toppageNotLogin.ExpectedLocation = "/"
+	toppageNotLogin.Description = "/mypageは非ログイン時に/にリダイレクトがかかる"
 	toppageNotLogin.Checked = true
 	toppageNotLogin.CheckFunc = func(w *worker.Worker, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
@@ -108,10 +112,12 @@ func (cli *CLI) Run(args []string) int {
 	login := worker.NewScenario("POST", "/login")
 	login.ExpectedStatusCode = 200
 	login.ExpectedLocation = "/"
+	login.Description = "ログイン"
 
-	mepage := worker.NewScenario("GET", "/mypage")
-	mepage.ExpectedStatusCode = 200
-	mepage.ExpectedLocation = "/mypage"
+	mypage := worker.NewScenario("GET", "/mypage")
+	mypage.ExpectedStatusCode = 200
+	mypage.ExpectedLocation = "/mypage"
+	mypage.Description = "ログインして、/mypageに"
 
 	go func() {
 		for {
@@ -121,19 +127,20 @@ func (cli *CLI) Run(args []string) int {
 			}
 			w := <-workersC
 			login.Play(w)
-			mepage.Play(w)
+			mypage.Play(w)
 		}
 	}()
 
 	postTopImg := worker.NewScenario("POST", "/")
 	postTopImg.ExpectedStatusCode = 200
 	postTopImg.ExpectedLocation = "/"
+	postTopImg.Description = "画像を投稿"
 
-	mepageCheck := worker.NewScenario("GET", "/mypage")
-	mepageCheck.ExpectedStatusCode = 200
-	mepageCheck.Checked = true
+	mypageCheck := worker.NewScenario("GET", "/mypage")
+	mypageCheck.ExpectedStatusCode = 200
+	mypageCheck.Checked = true
 
-	mepageCheck.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+	mypageCheck.CheckFunc = func(w *worker.Worker, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		url, _ := doc.Find(`img`).First().Attr("src")
@@ -170,7 +177,7 @@ func (cli *CLI) Run(args []string) int {
 			MD5:  "a5243f84e4859a9647ecc508239a9a51",
 		}
 		postTopImg.PlayWithFile(w, "file")
-		mepageCheck.Play(w)
+		mypageCheck.Play(w)
 
 		return nil
 	}

@@ -21,6 +21,8 @@ type Scenario struct {
 	ExpectedAssets     map[string]string
 	ExpectedHTML       map[string]string
 
+	Description string
+
 	Checked   bool
 	CheckFunc func(w *Worker, body io.Reader) error
 }
