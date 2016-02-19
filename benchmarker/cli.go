@@ -218,6 +218,43 @@ func (cli *CLI) Run(args []string) int {
 		}
 	}()
 
+	getAdminBanned := worker.NewScenario("GET", "/admin/banned")
+	getAdminBanned.ExpectedStatusCode = 200
+	getAdminBanned.ExpectedLocation = "/admin/banned"
+	getAdminBanned.Checked = true
+	getAdminBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+
+		postAdminBanned := worker.NewScenario("POST", "/admin/banned")
+		postAdminBanned.ExpectedStatusCode = 200
+		postAdminBanned.ExpectedLocation = "/admin/banned"
+		postAdminBanned.PostData = map[string]string{
+			"uid[]":      "11",
+			"csrf_token": token,
+		}
+		postAdminBanned.Play(w)
+
+		return nil
+	}
+
+	interval := time.Tick(10 * time.Second)
+
+	go func() {
+		for {
+			<-interval
+
+			login.PostData = map[string]string{
+				"account_name": "catatsuy",
+				"password":     "kaneko",
+			}
+			w := <-workersC
+			login.Play(w)
+			getAdminBanned.Play(w)
+			// topを見てBANされたユーザーの投稿がないか確認
+		}
+	}()
+
 	<-timeUp
 
 	mu.Lock()
