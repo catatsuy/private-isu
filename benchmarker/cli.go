@@ -55,7 +55,7 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	timeUp := time.After(15 * time.Second)
+	timeUp := time.After(30 * time.Second)
 	done := make(chan bool)
 	quit := false
 	var mu sync.RWMutex
