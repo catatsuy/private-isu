@@ -150,11 +150,16 @@ module Isuconp
         end
       end
 
+      user = {}
       if session[:user]
-        erb :index, layout: :layout, locals: { posts: posts, comments: comments }
+        user = db.xquery('SELECT * FROM `users` WHERE `id` = ?',
+          session[:user][:id]
+        ).first
       else
-        erb :not_login, layout: :layout, locals: { posts: posts }
+        user = { id: 0 }
       end
+
+      erb :index, layout: :layout, locals: { posts: posts, comments: comments, user: user }
     end
 
     post '/' do

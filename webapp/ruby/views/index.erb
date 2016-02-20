@@ -1,7 +1,11 @@
 <h1>Iscogram</h1>
 
 <div class="header">
-  <%= escape_html session[:user][:account_name] %>さん
+  <% if user[:id] != 0 %>
+  <%=  escape_html user[:account_name] %>さん
+  <% else %>
+  ログイン前
+  <% end %>
 </div>
 
 <div class="isu-submit">
@@ -21,7 +25,7 @@
 
 <div>
   <% posts.each do |p| %>
-  <div class="isu-post">
+  <div class="isu-post" data-post-id="<%= p[:id] %>" data-post-user-id="<%= p[:user_id] %>">
     <div class="isu-post-image">
       <img src="/image/<%= p[:id] %>" class="isu-image">
     </div>
@@ -31,7 +35,7 @@
     <div class="isu-post-comment">
       <% if comments[p[:id]] %>
       <%   comments[p[:id]].each do |c| %>
-      <div class="isu-comment-text">
+      <div class="isu-comment-text" data-comment-id="<%= c[:id] %>" data-comment-user-id=<%= c[:user_id] %>>
         <%= escape_html(c[:comment]) %>
       </div>
       <%   end %>
