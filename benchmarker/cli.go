@@ -2,10 +2,12 @@ package main
 
 import (
 	"crypto/md5"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"sync"
 	"time"
 
@@ -238,6 +240,38 @@ func (cli *CLI) Run(args []string) int {
 		return nil
 	}
 
+	checkBanned := worker.NewScenario("GET", "/")
+	checkBanned.ExpectedStatusCode = 200
+	checkBanned.Checked = true
+
+	checkBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		exit := 0
+		existErr := false
+
+		doc.Find(`.isu-post-account-name`).EachWithBreak(func(_ int, s *goquery.Selection) bool {
+			account_name := strings.TrimSpace(s.Text())
+			if account_name == "banned_user" {
+				existErr = true
+				return false
+			}
+			if exit > 20 {
+				return false
+			} else {
+				exit += 1
+				return true
+			}
+			return true
+		})
+
+		if existErr {
+			return errors.New("BANされたユーザーの投稿が表示されています")
+		}
+
+		return nil
+	}
+
 	interval := time.Tick(10 * time.Second)
 
 	go func() {
@@ -251,7 +285,7 @@ func (cli *CLI) Run(args []string) int {
 			w := <-workersC
 			login.Play(w)
 			getAdminBanned.Play(w)
-			// topを見てBANされたユーザーの投稿がないか確認
+			checkBanned.Play(w)
 		}
 	}()
 
