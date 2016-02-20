@@ -102,6 +102,11 @@ module Isuconp
     end
 
     post '/login' do
+      if session.id
+        # ログイン済みはリダイレクト
+        redirect '/', 302
+      end
+
       user = try_login(params['account_name'], params['password'])
       if user
         session[:user] = {
@@ -122,6 +127,11 @@ module Isuconp
     end
 
     post '/register' do
+      if session.id
+        # ログイン済みはリダイレクト
+        redirect '/', 302
+      end
+
       result = register_user(
         account_name: params['account_name'],
         password: params['password']
@@ -163,6 +173,11 @@ module Isuconp
     end
 
     post '/' do
+      if !session.id
+        # 非ログインはリダイレクト
+        redirect '/login', 302
+      end
+
       if params['csrf_token'] != session.id
         return 'csrf_token error'
       end
@@ -206,6 +221,11 @@ module Isuconp
     end
 
     post '/comment' do
+      if !session.id
+        # 非ログインはリダイレクト
+        redirect '/login', 302
+      end
+
       if params["csrf_token"] != session.id
         return "csrf_token error"
       end
@@ -252,6 +272,11 @@ module Isuconp
     end
 
     post '/admin/banned' do
+      if !session.id
+        # 非ログインはリダイレクト
+        redirect '/', 302
+      end
+
       user = db.xquery('SELECT * FROM `users` WHERE `id` = ?',
         session[:user][:id]
       ).first
@@ -277,7 +302,8 @@ module Isuconp
     end
 
     get '/mypage' do
-      if !session[:user]
+      if !session.id
+        # 非ログインはリダイレクト
         redirect '/', 302
       end
 
