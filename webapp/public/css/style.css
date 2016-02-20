@@ -40,3 +40,13 @@ textarea {
 .isu-form {
   margin-top: 10px;
 }
+
+.isu-post-account-name {
+  color: gray;
+  font-size: small;
+}
+
+.isu-comment-account-name {
+  color: gray;
+  font-size: small;
+}

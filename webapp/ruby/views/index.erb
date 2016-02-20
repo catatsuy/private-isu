@@ -25,18 +25,22 @@
 
 <div>
   <% posts.each do |p| %>
-  <div class="isu-post" data-post-id="<%= p[:id] %>" data-post-user-id="<%= p[:user_id] %>">
+  <div class="isu-post">
     <div class="isu-post-image">
       <img src="/image/<%= p[:id] %>" class="isu-image">
     </div>
     <div class="isu-post-text">
       <%= escape_html(p[:body]).gsub(/\r?\n/, '<br>') %>
+      <div class="isu-post-account-name">
+        <%= escape_html(users[p[:user_id]][:account_name]) %>
+      </div>
     </div>
     <div class="isu-post-comment">
       <% if comments[p[:id]] %>
       <%   comments[p[:id]].each do |c| %>
-      <div class="isu-comment-text" data-comment-id="<%= c[:id] %>" data-comment-user-id=<%= c[:user_id] %>>
+      <div class="isu-comment-text">
         <%= escape_html(c[:comment]) %>
+        <span class="isu-comment-account-name"><%= escape_html(users[c[:user_id]][:account_name]) %></span>
       </div>
       <%   end %>
       <% end %>

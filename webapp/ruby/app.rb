@@ -169,7 +169,13 @@ module Isuconp
         user = { id: 0 }
       end
 
-      erb :index, layout: :layout, locals: { posts: posts, comments: comments, user: user }
+      users_raw = db.xquery('SELECT * FROM `users`')
+      users = {}
+      users_raw.each do |u|
+        users[u[:id]] = u
+      end
+
+      erb :index, layout: :layout, locals: { posts: posts, comments: comments, users: users, user: user }
     end
 
     post '/' do
