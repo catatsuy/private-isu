@@ -121,6 +121,11 @@ func (s *Scenario) PlayWithCached(w *Worker) error {
 		req.Header.Add(key, val)
 	}
 
+	urlCache, found := cache.GetInstance().Get(req.RequestURI)
+	if found {
+		urlCache.Apply(req)
+	}
+
 	res, err := w.SendRequest(req, false)
 
 	if err != nil {
@@ -129,7 +134,10 @@ func (s *Scenario) PlayWithCached(w *Worker) error {
 
 	defer res.Body.Close()
 
-	cache.GetInstance().Set(req.RequestURI, cache.NewURLCache(res))
+	uc := cache.NewURLCache(res)
+	if uc != nil {
+		cache.GetInstance().Set(req.RequestURI, uc)
+	}
 
 	if s.ExpectedLocation != "" {
 		if s.ExpectedLocation != res.Request.URL.Path {
