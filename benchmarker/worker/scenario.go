@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+
+	"github.com/catatsuy/private-isu/benchmarker/cache"
 )
 
 type Scenario struct {
@@ -94,6 +96,49 @@ func (s *Scenario) Play(w *Worker) error {
 				res.Request,
 				err,
 			)
+		}
+	}
+
+	w.Success(1)
+
+	return nil
+}
+
+func (s *Scenario) PlayWithCached(w *Worker) error {
+	formData := url.Values{}
+	for key, val := range s.PostData {
+		formData.Set(key, val)
+	}
+
+	buf := bytes.NewBufferString(formData.Encode())
+	req, err := w.NewRequest(s.Method, s.Path, buf)
+
+	if err != nil {
+		return w.Fail(req, err)
+	}
+
+	for key, val := range s.Headers {
+		req.Header.Add(key, val)
+	}
+
+	res, err := w.SendRequest(req, false)
+
+	if err != nil {
+		return w.Fail(req, err)
+	}
+
+	defer res.Body.Close()
+
+	cache.GetInstance().Set(req.RequestURI, cache.NewURLCache(res))
+
+	if s.ExpectedLocation != "" {
+		if s.ExpectedLocation != res.Request.URL.Path {
+			return w.Fail(
+				res.Request,
+				fmt.Errorf(
+					"Expected location is miss match %s, got: %s",
+					s.ExpectedLocation, res.Request.URL.Path,
+				))
 		}
 	}
 

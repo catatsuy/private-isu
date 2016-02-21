@@ -1,18 +1,17 @@
 package main
 
 import (
-	"crypto/md5"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/catatsuy/private-isu/benchmarker/score"
+	"github.com/catatsuy/private-isu/benchmarker/util"
 	"github.com/catatsuy/private-isu/benchmarker/worker"
 )
 
@@ -92,7 +91,7 @@ func (cli *CLI) Run(args []string) int {
 			url, _ := s.Attr("src")
 			imgReq := worker.NewScenario("GET", url)
 			imgReq.ExpectedStatusCode = 200
-			imgReq.Play(w)
+			imgReq.PlayWithCached(w)
 			if exit > 15 {
 				return false
 			} else {
@@ -150,7 +149,7 @@ func (cli *CLI) Run(args []string) int {
 		imgReq.ExpectedStatusCode = 200
 		imgReq.Checked = true
 		imgReq.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-			if getMD5ByIO(body) == postTopImg.Asset.MD5 {
+			if util.GetMD5ByIO(body) == postTopImg.Asset.MD5 {
 				return nil
 			} else {
 				return fmt.Errorf("Error")
@@ -311,13 +310,4 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	return ExitCodeOK
-}
-
-func getMD5(data []byte) string {
-	return fmt.Sprintf("%x", md5.Sum(data))
-}
-
-func getMD5ByIO(r io.Reader) string {
-	bytes, _ := ioutil.ReadAll(r)
-	return getMD5(bytes)
 }
