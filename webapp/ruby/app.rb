@@ -102,6 +102,11 @@ module Isuconp
     end
 
     post '/login' do
+      if session[:user] && session[:user][:id]
+        # ログイン済みはリダイレクト
+        redirect '/', 302
+      end
+
       user = try_login(params['account_name'], params['password'])
       if user
         session[:user] = {
@@ -122,7 +127,7 @@ module Isuconp
     end
 
     post '/register' do
-      if session.id
+      if session[:user] && session[:user][:id]
         # ログイン済みはリダイレクト
         redirect '/', 302
       end
@@ -174,7 +179,7 @@ module Isuconp
     end
 
     post '/' do
-      if !session.id
+      unless session[:user] && session[:user][:id]
         # 非ログインはリダイレクト
         redirect '/login', 302
       end
@@ -222,7 +227,7 @@ module Isuconp
     end
 
     post '/comment' do
-      if !session.id
+      unless session[:user] && session[:user][:id]
         # 非ログインはリダイレクト
         redirect '/login', 302
       end
@@ -273,7 +278,7 @@ module Isuconp
     end
 
     post '/admin/banned' do
-      if !session.id
+      unless session[:user] && session[:user][:id]
         # 非ログインはリダイレクト
         redirect '/', 302
       end
@@ -303,7 +308,7 @@ module Isuconp
     end
 
     get '/mypage' do
-      if !session.id
+      unless session[:user] && session[:user][:id]
         # 非ログインはリダイレクト
         redirect '/', 302
       end
