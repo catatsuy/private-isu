@@ -102,11 +102,6 @@ module Isuconp
     end
 
     post '/login' do
-      if session.id
-        # ログイン済みはリダイレクト
-        redirect '/', 302
-      end
-
       user = try_login(params['account_name'], params['password'])
       if user
         session[:user] = {
