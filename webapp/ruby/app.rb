@@ -202,7 +202,7 @@ module Isuconp
         end
 
         query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`, `private`) VALUES (?,?,?,?,?)'
-        db.xquery(query,
+        db.prepare(query).execute(
           session[:user][:id],
           mime,
           params["file"][:tempfile].read,
