@@ -109,7 +109,7 @@ module Isuconp
         }
         redirect '/', 302
       else
-        flash[:notice] = 'アカウント名かユーザー名が間違っています'
+        flash[:notice] = 'アカウント名かパスワードが間違っています'
         redirect '/login', 302
       end
     end
