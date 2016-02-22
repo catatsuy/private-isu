@@ -27,13 +27,10 @@ type Worker struct {
 
 	Host string
 
-	Successes int32
-	Fails     int32
-	Score     int64
-	Errors    []error
-
 	logger *log.Logger
 }
+
+var failErrs []error
 
 func NewWorker(host string) *Worker {
 	w := &Worker{
@@ -169,6 +166,14 @@ func (w *Worker) Fail(req *http.Request, err error) error {
 		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
 	}
 
-	w.Errors = append(w.Errors, err)
+	setFails(err)
 	return nil
+}
+
+func setFails(e error) {
+	failErrs = append(failErrs, e)
+}
+
+func GetFails() []error {
+	return failErrs
 }

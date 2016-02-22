@@ -297,15 +297,13 @@ func (cli *CLI) Run(args []string) int {
 	<-done
 	close(workersC)
 
-	var errs []error
-
 	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
 		score.GetInstance().GetScore(),
 		score.GetInstance().GetSucesses(),
 		score.GetInstance().GetFails(),
 	)
 
-	for _, err := range errs {
+	for _, err := range worker.GetFails() {
 		fmt.Println(err)
 	}
 
