@@ -223,7 +223,6 @@ module Isuconp
         return ""
       end
 
-      post = {}
       post = db.prepare('SELECT * FROM posts WHERE id = ?').execute(params[:id].to_i).first
 
       headers['Content-Type'] = post[:mime]
