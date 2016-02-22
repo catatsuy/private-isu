@@ -1,6 +1,5 @@
 require 'sinatra/base'
 require 'mysql2'
-require 'mysql2-cs-bind'
 require 'rack-flash'
 require 'digest/md5'
 require 'pp'
@@ -41,7 +40,7 @@ module Isuconp
       end
 
       def try_login(account_name, password)
-        user = db.xquery('SELECT * FROM users WHERE account_name = ? AND del_flg = 0', account_name).first
+        user = db.prepare('SELECT * FROM users WHERE account_name = ? AND del_flg = 0').execute(account_name).first
 
         if user && calculate_passhash(password, user[:account_name]) == user[:passhash]
           return user
@@ -61,13 +60,16 @@ module Isuconp
           return false
         end
 
-        user = db.xquery('SELECT 1 FROM users WHERE `account_name` = ?', account_name).first
+        user = db.prepare('SELECT 1 FROM users WHERE `account_name` = ?').execute(account_name).first
         if user
           return false
         end
 
         query = 'INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)'
-        db.xquery(query, account_name, calculate_passhash(password, account_name))
+        db.prepare(query).execute(
+          account_name,
+          calculate_passhash(password, account_name)
+        )
 
         return true
       end
@@ -149,8 +151,8 @@ module Isuconp
     end
 
     get '/' do
-      posts = db.xquery('SELECT * FROM posts ORDER BY created_at DESC')
-      cs = db.xquery('SELECT * FROM comments ORDER BY created_at DESC')
+      posts = db.query('SELECT * FROM posts ORDER BY created_at DESC')
+      cs = db.query('SELECT * FROM comments ORDER BY created_at DESC')
       comments = {}
       cs.each do |c|
         if !comments[c[:post_id]]
@@ -162,14 +164,14 @@ module Isuconp
 
       user = {}
       if session[:user]
-        user = db.xquery('SELECT * FROM `users` WHERE `id` = ?',
+        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
           session[:user][:id]
         ).first
       else
         user = { id: 0 }
       end
 
-      users_raw = db.xquery('SELECT * FROM `users`')
+      users_raw = db.query('SELECT * FROM `users`')
       users = {}
       users_raw.each do |u|
         users[u[:id]] = u
@@ -221,7 +223,9 @@ module Isuconp
         return ""
       end
 
-      post = db.xquery('SELECT * FROM posts WHERE id = ?', params[:id].to_i).first
+      post = {}
+      post = db.prepare('SELECT * FROM posts WHERE id = ?').execute(params[:id].to_i).first
+
       headers['Content-Type'] = post[:mime]
       post[:imgdata]
     end
@@ -237,7 +241,7 @@ module Isuconp
       end
 
       query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)'
-      db.xquery(query,
+      db.prepare(query).execute(
         params['post_id'],
         session[:user][:id],
         params['comment']
@@ -247,7 +251,7 @@ module Isuconp
     end
 
     get '/notify' do
-      comments = db.xquery('SELECT * FROM `comments` ORDER BY `created_at` DESC')
+      comments = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
       notifies = []
 
       comments.each do |c|
@@ -264,7 +268,7 @@ module Isuconp
         redirect '/login', 302
       end
 
-      user = db.xquery('SELECT * FROM `users` WHERE `id` = ?',
+      user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
         session[:user][:id]
       ).first
 
@@ -283,7 +287,7 @@ module Isuconp
         redirect '/', 302
       end
 
-      user = db.xquery('SELECT * FROM `users` WHERE `id` = ?',
+      user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
         session[:user][:id]
       ).first
 
@@ -298,10 +302,7 @@ module Isuconp
       query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?'
 
       params['uid'].each do |id|
-        db.xquery(query,
-          1,
-          id.to_i
-        )
+        db.prepare(query).execute(1, id.to_i)
       end
 
       redirect '/admin/banned', 302
@@ -313,8 +314,8 @@ module Isuconp
         redirect '/', 302
       end
 
-      posts_all = db.xquery('SELECT * FROM `posts` ORDER BY `created_at` DESC')
-      comments_all = db.xquery('SELECT * FROM `comments` ORDER BY `created_at` DESC')
+      posts_all = db.query('SELECT * FROM `posts` ORDER BY `created_at` DESC')
+      comments_all = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
       posts = []
       comments = []
 
