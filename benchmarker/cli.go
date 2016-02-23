@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
-	mrand "math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -310,18 +308,4 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	return ExitCodeOK
-}
-
-var (
-	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	random      = mrand.New(mrand.NewSource(time.Now().UnixNano()))
-)
-
-func generateRandomStr(n int) string {
-	bf := bytes.NewBuffer(make([]byte, 0, n))
-
-	for i := 0; i < n; i++ {
-		bf.WriteRune(letterRunes[random.Int()%len(letterRunes)])
-	}
-	return bf.String()
 }
