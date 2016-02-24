@@ -8,6 +8,7 @@ import (
 	"net/url"
 
 	"github.com/catatsuy/private-isu/benchmarker/cache"
+	"github.com/catatsuy/private-isu/benchmarker/util"
 )
 
 type Scenario struct {
@@ -133,16 +134,20 @@ func (s *Scenario) PlayWithImage(w *Worker) error {
 		return w.Fail(req, err)
 	}
 
-	uc := cache.NewURLCache(res)
+	// 2回ioutil.ReadAllを呼ぶとおかしくなる
+	uc, md5 := cache.NewURLCache(res)
 	if uc != nil {
 		cache.GetInstance().Set(req.RequestURI, uc)
 	}
 
 	success := false
 
-	// 2回ioutil.ReadAllを呼ぶとおかしくなる
 	if res.StatusCode == http.StatusNotModified {
-		// res.StatusCode == http.StatusOK && uc.MD5 == s.Asset.MD5
+		success = true
+	}
+
+	if res.StatusCode == http.StatusOK &&
+		((uc == nil && util.GetMD5ByIO(res.Body) == s.Asset.MD5) || md5 == s.Asset.MD5) {
 		success = true
 	}
 

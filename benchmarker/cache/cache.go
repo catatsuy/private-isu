@@ -54,13 +54,13 @@ type URLCache struct {
 	MD5          string
 }
 
-func NewURLCache(res *http.Response) *URLCache {
+func NewURLCache(res *http.Response) (*URLCache, string) {
 	directive := res.Header.Get("Cache-Control")
 	cc := cachecontrol.Parse(directive)
 	noCache, _ := cc.NoCache()
 
 	if len(directive) == 0 || noCache || cc.NoStore() {
-		return nil
+		return nil, ""
 	}
 
 	now := time.Now()
@@ -75,7 +75,7 @@ func NewURLCache(res *http.Response) *URLCache {
 		ExpiresAt:    now.Add(cc.MaxAge()),
 		CacheControl: &cc,
 		MD5:          md5,
-	}
+	}, md5
 }
 
 func (c *URLCache) Available() bool {
