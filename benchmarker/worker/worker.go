@@ -141,19 +141,10 @@ func (w *Worker) RefreshClient() {
 	}
 }
 
-func (w *Worker) SendRequest(req *http.Request, simple bool) (resp *http.Response, err error) {
-	reqCh := make(chan bool)
-
+func (w *Worker) SendRequest(req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
-	go func() {
-		resp, err = w.Client.Do(req)
-		reqCh <- true
-	}()
-
-	<-reqCh
-
-	return resp, err
+	return w.Client.Do(req)
 }
 
 func (w *Worker) Success(point int64) {

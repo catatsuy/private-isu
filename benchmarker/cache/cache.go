@@ -1,7 +1,6 @@
 package cache
 
 import (
-	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
@@ -68,12 +67,7 @@ func NewURLCache(res *http.Response) *URLCache {
 	lm := res.Header.Get("Last-Modified")
 	etag := res.Header.Get("ETag")
 
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil
-	}
-	res.Body.Close()
-	md5 := util.GetMD5(body)
+	md5 := util.GetMD5ByIO(res.Body)
 
 	return &URLCache{
 		LastModified: lm,
@@ -89,6 +83,9 @@ func (c *URLCache) Available() bool {
 }
 
 func (c *URLCache) Apply(req *http.Request) {
+	req.Header.Add("Cache-Control", "max-age=0")
+	req.Header.Set("Connection", "Keep-Alive")
+
 	if c.Available() {
 		if c.LastModified != "" {
 			req.Header.Add("If-Modified-Since", c.LastModified)

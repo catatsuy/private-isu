@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net/http"
 	"net/url"
 
 	"github.com/catatsuy/private-isu/benchmarker/cache"
@@ -66,7 +67,7 @@ func (s *Scenario) Play(w *Worker) error {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
-	res, err := w.SendRequest(req, false)
+	res, err := w.SendRequest(req)
 
 	if err != nil {
 		return w.Fail(req, err)
@@ -104,7 +105,7 @@ func (s *Scenario) Play(w *Worker) error {
 	return nil
 }
 
-func (s *Scenario) PlayWithCached(w *Worker) error {
+func (s *Scenario) PlayWithImage(w *Worker) error {
 	formData := url.Values{}
 	for key, val := range s.PostData {
 		formData.Set(key, val)
@@ -126,28 +127,34 @@ func (s *Scenario) PlayWithCached(w *Worker) error {
 		urlCache.Apply(req)
 	}
 
-	res, err := w.SendRequest(req, false)
+	res, err := w.SendRequest(req)
 
 	if err != nil {
 		return w.Fail(req, err)
 	}
-
-	defer res.Body.Close()
 
 	uc := cache.NewURLCache(res)
 	if uc != nil {
 		cache.GetInstance().Set(req.RequestURI, uc)
 	}
 
-	if s.ExpectedLocation != "" {
-		if s.ExpectedLocation != res.Request.URL.Path {
-			return w.Fail(
-				res.Request,
-				fmt.Errorf(
-					"Expected location is miss match %s, got: %s",
-					s.ExpectedLocation, res.Request.URL.Path,
-				))
-		}
+	success := false
+
+	// 2回ioutil.ReadAllを呼ぶとおかしくなる
+	if res.StatusCode == http.StatusNotModified {
+		// res.StatusCode == http.StatusOK && uc.MD5 == s.Asset.MD5
+		success = true
+	}
+
+	defer res.Body.Close()
+
+	if !success {
+		return w.Fail(
+			res.Request,
+			fmt.Errorf(
+				"Expected location is miss match %s, got: %s",
+				s.ExpectedLocation, res.Request.URL.Path,
+			))
 	}
 
 	w.Success(1)
@@ -155,7 +162,7 @@ func (s *Scenario) PlayWithCached(w *Worker) error {
 	return nil
 }
 
-func (s *Scenario) PlayWithFile(w *Worker, paramName string) error {
+func (s *Scenario) PlayWithPostFile(w *Worker, paramName string) error {
 	req, err := w.NewFileUploadRequest(s.Path, s.PostData, paramName, s.Asset.Path)
 
 	if err != nil {
@@ -166,7 +173,7 @@ func (s *Scenario) PlayWithFile(w *Worker, paramName string) error {
 		req.Header.Add(key, val)
 	}
 
-	res, err := w.SendRequest(req, false)
+	res, err := w.SendRequest(req)
 
 	if err != nil {
 		return w.Fail(req, err)

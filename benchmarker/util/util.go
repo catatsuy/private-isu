@@ -16,7 +16,10 @@ func GetMD5(data []byte) string {
 }
 
 func GetMD5ByIO(r io.Reader) string {
-	bytes, _ := ioutil.ReadAll(r)
+	bytes, err := ioutil.ReadAll(r)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return GetMD5(bytes)
 }
 

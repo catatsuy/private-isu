@@ -91,7 +91,10 @@ func (cli *CLI) Run(args []string) int {
 			url, _ := s.Attr("src")
 			imgReq := worker.NewScenario("GET", url)
 			imgReq.ExpectedStatusCode = 200
-			imgReq.PlayWithCached(w)
+			imgReq.Asset = &worker.Asset{
+				MD5: "a5243f84e4859a9647ecc508239a9a51",
+			}
+			imgReq.PlayWithImage(w)
 			if exit > 15 {
 				return false
 			} else {
@@ -177,7 +180,7 @@ func (cli *CLI) Run(args []string) int {
 			Path: "./userdata/img/data.jpg",
 			MD5:  "a5243f84e4859a9647ecc508239a9a51",
 		}
-		postTopImg.PlayWithFile(w, "file")
+		postTopImg.PlayWithPostFile(w, "file")
 		mypageCheck.Play(w)
 
 		return nil
