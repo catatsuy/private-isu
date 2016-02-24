@@ -21,20 +21,21 @@ const (
 	UserAgent = "benchmarker"
 )
 
+var (
+	targetURL string
+)
+
 type Worker struct {
 	Client    *http.Client
 	Transport *http.Transport
-
-	Host string
 
 	logger *log.Logger
 }
 
 var failErrs []error
 
-func NewWorker(host string) *Worker {
+func NewWorker() *Worker {
 	w := &Worker{
-		Host:   host,
 		logger: log.New(os.Stdout, "", 0),
 	}
 
@@ -46,6 +47,10 @@ func NewWorker(host string) *Worker {
 	}
 
 	return w
+}
+
+func SetTargetHost(host string) {
+	targetURL = host
 }
 
 func (w *Worker) NewRequest(method, uri string, body io.Reader) (*http.Request, error) {
@@ -60,7 +65,7 @@ func (w *Worker) NewRequest(method, uri string, body io.Reader) (*http.Request, 
 	}
 
 	if parsedURL.Host == "" {
-		parsedURL.Host = w.Host
+		parsedURL.Host = targetURL
 	}
 
 	req, err := http.NewRequest(method, parsedURL.String(), body)
@@ -88,7 +93,7 @@ func (w *Worker) NewFileUploadRequest(uri string, params map[string]string, para
 	}
 
 	if parsedURL.Host == "" {
-		parsedURL.Host = w.Host
+		parsedURL.Host = targetURL
 	}
 
 	file, err := os.Open(path)

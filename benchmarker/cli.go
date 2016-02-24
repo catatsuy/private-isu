@@ -56,6 +56,8 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
+	worker.SetTargetHost(target)
+
 	timeUp := time.After(30 * time.Second)
 	done := make(chan bool)
 	quit := false
@@ -68,7 +70,7 @@ func (cli *CLI) Run(args []string) int {
 	// 時間が来たらcloseする
 	go func() {
 		for {
-			workersC <- worker.NewWorker(target)
+			workersC <- worker.NewWorker()
 			mu.RLock()
 			if quit {
 				done <- true
