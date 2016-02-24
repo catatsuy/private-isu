@@ -83,9 +83,6 @@ func (c *URLCache) Available() bool {
 }
 
 func (c *URLCache) Apply(req *http.Request) {
-	req.Header.Add("Cache-Control", "max-age=0")
-	req.Header.Set("Connection", "Keep-Alive")
-
 	if c.Available() {
 		if c.LastModified != "" {
 			req.Header.Add("If-Modified-Since", c.LastModified)

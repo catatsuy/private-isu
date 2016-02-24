@@ -123,7 +123,7 @@ func (s *Scenario) PlayWithImage(w *Worker) error {
 		req.Header.Add(key, val)
 	}
 
-	urlCache, found := cache.GetInstance().Get(req.RequestURI)
+	urlCache, found := cache.GetInstance().Get(s.Path)
 	if found {
 		urlCache.Apply(req)
 	}
@@ -137,7 +137,7 @@ func (s *Scenario) PlayWithImage(w *Worker) error {
 	// 2回ioutil.ReadAllを呼ぶとおかしくなる
 	uc, md5 := cache.NewURLCache(res)
 	if uc != nil {
-		cache.GetInstance().Set(req.RequestURI, uc)
+		cache.GetInstance().Set(s.Path, uc)
 	}
 
 	success := false
