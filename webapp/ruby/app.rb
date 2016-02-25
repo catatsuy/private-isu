@@ -337,7 +337,7 @@ module Isuconp
       index = 0
 
       (0..(posts.length - 1)).each do |pi|
-        if comments[index][:created_at] > posts[pi][:created_at]
+        if comments.length > 0 && comments[index][:created_at] > posts[pi][:created_at]
           mixed.push({type: :comment, value: comments[index]})
         else
           mixed.push({type: :post, value: posts[pi]})
