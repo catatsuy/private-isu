@@ -123,7 +123,7 @@ module Isuconp
 
     get '/register' do
       if session[:user]
-        return 'ログイン中です'
+        redirect '/', 302
       end
       erb :register, layout: :layout
     end
@@ -141,7 +141,8 @@ module Isuconp
       if result
         redirect '/', 302
       else
-        return 'アカウント名がすでに使われています'
+        flash[:notice] = 'アカウント名がすでに使われています'
+        redirect '/register', 302
       end
     end
 
@@ -200,7 +201,8 @@ module Isuconp
         elsif params["file"][:type].include? "gif"
           mime = "image/gif"
         else
-          return "投稿できる画像形式はjpgとpngとgifだけです"
+          flash[:notice] = '投稿できる画像形式はjpgとpngとgifだけです'
+          redirect '/', 302
         end
 
         query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`, `private`) VALUES (?,?,?,?,?)'
@@ -214,7 +216,8 @@ module Isuconp
 
         redirect '/', 302
       else
-        return "画像が必須です"
+        flash[:notice] = '画像が必須です'
+        redirect '/', 302
       end
     end
 
@@ -272,7 +275,7 @@ module Isuconp
       ).first
 
       if user[:authority] == 0
-        return '管理ユーザーではありません'
+        return 403
       end
 
       users = db.query('SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC')
@@ -291,11 +294,11 @@ module Isuconp
       ).first
 
       if user[:authority] == 0
-        return '管理ユーザーではありません'
+        return 403
       end
 
       if params['csrf_token'] != session.id
-        return 'csrf_token error'
+        return 403
       end
 
       query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?'
@@ -349,7 +352,11 @@ module Isuconp
         end
       end
 
-      erb :me, layout: :layout, locals: { mixed: mixed }
+      user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+        session[:user][:id]
+      ).first
+
+      erb :mypage, layout: :layout, locals: { mixed: mixed, user: user }
     end
 
   end

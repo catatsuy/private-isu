@@ -1,4 +1,13 @@
-<h1>ユーザー登録</h1>
+<div class="header">
+  <h1>ユーザー登録</h1>
+</div>
+
+<% if flash[:notice] %>
+<div id="notice-message" class="alert alert-danger">
+  <%= escape_html(flash[:notice]) %>
+</div>
+<% end %>
+
 <div class="submit">
   <form method="post" action="/register">
     <div class="form-account-name">

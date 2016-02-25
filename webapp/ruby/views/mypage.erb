@@ -1,3 +1,14 @@
+<div class="header">
+  <div class="isu-title">
+    <h1><a href="/">Iscogram</a></h1>
+  </div>
+  <div class="isu-account-name">
+    <a href="/mypage">
+      <%=  escape_html user[:account_name] %>さん
+    </a>
+  </div>
+</div>
+
 <div>
   <% mixed.each do |m| %>
   <div class="isu-mixed">
