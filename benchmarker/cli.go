@@ -58,6 +58,33 @@ func (cli *CLI) Run(args []string) int {
 
 	worker.SetTargetHost(target)
 
+	type user struct {
+		AccountName string
+		Password    string
+	}
+	users := []*user{
+		&user{
+			AccountName: "user1",
+			Password:    "user1user1",
+		},
+		&user{
+			AccountName: "user2",
+			Password:    "user2user2",
+		},
+		&user{
+			AccountName: "user3",
+			Password:    "user3user3",
+		},
+		&user{
+			AccountName: "user4",
+			Password:    "user4user4",
+		},
+		&user{
+			AccountName: "user5",
+			Password:    "user5user5",
+		},
+	}
+
 	timeUp := time.After(30 * time.Second)
 	done := make(chan bool)
 	quit := false
@@ -127,9 +154,10 @@ func (cli *CLI) Run(args []string) int {
 
 	go func() {
 		for {
+			u := users[util.RandomNumber(len(users))]
 			login.PostData = map[string]string{
-				"account_name": "catatsuy",
-				"password":     "kaneko",
+				"account_name": u.AccountName,
+				"password":     u.Password,
 			}
 			w := <-workersC
 			login.Play(w)
@@ -213,9 +241,10 @@ func (cli *CLI) Run(args []string) int {
 
 	go func() {
 		for {
+			u := users[util.RandomNumber(len(users))]
 			login.PostData = map[string]string{
-				"account_name": "catatsuy",
-				"password":     "kaneko",
+				"account_name": u.AccountName,
+				"password":     u.Password,
 			}
 			w := <-workersC
 			login.Play(w)

@@ -29,6 +29,10 @@ var (
 	random   = mrand.New(mrand.NewSource(time.Now().UnixNano()))
 )
 
+func RandomNumber(max int) int {
+	return random.Int() % max
+}
+
 func RandomLUNStr(n int) string {
 	return randomStr(n, lunRunes)
 }
