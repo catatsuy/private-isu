@@ -85,6 +85,53 @@ func (cli *CLI) Run(args []string) int {
 		},
 	}
 
+	images := []*worker.Asset{
+		&worker.Asset{
+			MD5:  "Cb0e066UYAAwxtT.jpg",
+			Path: "./userdata/img/8c4d0286cc2c92b418cb6b20fa2055d4",
+		},
+		&worker.Asset{
+			MD5:  "8c4d0286cc2c92b418cb6b20fa2055d4",
+			Path: "./userdata/img/Cb0e066UYAAwxtT.jpg",
+		},
+		&worker.Asset{
+			MD5:  "e43267883243c297d8f6f66582fc098b",
+			Path: "./userdata/img/Cb0rChYUUAAERl8.jpg",
+		},
+		&worker.Asset{
+			MD5:  "623176077a8da7cc7602c132cb91deeb",
+			Path: "./userdata/img/Cb5XdejUcAA78Nz.jpg",
+		},
+		&worker.Asset{
+			MD5:  "45d7ba976202a85a90e17282d7f7a781",
+			Path: "./userdata/img/CbJLMlcUcAER_Sg.jpg",
+		},
+		&worker.Asset{
+			MD5:  "de906699516c228eee7f025d3e88057b",
+			Path: "./userdata/img/CbOuZvjUEAA5r0K.jpg",
+		},
+		&worker.Asset{
+			MD5:  "b50e41b163b501f1aa3cada9a21696c4",
+			Path: "./userdata/img/CbT1pABVAAA1OMG.jpg",
+		},
+		&worker.Asset{
+			MD5:  "aa7929fb4ec357063e12701226d0fa3d",
+			Path: "./userdata/img/Cba_gezUMAApMPw.jpg",
+		},
+		&worker.Asset{
+			MD5:  "a36c35c8db3e32bde24f9e77d811fecb",
+			Path: "./userdata/img/CbyvdPtUcAMiasE.jpg",
+		},
+		&worker.Asset{
+			MD5:  "5985d209ba9d3fe9c0ded4fdbf4cdeb5",
+			Path: "./userdata/img/CcCJ26eVAAAf9sh.jpg",
+		},
+		&worker.Asset{
+			MD5:  "c5e0fb9d1132ed936813c07c480730b9",
+			Path: "./userdata/img/CcJYpMDUUAA2xXc.jpg",
+		},
+	}
+
 	timeUp := time.After(30 * time.Second)
 	done := make(chan bool)
 	quit := false
@@ -120,9 +167,7 @@ func (cli *CLI) Run(args []string) int {
 			url, _ := s.Attr("src")
 			imgReq := worker.NewScenario("GET", url)
 			imgReq.ExpectedStatusCode = 200
-			imgReq.Asset = &worker.Asset{
-				MD5: "a5243f84e4859a9647ecc508239a9a51",
-			}
+			imgReq.Asset = &worker.Asset{}
 			imgReq.PlayWithImage(w)
 			if exit > 15 {
 				return false
@@ -206,10 +251,6 @@ func (cli *CLI) Run(args []string) int {
 			"csrf_token": token,
 			"type":       "image/jpeg",
 		}
-		postTopImg.Asset = &worker.Asset{
-			Path: "./userdata/img/data.jpg",
-			MD5:  "a5243f84e4859a9647ecc508239a9a51",
-		}
 		postTopImg.PlayWithPostFile(w, "file")
 		mypageCheck.Play(w)
 
@@ -246,6 +287,7 @@ func (cli *CLI) Run(args []string) int {
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
+			postTopImg.Asset = images[util.RandomNumber(len(images))]
 			w := <-workersC
 			login.Play(w)
 			getIndexAfterPostImg.Play(w)
