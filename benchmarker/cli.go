@@ -84,12 +84,26 @@ func (cli *CLI) Run(args []string) int {
 			Password:    "user5user5",
 		},
 	}
+	adminUsers := []*user{
+		&user{
+			AccountName: "adminuser1",
+			Password:    "adminuser1",
+		},
+		&user{
+			AccountName: "adminuser2",
+			Password:    "adminuser2",
+		},
+		&user{
+			AccountName: "adminuser3",
+			Password:    "adminuser3",
+		},
+		&user{
+			AccountName: "adminuser4",
+			Password:    "adminuser4",
+		},
+	}
 
 	images := []*worker.Asset{
-		&worker.Asset{
-			MD5:  "Cb0e066UYAAwxtT.jpg",
-			Path: "./userdata/img/8c4d0286cc2c92b418cb6b20fa2055d4",
-		},
 		&worker.Asset{
 			MD5:  "8c4d0286cc2c92b418cb6b20fa2055d4",
 			Path: "./userdata/img/Cb0e066UYAAwxtT.jpg",
@@ -249,7 +263,7 @@ func (cli *CLI) Run(args []string) int {
 
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
 		postTopImg.PostData = map[string]string{
-			"body":       "aaaaaaaaa",
+			"body":       util.RandomLUNStr(util.RandomNumber(20) + 10),
 			"csrf_token": token,
 			"type":       "image/jpeg",
 		}
@@ -298,57 +312,9 @@ func (cli *CLI) Run(args []string) int {
 		}
 	}()
 
-	getAdminBanned := worker.NewScenario("GET", "/admin/banned")
-	getAdminBanned.ExpectedStatusCode = 200
-	getAdminBanned.ExpectedLocation = "/admin/banned"
-	getAdminBanned.Checked = true
-	getAdminBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
-
-		postAdminBanned := worker.NewScenario("POST", "/admin/banned")
-		postAdminBanned.ExpectedStatusCode = 200
-		postAdminBanned.ExpectedLocation = "/admin/banned"
-		postAdminBanned.PostData = map[string]string{
-			"uid[]":      "11",
-			"csrf_token": token,
-		}
-		postAdminBanned.Play(w)
-
-		return nil
-	}
-
-	checkBanned := worker.NewScenario("GET", "/")
-	checkBanned.ExpectedStatusCode = 200
-	checkBanned.Checked = true
-
-	checkBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-
-		exit := 0
-		existErr := false
-
-		doc.Find(`.isu-post-account-name`).EachWithBreak(func(_ int, s *goquery.Selection) bool {
-			account_name := strings.TrimSpace(s.Text())
-			if account_name == "banned_user" {
-				existErr = true
-				return false
-			}
-			if exit > 20 {
-				return false
-			} else {
-				exit += 1
-				return true
-			}
-			return true
-		})
-
-		if existErr {
-			return errors.New("BANされたユーザーの投稿が表示されています")
-		}
-
-		return nil
-	}
+	postRegister := worker.NewScenario("POST", "/register")
+	postRegister.ExpectedStatusCode = 200
+	postRegister.ExpectedLocation = "/"
 
 	interval := time.Tick(10 * time.Second)
 
@@ -356,16 +322,85 @@ func (cli *CLI) Run(args []string) int {
 	// そのユーザーはBAN機能を使って消される
 	go func() {
 		for {
-			<-interval
+			w1 := <-workersC
 
-			login.PostData = map[string]string{
-				"account_name": "catatsuy",
-				"password":     "kaneko",
+			deletedStr := util.RandomLUNStr(25)
+			deletedUser := map[string]string{
+				"account_name": deletedStr,
+				"password":     deletedStr,
 			}
-			w := <-workersC
-			login.Play(w)
-			getAdminBanned.Play(w)
-			checkBanned.Play(w)
+
+			postRegister.PostData = deletedUser
+			postRegister.Play(w1)
+			login.PostData = deletedUser
+			login.Play(w1)
+			postTopImg.Asset = images[util.RandomNumber(len(images))]
+			getIndexAfterPostImg.Play(w1)
+			postTopImg.PlayWithPostFile(w1, "file")
+
+			u := adminUsers[util.RandomNumber(len(adminUsers))]
+			login.PostData = map[string]string{
+				"account_name": u.AccountName,
+				"password":     u.Password,
+			}
+			w2 := <-workersC
+			login.Play(w2)
+
+			getAdminBanned := worker.NewScenario("GET", "/admin/banned")
+			getAdminBanned.ExpectedStatusCode = 200
+			getAdminBanned.ExpectedLocation = "/admin/banned"
+			getAdminBanned.Checked = true
+			getAdminBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+				doc, _ := goquery.NewDocumentFromReader(body)
+				token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+				uid, _ := doc.Find(`input[data-account-name="` + deletedStr + `"]`).First().Attr("value")
+
+				postAdminBanned := worker.NewScenario("POST", "/admin/banned")
+				postAdminBanned.ExpectedStatusCode = 200
+				postAdminBanned.ExpectedLocation = "/admin/banned"
+				postAdminBanned.PostData = map[string]string{
+					"uid[]":      uid,
+					"csrf_token": token,
+				}
+				postAdminBanned.Play(w)
+
+				return nil
+			}
+			getAdminBanned.Play(w2)
+
+			checkBanned := worker.NewScenario("GET", "/")
+			checkBanned.ExpectedStatusCode = 200
+			checkBanned.Checked = true
+
+			checkBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+				doc, _ := goquery.NewDocumentFromReader(body)
+
+				exit := 0
+				existErr := false
+
+				doc.Find(`.isu-post-account-name`).EachWithBreak(func(_ int, s *goquery.Selection) bool {
+					account_name := strings.TrimSpace(s.Text())
+					if account_name == deletedStr {
+						existErr = true
+						return false
+					}
+					if exit > 20 {
+						return false
+					} else {
+						exit += 1
+						return true
+					}
+					return true
+				})
+
+				if existErr {
+					return errors.New("BANされたユーザーの投稿が表示されています")
+				}
+
+				return nil
+			}
+			checkBanned.Play(w2)
+			<-interval
 		}
 	}()
 
