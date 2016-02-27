@@ -205,13 +205,12 @@ module Isuconp
           redirect '/', 302
         end
 
-        query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`, `private`) VALUES (?,?,?,?,?)'
+        query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)'
         db.prepare(query).execute(
           session[:user][:id],
           mime,
           params["file"][:tempfile].read,
           params["body"],
-          0
         )
 
         redirect '/', 302
