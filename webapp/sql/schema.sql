@@ -15,7 +15,6 @@ CREATE TABLE IF NOT EXISTS posts (
   `mime` varchar(64) NOT NULL,
   `imgdata` mediumblob NOT NULL,
   `body` text NOT NULL,
-  `private` tinyint(1) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) DEFAULT CHARSET=utf8mb4;
 
