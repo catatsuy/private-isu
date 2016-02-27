@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -241,15 +240,8 @@ func (cli *CLI) Run(args []string) int {
 		url, _ := doc.Find(`img`).First().Attr("src")
 		imgReq := worker.NewScenario("GET", url)
 		imgReq.ExpectedStatusCode = 200
-		imgReq.Checked = true
-		imgReq.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-			if util.GetMD5ByIO(body) == postTopImg.Asset.MD5 {
-				return nil
-			} else {
-				return fmt.Errorf("Error")
-			}
-		}
-		imgReq.Play(w)
+		imgReq.Asset = &worker.Asset{}
+		imgReq.PlayWithImage(w)
 
 		return nil
 	}
@@ -394,7 +386,7 @@ func (cli *CLI) Run(args []string) int {
 				})
 
 				if existErr {
-					return errors.New("BANされたユーザーの投稿が表示されています")
+					return fmt.Errorf("BANされたユーザーの投稿が表示されています")
 				}
 
 				return nil
