@@ -180,8 +180,9 @@ func (cli *CLI) Run(args []string) int {
 		return nil
 	}
 
+	// TOPページに非ログイン状態でひたすらアクセス
+	// 画像にもリクエストを送っている
 	go func() {
-		// not login
 		for {
 			toppageNotLogin.Play(<-workersC)
 		}
@@ -197,6 +198,7 @@ func (cli *CLI) Run(args []string) int {
 	mypage.ExpectedLocation = "/mypage"
 	mypage.Description = "ログインして、/mypageに"
 
+	// ログインしてmypageをちゃんと見れるか確認
 	go func() {
 		for {
 			u := users[util.RandomNumber(len(users))]
@@ -280,6 +282,7 @@ func (cli *CLI) Run(args []string) int {
 		return nil
 	}
 
+	// ログインして、画像を投稿して、mypageをcheckして、コメントを投稿
 	go func() {
 		for {
 			u := users[util.RandomNumber(len(users))]
@@ -349,6 +352,8 @@ func (cli *CLI) Run(args []string) int {
 
 	interval := time.Tick(10 * time.Second)
 
+	// ユーザーを作って、ログインして画像を投稿する
+	// そのユーザーはBAN機能を使って消される
 	go func() {
 		for {
 			<-interval
