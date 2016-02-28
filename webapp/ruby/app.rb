@@ -211,11 +211,10 @@ EOS
       end
 
       cs.each do |c|
-        if !comments[c[:post_id]]
-          comments[c[:post_id]] = [c]
-        else
-          comments[c[:post_id]].push(c)
+        unless comments[c[:post_id]]
+          comments[c[:post_id]] = []
         end
+        comments[c[:post_id]].push(c)
       end
 
       user = {}
