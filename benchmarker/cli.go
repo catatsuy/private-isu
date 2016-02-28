@@ -177,99 +177,7 @@ func (cli *CLI) Run(args []string) int {
 
 	genWorkerMypageCheck(workersC, login, users)
 	genWorkerPostData(workersC, login, users, images)
-
-	postTopImg := genScenarioPostTopImg()
-	mypageCheck := genScenarioCheckMypage()
-
-	getIndexAfterPostImg := genScenarioGetIndexAfterPostImg(postTopImg, mypageCheck)
-
-	postRegister := genScenarioPostRegister()
-
-	interval := time.Tick(10 * time.Second)
-
-	// ユーザーを作って、ログインして画像を投稿する
-	// そのユーザーはBAN機能を使って消される
-	go func() {
-		for {
-			w1 := <-workersC
-
-			deletedStr := util.RandomLUNStr(25)
-			deletedUser := map[string]string{
-				"account_name": deletedStr,
-				"password":     deletedStr,
-			}
-
-			postRegister.PostData = deletedUser
-			postRegister.Play(w1)
-			login.PostData = deletedUser
-			login.Play(w1)
-			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			getIndexAfterPostImg.Play(w1)
-			postTopImg.PlayWithPostFile(w1, "file")
-
-			u := adminUsers[util.RandomNumber(len(adminUsers))]
-			login.PostData = map[string]string{
-				"account_name": u.AccountName,
-				"password":     u.Password,
-			}
-			w2 := <-workersC
-			login.Play(w2)
-
-			getAdminBanned := worker.NewScenario("GET", "/admin/banned")
-			getAdminBanned.ExpectedStatusCode = 200
-			getAdminBanned.ExpectedLocation = "/admin/banned"
-			getAdminBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-				doc, _ := goquery.NewDocumentFromReader(body)
-				token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
-				uid, _ := doc.Find(`input[data-account-name="` + deletedStr + `"]`).First().Attr("value")
-
-				postAdminBanned := worker.NewScenario("POST", "/admin/banned")
-				postAdminBanned.ExpectedStatusCode = 200
-				postAdminBanned.ExpectedLocation = "/admin/banned"
-				postAdminBanned.PostData = map[string]string{
-					"uid[]":      uid,
-					"csrf_token": token,
-				}
-				postAdminBanned.Play(w)
-
-				return nil
-			}
-			getAdminBanned.Play(w2)
-
-			checkBanned := worker.NewScenario("GET", "/")
-			checkBanned.ExpectedStatusCode = 200
-
-			checkBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-				doc, _ := goquery.NewDocumentFromReader(body)
-
-				exit := 0
-				existErr := false
-
-				doc.Find(`.isu-post-account-name`).EachWithBreak(func(_ int, s *goquery.Selection) bool {
-					account_name := strings.TrimSpace(s.Text())
-					if account_name == deletedStr {
-						existErr = true
-						return false
-					}
-					if exit > 20 {
-						return false
-					} else {
-						exit += 1
-						return true
-					}
-					return true
-				})
-
-				if existErr {
-					return fmt.Errorf("BANされたユーザーの投稿が表示されています")
-				}
-
-				return nil
-			}
-			checkBanned.Play(w2)
-			<-interval
-		}
-	}()
+	genWorkerBanUser(workersC, login, images, adminUsers)
 
 	<-timeUp
 
@@ -470,9 +378,10 @@ func genScenarioGetIndexAfterPostComment(postComment *worker.Scenario) *worker.S
 
 func genWorkerPostData(workersC chan *worker.Worker, login *worker.Scenario, users []*user, images []*worker.Asset) {
 	postTopImg := genScenarioPostTopImg()
-	mypageCheck := genScenarioCheckMypage()
 
+	mypageCheck := genScenarioCheckMypage()
 	getIndexAfterPostImg := genScenarioGetIndexAfterPostImg(postTopImg, mypageCheck)
+
 	postComment := genScenarioPostComment()
 	getIndexAfterPostComment := genScenarioGetIndexAfterPostComment(postComment)
 
@@ -498,4 +407,109 @@ func genScenarioPostRegister() *worker.Scenario {
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/"
 	return s
+}
+
+func genScenarioBanUser(accountName string) *worker.Scenario {
+	s := worker.NewScenario("GET", "/admin/banned")
+	s.ExpectedStatusCode = 200
+	s.ExpectedLocation = "/admin/banned"
+	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+		uid, _ := doc.Find(`input[data-account-name="` + accountName + `"]`).First().Attr("value")
+
+		postAdminBanned := worker.NewScenario("POST", "/admin/banned")
+		postAdminBanned.ExpectedStatusCode = 200
+		postAdminBanned.ExpectedLocation = "/admin/banned"
+		postAdminBanned.PostData = map[string]string{
+			"uid[]":      uid,
+			"csrf_token": token,
+		}
+		postAdminBanned.Play(w)
+
+		return nil
+	}
+
+	return s
+}
+
+func genScenarioCheckBannedUser(targetUserAccountName string) *worker.Scenario {
+	s := worker.NewScenario("GET", "/")
+	s.ExpectedStatusCode = 200
+
+	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		exit := 0
+		existErr := false
+
+		doc.Find(`.isu-post-account-name`).EachWithBreak(func(_ int, selection *goquery.Selection) bool {
+			accountName := strings.TrimSpace(selection.Text())
+			if accountName == targetUserAccountName {
+				existErr = true
+				return false
+			}
+			if exit > 20 {
+				return false
+			} else {
+				exit += 1
+				return true
+			}
+			return true
+		})
+
+		if existErr {
+			return fmt.Errorf("BANされたユーザーの投稿が表示されています")
+		}
+
+		return nil
+	}
+
+	return s
+}
+
+func genWorkerBanUser(workersC chan *worker.Worker, login *worker.Scenario, images []*worker.Asset, adminUsers []*user) {
+	interval := time.Tick(10 * time.Second)
+
+	postRegister := genScenarioPostRegister()
+	postTopImg := genScenarioPostTopImg()
+	mypageCheck := genScenarioCheckMypage()
+	getIndexAfterPostImg := genScenarioGetIndexAfterPostImg(postTopImg, mypageCheck)
+
+	// ユーザーを作って、ログインして画像を投稿する
+	// そのユーザーはBAN機能を使って消される
+	go func() {
+		for {
+			w1 := <-workersC
+
+			targetUserAccountName := util.RandomLUNStr(25)
+			deletedUser := map[string]string{
+				"account_name": targetUserAccountName,
+				"password":     targetUserAccountName,
+			}
+
+			postRegister.PostData = deletedUser
+			postRegister.Play(w1)
+			login.PostData = deletedUser
+			login.Play(w1)
+			postTopImg.Asset = images[util.RandomNumber(len(images))]
+			getIndexAfterPostImg.Play(w1)
+			postTopImg.PlayWithPostFile(w1, "file")
+
+			u := adminUsers[util.RandomNumber(len(adminUsers))]
+			login.PostData = map[string]string{
+				"account_name": u.AccountName,
+				"password":     u.Password,
+			}
+			w2 := <-workersC
+			login.Play(w2)
+
+			banUser := genScenarioBanUser(targetUserAccountName)
+			banUser.Play(w2)
+
+			checkBanned := genScenarioCheckBannedUser(targetUserAccountName)
+			checkBanned.Play(w2)
+			<-interval
+		}
+	}()
 }
