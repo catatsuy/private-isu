@@ -4,6 +4,7 @@ require 'mysql2'
 require 'rack-flash'
 require 'digest/md5'
 require 'pp'
+require 'json'
 
 module Isuconp
   class App < Sinatra::Base
@@ -238,6 +239,29 @@ EOS
       end
 
       erb :index, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
+    end
+
+    get '/posts.json' do
+      max = params['max_created_at']
+      posts = []
+      users = {}
+      ps = if max
+        db.prepare('SELECT * FROM posts WHERE created_at <= ? ORDER BY created_at DESC').execute(Time.parse(max))
+      else
+        db.query('SELECT * FROM posts ORDER BY created_at DESC')
+      end
+      users_raw = db.query('SELECT * FROM `users`')
+      users_raw.each do |u|
+        users[u[:id]] = u
+      end
+      ps.each do |p|
+        if users[p[:user_id]][:del_flg] == 0
+          p[:imgdata] = "#{request.base_url}/image/#{p[:id]}"
+          posts << p
+        end
+      end
+      headers['Content-Type'] = 'application/json'
+      JSON.pretty_generate(posts)
     end
 
     post '/' do
