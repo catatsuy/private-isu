@@ -120,8 +120,8 @@ func (a *Action) PlayWithImage(s *Session) error {
 		req.Header.Add(key, val)
 	}
 
-	urlCache, found := cache.GetInstance().Get(a.Path)
-	if found {
+	urlCache, cacheFound := cache.GetInstance().Get(a.Path)
+	if cacheFound {
 		urlCache.Apply(req)
 	}
 
@@ -139,7 +139,8 @@ func (a *Action) PlayWithImage(s *Session) error {
 
 	success := false
 
-	if res.StatusCode == http.StatusNotModified {
+	// キャッシュが有効でかつStatusNotModifiedのときは成功
+	if cacheFound && res.StatusCode == http.StatusNotModified {
 		success = true
 	}
 
