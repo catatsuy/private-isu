@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/catatsuy/private-isu/benchmarker/checker"
 	"github.com/catatsuy/private-isu/benchmarker/score"
 	"github.com/catatsuy/private-isu/benchmarker/util"
-	"github.com/catatsuy/private-isu/benchmarker/worker"
 )
 
 // Exit codes are int values that represent an exit code for a particular error.
@@ -64,7 +64,7 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	terr := worker.SetTargetHost(target)
+	terr := checker.SetTargetHost(target)
 	if terr != nil {
 		fmt.Println(terr.Error())
 		return ExitCodeError
@@ -111,44 +111,44 @@ func (cli *CLI) Run(args []string) int {
 		},
 	}
 
-	images := []*worker.Asset{
-		&worker.Asset{
+	images := []*checker.Asset{
+		&checker.Asset{
 			MD5:  "8c4d0286cc2c92b418cb6b20fa2055d4",
 			Path: "./userdata/img/Cb0e066UYAAwxtT.jpg",
 		},
-		&worker.Asset{
+		&checker.Asset{
 			MD5:  "e43267883243c297d8f6f66582fc098b",
 			Path: "./userdata/img/Cb0rChYUUAAERl8.jpg",
 		},
-		&worker.Asset{
+		&checker.Asset{
 			MD5:  "623176077a8da7cc7602c132cb91deeb",
 			Path: "./userdata/img/Cb5XdejUcAA78Nz.jpg",
 		},
-		&worker.Asset{
+		&checker.Asset{
 			MD5:  "45d7ba976202a85a90e17282d7f7a781",
 			Path: "./userdata/img/CbJLMlcUcAER_Sg.jpg",
 		},
-		&worker.Asset{
+		&checker.Asset{
 			MD5:  "de906699516c228eee7f025d3e88057b",
 			Path: "./userdata/img/CbOuZvjUEAA5r0K.jpg",
 		},
-		&worker.Asset{
+		&checker.Asset{
 			MD5:  "b50e41b163b501f1aa3cada9a21696c4",
 			Path: "./userdata/img/CbT1pABVAAA1OMG.jpg",
 		},
-		&worker.Asset{
+		&checker.Asset{
 			MD5:  "aa7929fb4ec357063e12701226d0fa3d",
 			Path: "./userdata/img/Cba_gezUMAApMPw.jpg",
 		},
-		&worker.Asset{
+		&checker.Asset{
 			MD5:  "a36c35c8db3e32bde24f9e77d811fecb",
 			Path: "./userdata/img/CbyvdPtUcAMiasE.jpg",
 		},
-		&worker.Asset{
+		&checker.Asset{
 			MD5:  "5985d209ba9d3fe9c0ded4fdbf4cdeb5",
 			Path: "./userdata/img/CcCJ26eVAAAf9sh.jpg",
 		},
-		&worker.Asset{
+		&checker.Asset{
 			MD5:  "c5e0fb9d1132ed936813c07c480730b9",
 			Path: "./userdata/img/CcJYpMDUUAA2xXc.jpg",
 		},
@@ -157,7 +157,7 @@ func (cli *CLI) Run(args []string) int {
 	timeUp := time.After(30 * time.Second)
 	done := make(chan bool)
 
-	sessionsQueue := make(chan *worker.Session, 20)
+	sessionsQueue := make(chan *checker.Session, 20)
 
 	setupSessionGenrator(sessionsQueue, done)
 
@@ -190,13 +190,13 @@ func (cli *CLI) Run(args []string) int {
 	return ExitCodeOK
 }
 
-func setupSessionGenrator(sessionsQueue chan *worker.Session, done chan bool) {
+func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
 	// sessionsQueueにworkerを用意しておく
 	// キューとして使って並列度が高くなりすぎないようにするのと、
 	// 時間が来たらcloseする
 	go func() {
 		for {
-			sessionsQueue <- worker.NewSession()
+			sessionsQueue <- checker.NewSession()
 			quitLock.RLock()
 			if quit {
 				quitLock.RUnlock()
@@ -208,7 +208,7 @@ func setupSessionGenrator(sessionsQueue chan *worker.Session, done chan bool) {
 	}()
 }
 
-func setupWorkerToppageNotLogin(sessionsQueue chan *worker.Session) {
+func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
 	toppageNotLogin := genActionToppageNotLogin()
 
 	go func() {
@@ -220,20 +220,20 @@ func setupWorkerToppageNotLogin(sessionsQueue chan *worker.Session) {
 
 // TOPページに非ログイン状態でひたすらアクセス
 // 画像にもリクエストを送っている
-func genActionToppageNotLogin() *worker.Action {
-	s := worker.NewAction("GET", "/mypage")
+func genActionToppageNotLogin() *checker.Action {
+	s := checker.NewAction("GET", "/mypage")
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/"
 	s.Description = "/mypageは非ログイン時に/にリダイレクトがかかる"
-	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	s.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		exit := 0
 		doc.Find("img").EachWithBreak(func(_ int, selection *goquery.Selection) bool {
 			url, _ := selection.Attr("src")
-			imgReq := worker.NewAction("GET", url)
+			imgReq := checker.NewAction("GET", url)
 			imgReq.ExpectedStatusCode = 200
-			imgReq.Asset = &worker.Asset{}
+			imgReq.Asset = &checker.Asset{}
 			imgReq.PlayWithImage(s)
 			if exit > 15 {
 				return false
@@ -250,7 +250,7 @@ func genActionToppageNotLogin() *worker.Action {
 }
 
 // ログインしてmypageをちゃんと見れるか確認
-func setupWorkerMypageCheck(sessionsQueue chan *worker.Session, login *worker.Action, users []*user) {
+func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, login *checker.Action, users []*user) {
 
 	mypage := genActionMyPage()
 	go func() {
@@ -267,17 +267,17 @@ func setupWorkerMypageCheck(sessionsQueue chan *worker.Session, login *worker.Ac
 	}()
 }
 
-func genActionMypageCheck() *worker.Action {
-	a := worker.NewAction("GET", "/mypage")
+func genActionMypageCheck() *checker.Action {
+	a := checker.NewAction("GET", "/mypage")
 	a.ExpectedStatusCode = 200
 
-	a.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		url, _ := doc.Find(`img`).First().Attr("src")
-		imgReq := worker.NewAction("GET", url)
+		imgReq := checker.NewAction("GET", url)
 		imgReq.ExpectedStatusCode = 200
-		imgReq.Asset = &worker.Asset{}
+		imgReq.Asset = &checker.Asset{}
 		imgReq.PlayWithImage(s)
 
 		return nil
@@ -286,8 +286,8 @@ func genActionMypageCheck() *worker.Action {
 	return a
 }
 
-func genActionLogin() *worker.Action {
-	s := worker.NewAction("POST", "/login")
+func genActionLogin() *checker.Action {
+	s := checker.NewAction("POST", "/login")
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/"
 	s.Description = "ログイン"
@@ -295,8 +295,8 @@ func genActionLogin() *worker.Action {
 	return s
 }
 
-func genActionMyPage() *worker.Action {
-	s := worker.NewAction("GET", "/mypage")
+func genActionMyPage() *checker.Action {
+	s := checker.NewAction("GET", "/mypage")
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/mypage"
 	s.Description = "ログインして、/mypageに"
@@ -304,8 +304,8 @@ func genActionMyPage() *worker.Action {
 	return s
 }
 
-func genActionPostTopImg() *worker.Action {
-	s := worker.NewAction("POST", "/")
+func genActionPostTopImg() *checker.Action {
+	s := checker.NewAction("POST", "/")
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/"
 	s.Description = "画像を投稿"
@@ -313,17 +313,17 @@ func genActionPostTopImg() *worker.Action {
 	return s
 }
 
-func genActionCheckMypage() *worker.Action {
-	a := worker.NewAction("GET", "/mypage")
+func genActionCheckMypage() *checker.Action {
+	a := checker.NewAction("GET", "/mypage")
 	a.ExpectedStatusCode = 200
 
-	a.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		url, _ := doc.Find(`img`).First().Attr("src")
-		imgReq := worker.NewAction("GET", url)
+		imgReq := checker.NewAction("GET", url)
 		imgReq.ExpectedStatusCode = 200
-		imgReq.Asset = &worker.Asset{}
+		imgReq.Asset = &checker.Asset{}
 		imgReq.PlayWithImage(s)
 
 		return nil
@@ -332,19 +332,19 @@ func genActionCheckMypage() *worker.Action {
 	return a
 }
 
-func genActionPostComment() *worker.Action {
-	s := worker.NewAction("POST", "/comment")
+func genActionPostComment() *checker.Action {
+	s := checker.NewAction("POST", "/comment")
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/"
 
 	return s
 }
 
-func genActionGetIndexAfterPostImg(postTopImg *worker.Action, mypageCheck *worker.Action) *worker.Action {
-	a := worker.NewAction("GET", "/")
+func genActionGetIndexAfterPostImg(postTopImg *checker.Action, mypageCheck *checker.Action) *checker.Action {
+	a := checker.NewAction("GET", "/")
 	a.ExpectedStatusCode = 200
 
-	a.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
@@ -362,11 +362,11 @@ func genActionGetIndexAfterPostImg(postTopImg *worker.Action, mypageCheck *worke
 	return a
 }
 
-func genActionGetIndexAfterPostComment(postComment *worker.Action) *worker.Action {
-	a := worker.NewAction("GET", "/")
+func genActionGetIndexAfterPostComment(postComment *checker.Action) *checker.Action {
+	a := checker.NewAction("GET", "/")
 	a.ExpectedStatusCode = 200
 
-	a.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
@@ -383,7 +383,7 @@ func genActionGetIndexAfterPostComment(postComment *worker.Action) *worker.Actio
 	return a
 }
 
-func setupWorkerPostData(sessionsQueue chan *worker.Session, login *worker.Action, users []*user, images []*worker.Asset) {
+func setupWorkerPostData(sessionsQueue chan *checker.Session, login *checker.Action, users []*user, images []*checker.Asset) {
 	postTopImg := genActionPostTopImg()
 
 	mypageCheck := genActionCheckMypage()
@@ -409,23 +409,23 @@ func setupWorkerPostData(sessionsQueue chan *worker.Session, login *worker.Actio
 	}()
 }
 
-func genActionPostRegister() *worker.Action {
-	s := worker.NewAction("POST", "/register")
+func genActionPostRegister() *checker.Action {
+	s := checker.NewAction("POST", "/register")
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/"
 	return s
 }
 
-func genActionBanUser(accountName string) *worker.Action {
-	a := worker.NewAction("GET", "/admin/banned")
+func genActionBanUser(accountName string) *checker.Action {
+	a := checker.NewAction("GET", "/admin/banned")
 	a.ExpectedStatusCode = 200
 	a.ExpectedLocation = "/admin/banned"
-	a.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
 		uid, _ := doc.Find(`input[data-account-name="` + accountName + `"]`).First().Attr("value")
 
-		postAdminBanned := worker.NewAction("POST", "/admin/banned")
+		postAdminBanned := checker.NewAction("POST", "/admin/banned")
 		postAdminBanned.ExpectedStatusCode = 200
 		postAdminBanned.ExpectedLocation = "/admin/banned"
 		postAdminBanned.PostData = map[string]string{
@@ -440,11 +440,11 @@ func genActionBanUser(accountName string) *worker.Action {
 	return a
 }
 
-func genActionCheckBannedUser(targetUserAccountName string) *worker.Action {
-	s := worker.NewAction("GET", "/")
+func genActionCheckBannedUser(targetUserAccountName string) *checker.Action {
+	s := checker.NewAction("GET", "/")
 	s.ExpectedStatusCode = 200
 
-	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	s.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		exit := 0
@@ -475,7 +475,7 @@ func genActionCheckBannedUser(targetUserAccountName string) *worker.Action {
 	return s
 }
 
-func setupWorkerBanUser(sessionsQueue chan *worker.Session, login *worker.Action, images []*worker.Asset, adminUsers []*user) {
+func setupWorkerBanUser(sessionsQueue chan *checker.Session, login *checker.Action, images []*checker.Asset, adminUsers []*user) {
 	interval := time.Tick(10 * time.Second)
 
 	postRegister := genActionPostRegister()
