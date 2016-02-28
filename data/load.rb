@@ -2,7 +2,7 @@
 
 require 'mysql2'
 
-# imgディレクトリに画像を展開
+puts "imgディレクトリに画像を展開"
 `curl -O https://github.com/catatsuy/private-isu/releases/download/img/img.zip`
 `unzip img.zip`
 
@@ -94,6 +94,5 @@ query = db.prepare('INSERT INTO comments (`id`,`post_id`,`user_id`,`comment`,`cr
   query.execute(i, post_id, user_id, comment, created_at.to_time)
 end
 
-# mysqldumpを出力して圧縮
-`mysqldump -u root -h localhost --hex-blob --no-create-info isuconp > dump.sql`
-`cat dump.sql | bzip2 > dump.sql.bz2`
+puts "mysqldumpを出力して圧縮"
+`mysqldump -u root -h localhost --hex-blob --no-create-info isuconp | bzip2 > dump.sql.bz2`

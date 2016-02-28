@@ -26,3 +26,7 @@ http://names.mongabay.com/female_names.htm から女性名トップ1000をスク
 ## ime_std.txt
 
 http://matsucon.net/material/dic/ このサイトからダウンロードした
+
+```
+curl http://matsucon.net/material/dic/dictxt/ime_std.txt | nkf -xw > ime_std.txt
+```
