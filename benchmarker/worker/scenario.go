@@ -35,7 +35,7 @@ type Asset struct {
 	MD5  string
 }
 
-func NewScenario(method, path string) *Action {
+func NewAction(method, path string) *Action {
 	return &Action{
 		Method: method,
 		Path:   path,
