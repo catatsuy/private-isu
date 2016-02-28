@@ -32,8 +32,6 @@ type Worker struct {
 	logger *log.Logger
 }
 
-var failErrs []error
-
 func NewWorker() *Worker {
 	w := &Worker{
 		logger: log.New(os.Stdout, "", 0),
@@ -179,14 +177,6 @@ func (w *Worker) Fail(req *http.Request, err error) error {
 		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
 	}
 
-	setFails(err)
+	score.GetFailErrorsInstance().Append(err)
 	return nil
-}
-
-func setFails(e error) {
-	failErrs = append(failErrs, e)
-}
-
-func GetFails() []error {
-	return failErrs
 }
