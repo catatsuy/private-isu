@@ -155,14 +155,14 @@ func (cli *CLI) Run(args []string) int {
 	quit := false
 	var mu sync.RWMutex
 
-	workersC := make(chan *worker.Worker, 20)
+	workersQueue := make(chan *worker.Worker, 20)
 
-	// workersCにworkerを用意しておく
+	// workersQueueにworkerを用意しておく
 	// キューとして使って並列度が高くなりすぎないようにするのと、
 	// 時間が来たらcloseする
 	go func() {
 		for {
-			workersC <- worker.NewWorker()
+			workersQueue <- worker.NewWorker()
 			mu.RLock()
 			if quit {
 				done <- true
@@ -172,12 +172,12 @@ func (cli *CLI) Run(args []string) int {
 		}
 	}()
 
-	genWorkerToppageNotLogin(workersC)
+	setupWorkerToppageNotLogin(workersQueue)
 	login := genScenarioLogin()
 
-	genWorkerMypageCheck(workersC, login, users)
-	genWorkerPostData(workersC, login, users, images)
-	genWorkerBanUser(workersC, login, images, adminUsers)
+	setupWorkerMypageCheck(workersQueue, login, users)
+	setupWorkerPostData(workersQueue, login, users, images)
+	setupWorkerBanUser(workersQueue, login, images, adminUsers)
 
 	<-timeUp
 
@@ -186,7 +186,7 @@ func (cli *CLI) Run(args []string) int {
 	mu.Unlock()
 
 	<-done
-	close(workersC)
+	close(workersQueue)
 
 	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
 		score.GetInstance().GetScore(),
@@ -201,12 +201,12 @@ func (cli *CLI) Run(args []string) int {
 	return ExitCodeOK
 }
 
-func genWorkerToppageNotLogin(workersC chan *worker.Worker) {
+func setupWorkerToppageNotLogin(workersQueue chan *worker.Worker) {
 	toppageNotLogin := genScenarioToppageNotLogin()
 
 	go func() {
 		for {
-			toppageNotLogin.Play(<-workersC)
+			toppageNotLogin.Play(<-workersQueue)
 		}
 	}()
 }
@@ -243,7 +243,7 @@ func genScenarioToppageNotLogin() *worker.Scenario {
 }
 
 // ログインしてmypageをちゃんと見れるか確認
-func genWorkerMypageCheck(workersC chan *worker.Worker, login *worker.Scenario, users []*user) {
+func setupWorkerMypageCheck(workersQueue chan *worker.Worker, login *worker.Scenario, users []*user) {
 
 	mypage := genScenarioMyPage()
 	go func() {
@@ -253,7 +253,7 @@ func genWorkerMypageCheck(workersC chan *worker.Worker, login *worker.Scenario, 
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
-			w := <-workersC
+			w := <-workersQueue
 			login.Play(w)
 			mypage.Play(w)
 		}
@@ -376,7 +376,7 @@ func genScenarioGetIndexAfterPostComment(postComment *worker.Scenario) *worker.S
 	return s
 }
 
-func genWorkerPostData(workersC chan *worker.Worker, login *worker.Scenario, users []*user, images []*worker.Asset) {
+func setupWorkerPostData(workersQueue chan *worker.Worker, login *worker.Scenario, users []*user, images []*worker.Asset) {
 	postTopImg := genScenarioPostTopImg()
 
 	mypageCheck := genScenarioCheckMypage()
@@ -394,7 +394,7 @@ func genWorkerPostData(workersC chan *worker.Worker, login *worker.Scenario, use
 				"password":     u.Password,
 			}
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			w := <-workersC
+			w := <-workersQueue
 			login.Play(w)
 			getIndexAfterPostImg.Play(w)
 			getIndexAfterPostComment.Play(w)
@@ -468,7 +468,7 @@ func genScenarioCheckBannedUser(targetUserAccountName string) *worker.Scenario {
 	return s
 }
 
-func genWorkerBanUser(workersC chan *worker.Worker, login *worker.Scenario, images []*worker.Asset, adminUsers []*user) {
+func setupWorkerBanUser(workersQueue chan *worker.Worker, login *worker.Scenario, images []*worker.Asset, adminUsers []*user) {
 	interval := time.Tick(10 * time.Second)
 
 	postRegister := genScenarioPostRegister()
@@ -480,7 +480,7 @@ func genWorkerBanUser(workersC chan *worker.Worker, login *worker.Scenario, imag
 	// そのユーザーはBAN機能を使って消される
 	go func() {
 		for {
-			w1 := <-workersC
+			w1 := <-workersQueue
 
 			targetUserAccountName := util.RandomLUNStr(25)
 			deletedUser := map[string]string{
@@ -501,7 +501,7 @@ func genWorkerBanUser(workersC chan *worker.Worker, login *worker.Scenario, imag
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
-			w2 := <-workersC
+			w2 := <-workersQueue
 			login.Play(w2)
 
 			banUser := genScenarioBanUser(targetUserAccountName)
