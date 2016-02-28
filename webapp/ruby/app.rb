@@ -4,7 +4,6 @@ require 'mysql2'
 require 'rack-flash'
 require 'digest/md5'
 require 'pp'
-require 'json'
 
 module Isuconp
   class App < Sinatra::Base
@@ -241,15 +240,32 @@ EOS
       erb :index, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
     end
 
-    get '/posts.json' do
+    get '/posts' do
       max = params['max_created_at']
       posts = []
+      count = {}
+      comments = {}
       users = {}
+
       ps = if max
         db.prepare('SELECT * FROM posts WHERE created_at <= ? ORDER BY created_at DESC').execute(Time.parse(max))
       else
         db.query('SELECT * FROM posts ORDER BY created_at DESC')
       end
+      cs = db.query('SELECT * FROM comments ORDER BY created_at DESC')
+      cc = db.query('SELECT post_id, COUNT(*) as count FROM comments GROUP BY post_id ORDER BY created_at DESC')
+
+      cc.each do |c|
+        count[c[:post_id]] = c[:count]
+      end
+
+      cs.each do |c|
+        unless comments[c[:post_id]]
+          comments[c[:post_id]] = []
+        end
+        comments[c[:post_id]].push(c)
+      end
+
       users_raw = db.query('SELECT * FROM `users`')
       users_raw.each do |u|
         users[u[:id]] = u
@@ -260,8 +276,50 @@ EOS
           posts << p
         end
       end
-      headers['Content-Type'] = 'application/json'
-      JSON.pretty_generate(posts)
+
+template = <<'EOS'
+<div>
+  <% display = 0 %>
+  <% posts.each do |p| %>
+  <%   break if display > 30 %>
+  <%   display = display + 1 %>
+  <div class="isu-post" data-max="<%= p[:created_at] %>">
+    <div class="isu-post-image">
+      <img src="/image/<%= p[:id] %>" class="isu-image">
+    </div>
+    <div class="isu-post-text">
+      <%= escape_html(p[:body]).gsub(/\r?\n/, '<br>') %>
+      <div class="isu-post-account-name">
+        <%= escape_html(users[p[:user_id]][:account_name]) %>
+      </div>
+    </div>
+    <div class="isu-post-comment">
+      <% if count[p[:id]] %>
+        <div class="isu-post-comment-count">
+          comments: <%= escape_html(count[p[:id]]) %>
+        </div>
+      <% end %>
+
+      <% if comments[p[:id]] %>
+      <%   comments[p[:id]].each do |c| %>
+      <div class="isu-comment-text">
+        <%= escape_html(c[:comment]) %>
+        <span class="isu-comment-account-name"><%= escape_html(users[c[:user_id]][:account_name]) %></span>
+      </div>
+      <%   end %>
+      <% end %>
+      <form method="post" action="/comment">
+        <input type="text" name="comment">
+        <input type="hidden" name="post_id" value="<%= p[:id] %>">
+        <input type="hidden" name="csrf_token" value="<%= escape_html session.id %>">
+        <input type="submit" name="submit" value="submit">
+      </form>
+    </div>
+  </div>
+  <% end %>
+</div>
+EOS
+    ERB.new(template).result(binding)
     end
 
     post '/' do
