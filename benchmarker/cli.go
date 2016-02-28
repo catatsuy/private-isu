@@ -199,6 +199,7 @@ func setupWorkerGenrator(workersQueue chan *worker.Worker, done chan bool) {
 			workersQueue <- worker.NewWorker()
 			quitLock.RLock()
 			if quit {
+				quitLock.RUnlock()
 				done <- true
 				break
 			}
