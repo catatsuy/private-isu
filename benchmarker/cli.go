@@ -260,9 +260,9 @@ func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, login *checker.
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
-			w := <-sessionsQueue
-			login.Play(w)
-			mypage.Play(w)
+			s := <-sessionsQueue
+			login.Play(s)
+			mypage.Play(s)
 		}
 	}()
 }
@@ -401,10 +401,10 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, login *checker.Act
 				"password":     u.Password,
 			}
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			w := <-sessionsQueue
-			login.Play(w)
-			getIndexAfterPostImg.Play(w)
-			getIndexAfterPostComment.Play(w)
+			s := <-sessionsQueue
+			login.Play(s)
+			getIndexAfterPostImg.Play(s)
+			getIndexAfterPostComment.Play(s)
 		}
 	}()
 }
@@ -487,7 +487,7 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, login *checker.Acti
 	// そのユーザーはBAN機能を使って消される
 	go func() {
 		for {
-			w1 := <-sessionsQueue
+			s1 := <-sessionsQueue
 
 			targetUserAccountName := util.RandomLUNStr(25)
 			deletedUser := map[string]string{
@@ -496,26 +496,26 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, login *checker.Acti
 			}
 
 			postRegister.PostData = deletedUser
-			postRegister.Play(w1)
+			postRegister.Play(s1)
 			login.PostData = deletedUser
-			login.Play(w1)
+			login.Play(s1)
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			getIndexAfterPostImg.Play(w1)
-			postTopImg.PlayWithPostFile(w1, "file")
+			getIndexAfterPostImg.Play(s1)
+			postTopImg.PlayWithPostFile(s1, "file")
 
 			u := adminUsers[util.RandomNumber(len(adminUsers))]
 			login.PostData = map[string]string{
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
-			w2 := <-sessionsQueue
-			login.Play(w2)
+			s2 := <-sessionsQueue
+			login.Play(s2)
 
 			banUser := genActionBanUser(targetUserAccountName)
-			banUser.Play(w2)
+			banUser.Play(s2)
 
 			checkBanned := genActionCheckBannedUser(targetUserAccountName)
-			checkBanned.Play(w2)
+			checkBanned.Play(s2)
 			<-interval
 		}
 	}()
