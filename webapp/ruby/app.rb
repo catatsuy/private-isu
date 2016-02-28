@@ -443,22 +443,17 @@ EOS
         redirect '/', 302
       end
 
-      posts_all = db.query('SELECT * FROM `posts` ORDER BY `created_at` DESC')
-      comments_all = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
       mixed = []
-
+      posts_all = db.query('SELECT * FROM `posts` ORDER BY `created_at` DESC')
       posts_all.each do |p|
-        if p[:user_id] == session[:user][:id]
-          mixed.push({type: :post, value: p})
-        end
+        mixed << {type: :post, value: p}
       end
-
+      comments_all = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
       comments_all.each do |c|
-        if c[:user_id] == session[:user][:id]
-          mixed.push({type: :comment, value: c})
-        end
+        mixed << {type: :comment, value: c}
       end
-      mixed = mixed.sort! { |a, b| a[:value][:created_at] <=> b[:value][:created_at] }
+      mixed = mixed.select { |m| m[:value][:user_id] == session[:user][:id] }
+      mixed.sort! { |a, b| a[:value][:created_at] <=> b[:value][:created_at] }
 
       user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
         session[:user][:id]
