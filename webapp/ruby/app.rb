@@ -40,6 +40,47 @@ module Isuconp
         client
       end
 
+      def db_initialize
+        sql = []
+        sql << 'DROP TABLE IF EXISTS users;'
+        sql << <<'EOS'
+CREATE TABLE IF NOT EXISTS users (
+  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `account_name` varchar(64) NOT NULL UNIQUE,
+  `passhash` varchar(128) NOT NULL, -- SHA2 512 non-binary (hex)
+  `authority` tinyint(1) NOT NULL DEFAULT 0,
+  `del_flg` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) DEFAULT CHARSET=utf8mb4;
+EOS
+        sql << 'DROP TABLE IF EXISTS posts;'
+        sql << <<'EOS'
+CREATE TABLE IF NOT EXISTS posts (
+  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `user_id` int NOT NULL,
+  `mime` varchar(64) NOT NULL,
+  `imgdata` mediumblob NOT NULL,
+  `body` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) DEFAULT CHARSET=utf8mb4;
+EOS
+        sql << 'DROP TABLE IF EXISTS comments;'
+        sql << <<'EOS'
+CREATE TABLE IF NOT EXISTS comments (
+  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `post_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `comment` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) DEFAULT CHARSET=utf8mb4;
+EOS
+        sql.each do |s|
+          db.prepare(s).execute
+        end
+        load "#{File.dirname(__dir__)}/scripts/create_user.rb"
+        ""
+      end
+
       def try_login(account_name, password)
         user = db.prepare('SELECT * FROM users WHERE account_name = ? AND del_flg = 0').execute(account_name).first
 
@@ -95,6 +136,10 @@ module Isuconp
       def calculate_salt(account_name)
         Digest::MD5.hexdigest(account_name)
       end
+    end
+
+    get '/initialize' do
+      db_initialize
     end
 
     get '/login' do
