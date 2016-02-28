@@ -267,6 +267,15 @@ EOS
         comments[c[:post_id]].push(c)
       end
 
+      user = {}
+      if session[:user]
+        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+          session[:user][:id]
+        ).first
+      else
+        user = { id: 0 }
+      end
+
       users_raw = db.query('SELECT * FROM `users`')
       users_raw.each do |u|
         users[u[:id]] = u
@@ -277,7 +286,7 @@ EOS
           posts << p
         end
       end
-      erb :posts, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users }
+      erb :posts, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
     end
 
     post '/' do
