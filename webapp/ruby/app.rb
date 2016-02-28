@@ -452,6 +452,20 @@ EOS
       comments_all.each do |c|
         mixed << {type: :comment, value: c}
       end
+
+      mixed = mixed.map do |m|
+        if m[:type] == :post
+          posts_comments = []
+          rs = db.prepare('SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC').execute(
+            m[:value][:id]
+          )
+          rs.each do |pc|
+            posts_comments << pc
+          end
+          m.merge!({comments: posts_comments})
+        end
+        m
+      end
       mixed = mixed.select { |m| m[:value][:user_id] == session[:user][:id] }
       mixed.sort! { |a, b| a[:value][:created_at] <=> b[:value][:created_at] }
 
@@ -459,7 +473,13 @@ EOS
         session[:user][:id]
       ).first
 
-      erb :mypage, layout: :layout, locals: { mixed: mixed, user: user }
+      users_raw = db.query('SELECT * FROM `users`')
+      users = {}
+      users_raw.each do |u|
+        users[u[:id]] = u
+      end
+
+      erb :mypage, layout: :layout, locals: { mixed: mixed, user: user, users: users }
     end
 
   end
