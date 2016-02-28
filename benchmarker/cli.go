@@ -183,8 +183,8 @@ func (cli *CLI) Run(args []string) int {
 		score.GetInstance().GetFails(),
 	)
 
-	for _, err := range worker.GetFails() {
-		fmt.Println(err)
+	for _, err := range worker.GetFailErrors() {
+		fmt.Println(err.Error())
 	}
 
 	return ExitCodeOK
