@@ -32,7 +32,8 @@
   </form>
 </div>
 
+<%= erb :posts, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user } %>
+
 <div id="isu-post-more">
   <button id="isu-post-more-btn" onclick="$.get('/posts', { max_created_at: $('.isu-post:last').data('max') }, function( data ) { $('#isu-post-more').before(data) });">More</button>
 </div>
-<script type="text/javascript">$(function () { $('#isu-post-more-btn').click() });</script>
