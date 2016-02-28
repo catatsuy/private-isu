@@ -256,7 +256,6 @@ func (cli *CLI) Run(args []string) int {
 			getAdminBanned := worker.NewScenario("GET", "/admin/banned")
 			getAdminBanned.ExpectedStatusCode = 200
 			getAdminBanned.ExpectedLocation = "/admin/banned"
-			getAdminBanned.Checked = true
 			getAdminBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
 				doc, _ := goquery.NewDocumentFromReader(body)
 				token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
@@ -277,7 +276,6 @@ func (cli *CLI) Run(args []string) int {
 
 			checkBanned := worker.NewScenario("GET", "/")
 			checkBanned.ExpectedStatusCode = 200
-			checkBanned.Checked = true
 
 			checkBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
 				doc, _ := goquery.NewDocumentFromReader(body)
@@ -338,7 +336,6 @@ func genScenarioToppageNotLogin() *worker.Scenario {
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/"
 	s.Description = "/mypageは非ログイン時に/にリダイレクトがかかる"
-	s.Checked = true
 	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
@@ -366,7 +363,6 @@ func genScenarioToppageNotLogin() *worker.Scenario {
 func genScenarioMypageCheck() *worker.Scenario {
 	s := worker.NewScenario("GET", "/mypage")
 	s.ExpectedStatusCode = 200
-	s.Checked = true
 
 	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
@@ -413,7 +409,6 @@ func genScenarioPostTopImg() *worker.Scenario {
 func genScenarioCheckMypage() *worker.Scenario {
 	s := worker.NewScenario("GET", "/mypage")
 	s.ExpectedStatusCode = 200
-	s.Checked = true
 
 	s.CheckFunc = func(cw *worker.Worker, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
@@ -441,7 +436,6 @@ func genScenarioPostComment() *worker.Scenario {
 func genScenarioGetIndexAfterPostImg(postTopImg *worker.Scenario, mypageCheck *worker.Scenario) *worker.Scenario {
 	s := worker.NewScenario("GET", "/")
 	s.ExpectedStatusCode = 200
-	s.Checked = true
 
 	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
@@ -464,7 +458,6 @@ func genScenarioGetIndexAfterPostImg(postTopImg *worker.Scenario, mypageCheck *w
 func genScenarioGetIndexAfterPostComment(postComment *worker.Scenario) *worker.Scenario {
 	s := worker.NewScenario("GET", "/")
 	s.ExpectedStatusCode = 200
-	s.Checked = true
 
 	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)

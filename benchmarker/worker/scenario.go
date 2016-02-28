@@ -27,7 +27,6 @@ type Scenario struct {
 
 	Description string
 
-	Checked   bool
 	CheckFunc func(w *Worker, body io.Reader) error
 }
 
@@ -42,8 +41,6 @@ func NewScenario(method, path string) *Scenario {
 		Path:   path,
 
 		ExpectedStatusCode: 200,
-
-		Checked: false,
 	}
 }
 
@@ -91,7 +88,7 @@ func (s *Scenario) Play(w *Worker) error {
 		}
 	}
 
-	if s.Checked {
+	if s.CheckFunc != nil {
 		err := s.CheckFunc(w, res.Body)
 		if err != nil {
 			return w.Fail(
@@ -146,7 +143,7 @@ func (s *Scenario) PlayWithImage(w *Worker) error {
 		success = true
 	}
 
-	if !s.Checked && res.StatusCode == http.StatusOK {
+	if s.CheckFunc == nil && res.StatusCode == http.StatusOK {
 		success = true
 	}
 
@@ -205,7 +202,7 @@ func (s *Scenario) PlayWithPostFile(w *Worker, paramName string) error {
 		}
 	}
 
-	if s.Checked {
+	if s.CheckFunc != nil {
 		err := s.CheckFunc(w, res.Body)
 		if err != nil {
 			return w.Fail(
