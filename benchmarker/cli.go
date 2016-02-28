@@ -171,31 +171,7 @@ func (cli *CLI) Run(args []string) int {
 		}
 	}()
 
-	toppageNotLogin := worker.NewScenario("GET", "/mypage")
-	toppageNotLogin.ExpectedStatusCode = 200
-	toppageNotLogin.ExpectedLocation = "/"
-	toppageNotLogin.Description = "/mypageは非ログイン時に/にリダイレクトがかかる"
-	toppageNotLogin.Checked = true
-	toppageNotLogin.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-
-		exit := 0
-		doc.Find("img").EachWithBreak(func(_ int, s *goquery.Selection) bool {
-			url, _ := s.Attr("src")
-			imgReq := worker.NewScenario("GET", url)
-			imgReq.ExpectedStatusCode = 200
-			imgReq.Asset = &worker.Asset{}
-			imgReq.PlayWithImage(w)
-			if exit > 15 {
-				return false
-			} else {
-				exit += 1
-				return true
-			}
-		})
-
-		return nil
-	}
+	toppageNotLogin := genScenarioToppageNotLogin()
 
 	// TOPページに非ログイン状態でひたすらアクセス
 	// 画像にもリクエストを送っている
@@ -205,15 +181,8 @@ func (cli *CLI) Run(args []string) int {
 		}
 	}()
 
-	login := worker.NewScenario("POST", "/login")
-	login.ExpectedStatusCode = 200
-	login.ExpectedLocation = "/"
-	login.Description = "ログイン"
-
-	mypage := worker.NewScenario("GET", "/mypage")
-	mypage.ExpectedStatusCode = 200
-	mypage.ExpectedLocation = "/mypage"
-	mypage.Description = "ログインして、/mypageに"
+	login := genScenarioLogin()
+	mypage := genScenarioMyPage()
 
 	// ログインしてmypageをちゃんと見れるか確認
 	go func() {
@@ -229,68 +198,12 @@ func (cli *CLI) Run(args []string) int {
 		}
 	}()
 
-	postTopImg := worker.NewScenario("POST", "/")
-	postTopImg.ExpectedStatusCode = 200
-	postTopImg.ExpectedLocation = "/"
-	postTopImg.Description = "画像を投稿"
+	postTopImg := genScenarioPostTopImg()
+	mypageCheck := genScenarioCheckMypage()
 
-	mypageCheck := worker.NewScenario("GET", "/mypage")
-	mypageCheck.ExpectedStatusCode = 200
-	mypageCheck.Checked = true
-
-	mypageCheck.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-
-		url, _ := doc.Find(`img`).First().Attr("src")
-		imgReq := worker.NewScenario("GET", url)
-		imgReq.ExpectedStatusCode = 200
-		imgReq.Asset = &worker.Asset{}
-		imgReq.PlayWithImage(w)
-
-		return nil
-	}
-
-	getIndexAfterPostImg := worker.NewScenario("GET", "/")
-	getIndexAfterPostImg.ExpectedStatusCode = 200
-	getIndexAfterPostImg.Checked = true
-
-	getIndexAfterPostImg.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-
-		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
-		postTopImg.PostData = map[string]string{
-			"body":       util.RandomLUNStr(util.RandomNumber(20) + 10),
-			"csrf_token": token,
-			"type":       "image/jpeg",
-		}
-		postTopImg.PlayWithPostFile(w, "file")
-		mypageCheck.Play(w)
-
-		return nil
-	}
-
-	postComment := worker.NewScenario("POST", "/comment")
-	postComment.ExpectedStatusCode = 200
-	postComment.ExpectedLocation = "/"
-
-	getIndexAfterPostComment := worker.NewScenario("GET", "/")
-	getIndexAfterPostComment.ExpectedStatusCode = 200
-	getIndexAfterPostComment.Checked = true
-
-	getIndexAfterPostComment.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-
-		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
-		postID, _ := doc.Find(`input[name="post_id"]`).First().Attr("value")
-		postComment.PostData = map[string]string{
-			"post_id":    postID,
-			"comment":    "comment",
-			"csrf_token": token,
-		}
-		postComment.Play(w)
-
-		return nil
-	}
+	getIndexAfterPostImg := genScenarioGetIndexAfterPostImg(postTopImg, mypageCheck)
+	postComment := genScenarioPostComment()
+	getIndexAfterPostComment := genScenarioGetIndexAfterPostComment(postComment)
 
 	// ログインして、画像を投稿して、mypageをcheckして、コメントを投稿
 	go func() {
@@ -308,9 +221,7 @@ func (cli *CLI) Run(args []string) int {
 		}
 	}()
 
-	postRegister := worker.NewScenario("POST", "/register")
-	postRegister.ExpectedStatusCode = 200
-	postRegister.ExpectedLocation = "/"
+	postRegister := genScenarioPostRegister()
 
 	interval := time.Tick(10 * time.Second)
 
@@ -420,4 +331,161 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	return ExitCodeOK
+}
+
+func genScenarioToppageNotLogin() *worker.Scenario {
+	s := worker.NewScenario("GET", "/mypage")
+	s.ExpectedStatusCode = 200
+	s.ExpectedLocation = "/"
+	s.Description = "/mypageは非ログイン時に/にリダイレクトがかかる"
+	s.Checked = true
+	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		exit := 0
+		doc.Find("img").EachWithBreak(func(_ int, selection *goquery.Selection) bool {
+			url, _ := selection.Attr("src")
+			imgReq := worker.NewScenario("GET", url)
+			imgReq.ExpectedStatusCode = 200
+			imgReq.Asset = &worker.Asset{}
+			imgReq.PlayWithImage(w)
+			if exit > 15 {
+				return false
+			} else {
+				exit += 1
+				return true
+			}
+		})
+
+		return nil
+	}
+
+	return s
+}
+
+func genScenarioMypageCheck() *worker.Scenario {
+	s := worker.NewScenario("GET", "/mypage")
+	s.ExpectedStatusCode = 200
+	s.Checked = true
+
+	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		url, _ := doc.Find(`img`).First().Attr("src")
+		imgReq := worker.NewScenario("GET", url)
+		imgReq.ExpectedStatusCode = 200
+		imgReq.Asset = &worker.Asset{}
+		imgReq.PlayWithImage(w)
+
+		return nil
+	}
+
+	return s
+}
+
+func genScenarioLogin() *worker.Scenario {
+	s := worker.NewScenario("POST", "/login")
+	s.ExpectedStatusCode = 200
+	s.ExpectedLocation = "/"
+	s.Description = "ログイン"
+
+	return s
+}
+
+func genScenarioMyPage() *worker.Scenario {
+	s := worker.NewScenario("GET", "/mypage")
+	s.ExpectedStatusCode = 200
+	s.ExpectedLocation = "/mypage"
+	s.Description = "ログインして、/mypageに"
+
+	return s
+}
+
+func genScenarioPostTopImg() *worker.Scenario {
+	s := worker.NewScenario("POST", "/")
+	s.ExpectedStatusCode = 200
+	s.ExpectedLocation = "/"
+	s.Description = "画像を投稿"
+
+	return s
+}
+
+func genScenarioCheckMypage() *worker.Scenario {
+	s := worker.NewScenario("GET", "/mypage")
+	s.ExpectedStatusCode = 200
+	s.Checked = true
+
+	s.CheckFunc = func(cw *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		url, _ := doc.Find(`img`).First().Attr("src")
+		imgReq := worker.NewScenario("GET", url)
+		imgReq.ExpectedStatusCode = 200
+		imgReq.Asset = &worker.Asset{}
+		imgReq.PlayWithImage(cw)
+
+		return nil
+	}
+
+	return s
+}
+
+func genScenarioPostComment() *worker.Scenario {
+	s := worker.NewScenario("POST", "/comment")
+	s.ExpectedStatusCode = 200
+	s.ExpectedLocation = "/"
+
+	return s
+}
+
+func genScenarioGetIndexAfterPostImg(postTopImg *worker.Scenario, mypageCheck *worker.Scenario) *worker.Scenario {
+	s := worker.NewScenario("GET", "/")
+	s.ExpectedStatusCode = 200
+	s.Checked = true
+
+	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+		postTopImg.PostData = map[string]string{
+			"body":       util.RandomLUNStr(util.RandomNumber(20) + 10),
+			"csrf_token": token,
+			"type":       "image/jpeg",
+		}
+		postTopImg.PlayWithPostFile(w, "file")
+		mypageCheck.Play(w)
+
+		return nil
+	}
+
+	return s
+}
+
+func genScenarioGetIndexAfterPostComment(postComment *worker.Scenario) *worker.Scenario {
+	s := worker.NewScenario("GET", "/")
+	s.ExpectedStatusCode = 200
+	s.Checked = true
+
+	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+		postID, _ := doc.Find(`input[name="post_id"]`).First().Attr("value")
+		postComment.PostData = map[string]string{
+			"post_id":    postID,
+			"comment":    "comment",
+			"csrf_token": token,
+		}
+		postComment.Play(w)
+
+		return nil
+	}
+	return s
+}
+
+func genScenarioPostRegister() *worker.Scenario {
+	s := worker.NewScenario("POST", "/register")
+	s.ExpectedStatusCode = 200
+	s.ExpectedLocation = "/"
+	return s
 }
