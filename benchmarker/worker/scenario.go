@@ -11,7 +11,7 @@ import (
 	"github.com/catatsuy/private-isu/benchmarker/util"
 )
 
-type Scenario struct {
+type Action struct {
 	Method string
 	Path   string
 
@@ -27,7 +27,7 @@ type Scenario struct {
 
 	Description string
 
-	CheckFunc func(w *Worker, body io.Reader) error
+	CheckFunc func(w *Session, body io.Reader) error
 }
 
 type Asset struct {
@@ -35,8 +35,8 @@ type Asset struct {
 	MD5  string
 }
 
-func NewScenario(method, path string) *Scenario {
-	return &Scenario{
+func NewScenario(method, path string) *Action {
+	return &Action{
 		Method: method,
 		Path:   path,
 
@@ -44,7 +44,7 @@ func NewScenario(method, path string) *Scenario {
 	}
 }
 
-func (s *Scenario) Play(w *Worker) error {
+func (s *Action) Play(w *Session) error {
 	formData := url.Values{}
 	for key, val := range s.PostData {
 		formData.Set(key, val)
@@ -103,7 +103,7 @@ func (s *Scenario) Play(w *Worker) error {
 	return nil
 }
 
-func (s *Scenario) PlayWithImage(w *Worker) error {
+func (s *Action) PlayWithImage(w *Session) error {
 	formData := url.Values{}
 	for key, val := range s.PostData {
 		formData.Set(key, val)
@@ -164,7 +164,7 @@ func (s *Scenario) PlayWithImage(w *Worker) error {
 	return nil
 }
 
-func (s *Scenario) PlayWithPostFile(w *Worker, paramName string) error {
+func (s *Action) PlayWithPostFile(w *Session, paramName string) error {
 	req, err := w.NewFileUploadRequest(s.Path, s.PostData, paramName, s.Asset.Path)
 
 	if err != nil {
