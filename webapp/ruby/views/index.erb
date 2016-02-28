@@ -52,6 +52,12 @@
       </div>
     </div>
     <div class="isu-post-comment">
+      <% if count[p[:id]] %>
+        <div class="isu-post-comment-count">
+          comments: <%= escape_html(count[p[:id]]) %>
+        </div>
+      <% end %>
+
       <% if comments[p[:id]] %>
       <%   comments[p[:id]].each do |c| %>
       <div class="isu-comment-text">

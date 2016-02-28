@@ -203,7 +203,13 @@ EOS
     get '/' do
       posts = db.query('SELECT * FROM posts ORDER BY created_at DESC')
       cs = db.query('SELECT * FROM comments ORDER BY created_at DESC')
+      cc = db.query('SELECT post_id, COUNT(*) as count FROM comments GROUP BY post_id ORDER BY created_at DESC')
+      count = {}
       comments = {}
+      cc.each do |c|
+        count[c[:post_id]] = c[:count]
+      end
+
       cs.each do |c|
         if !comments[c[:post_id]]
           comments[c[:post_id]] = [c]
@@ -227,7 +233,7 @@ EOS
         users[u[:id]] = u
       end
 
-      erb :index, layout: :layout, locals: { posts: posts, comments: comments, users: users, user: user }
+      erb :index, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
     end
 
     post '/' do
