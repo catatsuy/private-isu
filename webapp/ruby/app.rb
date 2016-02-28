@@ -300,19 +300,6 @@ EOS
       redirect '/', 302
     end
 
-    get '/notify' do
-      comments = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
-      notifies = []
-
-      comments.each do |c|
-        if c[:user_id] == session[:user][:id]
-          notifies.push(c)
-        end
-      end
-
-      erb :notify, layout: :layout, locals: { notifies: notifies }
-    end
-
     get '/admin/banned' do
       if !session[:user]
         redirect '/login', 302
