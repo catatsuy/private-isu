@@ -128,13 +128,16 @@ EOS
         return true
       end
 
-      def calculate_passhash(password, account_name)
-        salt = calculate_salt(account_name)
-        Digest::SHA256.hexdigest("#{password}:#{salt}")
+      def digest(src)
+        `echo '#{src}' | openssl dgst -sha512`.strip
       end
 
       def calculate_salt(account_name)
-        Digest::MD5.hexdigest(account_name)
+        digest account_name
+      end
+
+      def calculate_passhash(password, account_name)
+        digest "#{password}:#{calculate_salt(account_name)}"
       end
     end
 
