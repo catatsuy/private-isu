@@ -157,16 +157,16 @@ func (cli *CLI) Run(args []string) int {
 	timeUp := time.After(30 * time.Second)
 	done := make(chan bool)
 
-	workersQueue := make(chan *worker.Session, 20)
+	sessionsQueue := make(chan *worker.Session, 20)
 
-	setupWorkerGenrator(workersQueue, done)
+	setupSessionGenrator(sessionsQueue, done)
 
-	setupWorkerToppageNotLogin(workersQueue)
+	setupWorkerToppageNotLogin(sessionsQueue)
 	login := genActionLogin()
 
-	setupWorkerMypageCheck(workersQueue, login, users)
-	setupWorkerPostData(workersQueue, login, users, images)
-	setupWorkerBanUser(workersQueue, login, images, adminUsers)
+	setupWorkerMypageCheck(sessionsQueue, login, users)
+	setupWorkerPostData(sessionsQueue, login, users, images)
+	setupWorkerBanUser(sessionsQueue, login, images, adminUsers)
 
 	<-timeUp
 
@@ -175,7 +175,7 @@ func (cli *CLI) Run(args []string) int {
 	quitLock.Unlock()
 
 	<-done
-	close(workersQueue)
+	close(sessionsQueue)
 
 	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
 		score.GetInstance().GetScore(),
@@ -190,13 +190,13 @@ func (cli *CLI) Run(args []string) int {
 	return ExitCodeOK
 }
 
-func setupWorkerGenrator(workersQueue chan *worker.Session, done chan bool) {
-	// workersQueueにworkerを用意しておく
+func setupSessionGenrator(sessionsQueue chan *worker.Session, done chan bool) {
+	// sessionsQueueにworkerを用意しておく
 	// キューとして使って並列度が高くなりすぎないようにするのと、
 	// 時間が来たらcloseする
 	go func() {
 		for {
-			workersQueue <- worker.NewSession()
+			sessionsQueue <- worker.NewSession()
 			quitLock.RLock()
 			if quit {
 				quitLock.RUnlock()
@@ -208,12 +208,12 @@ func setupWorkerGenrator(workersQueue chan *worker.Session, done chan bool) {
 	}()
 }
 
-func setupWorkerToppageNotLogin(workersQueue chan *worker.Session) {
+func setupWorkerToppageNotLogin(sessionsQueue chan *worker.Session) {
 	toppageNotLogin := genActionToppageNotLogin()
 
 	go func() {
 		for {
-			toppageNotLogin.Play(<-workersQueue)
+			toppageNotLogin.Play(<-sessionsQueue)
 		}
 	}()
 }
@@ -250,7 +250,7 @@ func genActionToppageNotLogin() *worker.Action {
 }
 
 // ログインしてmypageをちゃんと見れるか確認
-func setupWorkerMypageCheck(workersQueue chan *worker.Session, login *worker.Action, users []*user) {
+func setupWorkerMypageCheck(sessionsQueue chan *worker.Session, login *worker.Action, users []*user) {
 
 	mypage := genActionMyPage()
 	go func() {
@@ -260,7 +260,7 @@ func setupWorkerMypageCheck(workersQueue chan *worker.Session, login *worker.Act
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
-			w := <-workersQueue
+			w := <-sessionsQueue
 			login.Play(w)
 			mypage.Play(w)
 		}
@@ -383,7 +383,7 @@ func genActionGetIndexAfterPostComment(postComment *worker.Action) *worker.Actio
 	return a
 }
 
-func setupWorkerPostData(workersQueue chan *worker.Session, login *worker.Action, users []*user, images []*worker.Asset) {
+func setupWorkerPostData(sessionsQueue chan *worker.Session, login *worker.Action, users []*user, images []*worker.Asset) {
 	postTopImg := genActionPostTopImg()
 
 	mypageCheck := genActionCheckMypage()
@@ -401,7 +401,7 @@ func setupWorkerPostData(workersQueue chan *worker.Session, login *worker.Action
 				"password":     u.Password,
 			}
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			w := <-workersQueue
+			w := <-sessionsQueue
 			login.Play(w)
 			getIndexAfterPostImg.Play(w)
 			getIndexAfterPostComment.Play(w)
@@ -475,7 +475,7 @@ func genActionCheckBannedUser(targetUserAccountName string) *worker.Action {
 	return s
 }
 
-func setupWorkerBanUser(workersQueue chan *worker.Session, login *worker.Action, images []*worker.Asset, adminUsers []*user) {
+func setupWorkerBanUser(sessionsQueue chan *worker.Session, login *worker.Action, images []*worker.Asset, adminUsers []*user) {
 	interval := time.Tick(10 * time.Second)
 
 	postRegister := genActionPostRegister()
@@ -487,7 +487,7 @@ func setupWorkerBanUser(workersQueue chan *worker.Session, login *worker.Action,
 	// そのユーザーはBAN機能を使って消される
 	go func() {
 		for {
-			w1 := <-workersQueue
+			w1 := <-sessionsQueue
 
 			targetUserAccountName := util.RandomLUNStr(25)
 			deletedUser := map[string]string{
@@ -508,7 +508,7 @@ func setupWorkerBanUser(workersQueue chan *worker.Session, login *worker.Action,
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
-			w2 := <-workersQueue
+			w2 := <-sessionsQueue
 			login.Play(w2)
 
 			banUser := genActionBanUser(targetUserAccountName)
