@@ -234,7 +234,7 @@ func genActionToppageNotLogin() *worker.Action {
 			imgReq := worker.NewAction("GET", url)
 			imgReq.ExpectedStatusCode = 200
 			imgReq.Asset = &worker.Asset{}
-			imgReq.PlayWithImage(w)
+			imgReq.PlayWithImage(s)
 			if exit > 15 {
 				return false
 			} else {
@@ -268,22 +268,22 @@ func setupSessionMypageCheck(workersQueue chan *worker.Session, login *worker.Ac
 }
 
 func genActionMypageCheck() *worker.Action {
-	s := worker.NewAction("GET", "/mypage")
-	s.ExpectedStatusCode = 200
+	a := worker.NewAction("GET", "/mypage")
+	a.ExpectedStatusCode = 200
 
-	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	a.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		url, _ := doc.Find(`img`).First().Attr("src")
 		imgReq := worker.NewAction("GET", url)
 		imgReq.ExpectedStatusCode = 200
 		imgReq.Asset = &worker.Asset{}
-		imgReq.PlayWithImage(w)
+		imgReq.PlayWithImage(s)
 
 		return nil
 	}
 
-	return s
+	return a
 }
 
 func genActionLogin() *worker.Action {
@@ -314,22 +314,22 @@ func genActionPostTopImg() *worker.Action {
 }
 
 func genActionCheckMypage() *worker.Action {
-	s := worker.NewAction("GET", "/mypage")
-	s.ExpectedStatusCode = 200
+	a := worker.NewAction("GET", "/mypage")
+	a.ExpectedStatusCode = 200
 
-	s.CheckFunc = func(cs *worker.Session, body io.Reader) error {
+	a.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		url, _ := doc.Find(`img`).First().Attr("src")
 		imgReq := worker.NewAction("GET", url)
 		imgReq.ExpectedStatusCode = 200
 		imgReq.Asset = &worker.Asset{}
-		imgReq.PlayWithImage(cw)
+		imgReq.PlayWithImage(s)
 
 		return nil
 	}
 
-	return s
+	return a
 }
 
 func genActionPostComment() *worker.Action {
@@ -341,10 +341,10 @@ func genActionPostComment() *worker.Action {
 }
 
 func genActionGetIndexAfterPostImg(postTopImg *worker.Action, mypageCheck *worker.Action) *worker.Action {
-	s := worker.NewAction("GET", "/")
-	s.ExpectedStatusCode = 200
+	a := worker.NewAction("GET", "/")
+	a.ExpectedStatusCode = 200
 
-	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	a.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
@@ -353,20 +353,20 @@ func genActionGetIndexAfterPostImg(postTopImg *worker.Action, mypageCheck *worke
 			"csrf_token": token,
 			"type":       "image/jpeg",
 		}
-		postTopImg.PlayWithPostFile(w, "file")
-		mypageCheck.Play(w)
+		postTopImg.PlayWithPostFile(s, "file")
+		mypageCheck.Play(s)
 
 		return nil
 	}
 
-	return s
+	return a
 }
 
 func genActionGetIndexAfterPostComment(postComment *worker.Action) *worker.Action {
-	s := worker.NewAction("GET", "/")
-	s.ExpectedStatusCode = 200
+	a := worker.NewAction("GET", "/")
+	a.ExpectedStatusCode = 200
 
-	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	a.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
@@ -376,11 +376,11 @@ func genActionGetIndexAfterPostComment(postComment *worker.Action) *worker.Actio
 			"comment":    "comment",
 			"csrf_token": token,
 		}
-		postComment.Play(w)
+		postComment.Play(s)
 
 		return nil
 	}
-	return s
+	return a
 }
 
 func setupSessionPostData(workersQueue chan *worker.Session, login *worker.Action, users []*user, images []*worker.Asset) {
@@ -417,10 +417,10 @@ func genActionPostRegister() *worker.Action {
 }
 
 func genActionBanUser(accountName string) *worker.Action {
-	s := worker.NewAction("GET", "/admin/banned")
-	s.ExpectedStatusCode = 200
-	s.ExpectedLocation = "/admin/banned"
-	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
+	a := worker.NewAction("GET", "/admin/banned")
+	a.ExpectedStatusCode = 200
+	a.ExpectedLocation = "/admin/banned"
+	a.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
 		uid, _ := doc.Find(`input[data-account-name="` + accountName + `"]`).First().Attr("value")
@@ -432,12 +432,12 @@ func genActionBanUser(accountName string) *worker.Action {
 			"uid[]":      uid,
 			"csrf_token": token,
 		}
-		postAdminBanned.Play(w)
+		postAdminBanned.Play(s)
 
 		return nil
 	}
 
-	return s
+	return a
 }
 
 func genActionCheckBannedUser(targetUserAccountName string) *worker.Action {
