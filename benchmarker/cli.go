@@ -32,8 +32,12 @@ type user struct {
 	Password    string
 }
 
+var quit bool
+var quitLock sync.RWMutex
+
 // Run invokes the CLI with the given arguments.
 func (cli *CLI) Run(args []string) int {
+	quit = false
 	var (
 		target string
 
@@ -152,25 +156,10 @@ func (cli *CLI) Run(args []string) int {
 
 	timeUp := time.After(30 * time.Second)
 	done := make(chan bool)
-	quit := false
-	var mu sync.RWMutex
 
 	workersQueue := make(chan *worker.Worker, 20)
 
-	// workersQueueにworkerを用意しておく
-	// キューとして使って並列度が高くなりすぎないようにするのと、
-	// 時間が来たらcloseする
-	go func() {
-		for {
-			workersQueue <- worker.NewWorker()
-			mu.RLock()
-			if quit {
-				done <- true
-				break
-			}
-			mu.RUnlock()
-		}
-	}()
+	setupWorkerGenrator(workersQueue, done)
 
 	setupWorkerToppageNotLogin(workersQueue)
 	login := genScenarioLogin()
@@ -181,9 +170,9 @@ func (cli *CLI) Run(args []string) int {
 
 	<-timeUp
 
-	mu.Lock()
+	quitLock.Lock()
 	quit = true
-	mu.Unlock()
+	quitLock.Unlock()
 
 	<-done
 	close(workersQueue)
@@ -199,6 +188,23 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	return ExitCodeOK
+}
+
+func setupWorkerGenrator(workersQueue chan *worker.Worker, done chan bool) {
+	// workersQueueにworkerを用意しておく
+	// キューとして使って並列度が高くなりすぎないようにするのと、
+	// 時間が来たらcloseする
+	go func() {
+		for {
+			workersQueue <- worker.NewWorker()
+			quitLock.RLock()
+			if quit {
+				done <- true
+				break
+			}
+			quitLock.RUnlock()
+		}
+	}()
 }
 
 func setupWorkerToppageNotLogin(workersQueue chan *worker.Worker) {
