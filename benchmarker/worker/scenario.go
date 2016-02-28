@@ -164,51 +164,51 @@ func (s *Action) PlayWithImage(w *Session) error {
 	return nil
 }
 
-func (s *Action) PlayWithPostFile(w *Session, paramName string) error {
-	req, err := w.NewFileUploadRequest(s.Path, s.PostData, paramName, s.Asset.Path)
+func (a *Action) PlayWithPostFile(s *Session, paramName string) error {
+	req, err := s.NewFileUploadRequest(a.Path, a.PostData, paramName, a.Asset.Path)
 
 	if err != nil {
-		return w.Fail(req, err)
+		return s.Fail(req, err)
 	}
 
-	for key, val := range s.Headers {
+	for key, val := range a.Headers {
 		req.Header.Add(key, val)
 	}
 
-	res, err := w.SendRequest(req)
+	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return w.Fail(req, err)
+		return s.Fail(req, err)
 	}
 
 	defer res.Body.Close()
 
-	if res.StatusCode != s.ExpectedStatusCode {
-		w.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", s.ExpectedStatusCode, res.StatusCode))
+	if res.StatusCode != a.ExpectedStatusCode {
+		s.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
-	if s.ExpectedLocation != "" {
-		if s.ExpectedLocation != res.Request.URL.Path {
-			return w.Fail(
+	if a.ExpectedLocation != "" {
+		if a.ExpectedLocation != res.Request.URL.Path {
+			return s.Fail(
 				res.Request,
 				fmt.Errorf(
 					"Expected location is miss match %s, got: %s",
-					s.ExpectedLocation, res.Request.URL.Path,
+					a.ExpectedLocation, res.Request.URL.Path,
 				))
 		}
 	}
 
-	if s.CheckFunc != nil {
-		err := s.CheckFunc(w, res.Body)
+	if a.CheckFunc != nil {
+		err := a.CheckFunc(s, res.Body)
 		if err != nil {
-			return w.Fail(
+			return s.Fail(
 				res.Request,
 				err,
 			)
 		}
 	}
 
-	w.Success(1)
+	s.Success(1)
 
 	return nil
 }
