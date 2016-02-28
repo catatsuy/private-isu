@@ -201,9 +201,10 @@ EOS
     end
 
     get '/' do
-      posts = db.query('SELECT * FROM posts ORDER BY created_at DESC')
+      ps = db.query('SELECT * FROM posts ORDER BY created_at DESC')
       cs = db.query('SELECT * FROM comments ORDER BY created_at DESC')
       cc = db.query('SELECT post_id, COUNT(*) as count FROM comments GROUP BY post_id ORDER BY created_at DESC')
+      posts = []
       count = {}
       comments = {}
       cc.each do |c|
@@ -230,6 +231,10 @@ EOS
       users = {}
       users_raw.each do |u|
         users[u[:id]] = u
+      end
+
+      ps.each do |p|
+        posts << p if users[p[:user_id]][:del_flg] == 0
       end
 
       erb :index, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }

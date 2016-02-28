@@ -38,7 +38,6 @@
 <div>
   <% display = 0 %>
   <% posts.each do |p| %>
-  <%   next if users[p[:user_id]][:del_flg] == 1 %>
   <%   break if display > 30 %>
   <%   display = display + 1 %>
   <div class="isu-post">
