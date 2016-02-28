@@ -143,10 +143,6 @@ func (s *Scenario) PlayWithImage(w *Worker) error {
 		success = true
 	}
 
-	if s.CheckFunc == nil && res.StatusCode == http.StatusOK {
-		success = true
-	}
-
 	if res.StatusCode == http.StatusOK &&
 		((uc == nil && util.GetMD5ByIO(res.Body) == s.Asset.MD5) || md5 == s.Asset.MD5) {
 		success = true
