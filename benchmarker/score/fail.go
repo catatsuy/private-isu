@@ -23,7 +23,7 @@ func GetFailErrorsInstance() *failErrors {
 }
 
 func GetFailErrors() []error {
-	sort.Sort(failInstance)
+	sort.Sort(GetFailErrorsInstance())
 	var tmp string
 	retErrs := make([]error, 0)
 
