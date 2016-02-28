@@ -289,6 +289,40 @@ EOS
       erb :posts, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
     end
 
+    get '/posts/:id' do
+      post = db.prepare('SELECT * FROM posts WHERE id = ? ORDER BY created_at DESC').execute(
+        params[:id]
+      ).first
+
+      rs = db.prepare('SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC').execute(
+        params[:id]
+      )
+      comments = []
+      rs.each do |p|
+        comments << p
+      end
+      count = db.prepare('SELECT COUNT(*) FROM comments WHERE post_id = ? ORDER BY created_at DESC').execute(
+        params[:id]
+      ).first
+
+      user = {}
+      if session[:user]
+        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+          session[:user][:id]
+        ).first
+      else
+        user = { id: 0 }
+      end
+
+      users_raw = db.query('SELECT * FROM `users`')
+      users = {}
+      users_raw.each do |u|
+        users[u[:id]] = u
+      end
+
+      erb :posts_id, layout: :layout, locals: { post: post, count: count, comments: comments, users: users, user: user }
+    end
+
     post '/' do
       unless session[:user] && session[:user][:id]
         # 未ログインはリダイレクト
