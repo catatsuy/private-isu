@@ -2,6 +2,8 @@
 
 http://twilog.org/catatsuy をスクレイピングしてラーメン画像を取得してきて、ImageMagickでフィルターをかけて1万枚ぐらいの画像を用意する
 
+画像データと生成したmysqldumpファイルはGitHubのreleaseにアップしてある https://github.com/catatsuy/private-isu/releases/tag/img
+
 ## フィルター
 
 ```bash
