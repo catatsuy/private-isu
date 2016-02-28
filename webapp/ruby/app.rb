@@ -232,7 +232,7 @@ EOS
 
     post '/' do
       unless session[:user] && session[:user][:id]
-        # 非ログインはリダイレクト
+        # 未ログインはリダイレクト
         redirect '/login', 302
       end
 
@@ -282,7 +282,7 @@ EOS
 
     post '/comment' do
       unless session[:user] && session[:user][:id]
-        # 非ログインはリダイレクト
+        # 未ログインはリダイレクト
         redirect '/login', 302
       end
 
@@ -333,7 +333,7 @@ EOS
 
     post '/admin/banned' do
       unless session[:user] && session[:user][:id]
-        # 非ログインはリダイレクト
+        # 未ログインはリダイレクト
         redirect '/', 302
       end
 
@@ -360,7 +360,7 @@ EOS
 
     get '/mypage' do
       unless session[:user] && session[:user][:id]
-        # 非ログインはリダイレクト
+        # 未ログインはリダイレクト
         redirect '/', 302
       end
 
