@@ -193,10 +193,10 @@ func (cli *CLI) Run(args []string) int {
 		for {
 			w1 := <-workersC
 
-			deletedStr := util.RandomLUNStr(25)
+			targetUserAccountName := util.RandomLUNStr(25)
 			deletedUser := map[string]string{
-				"account_name": deletedStr,
-				"password":     deletedStr,
+				"account_name": targetUserAccountName,
+				"password":     targetUserAccountName,
 			}
 
 			postRegister.PostData = deletedUser
@@ -215,57 +215,10 @@ func (cli *CLI) Run(args []string) int {
 			w2 := <-workersC
 			login.Play(w2)
 
-			getAdminBanned := worker.NewScenario("GET", "/admin/banned")
-			getAdminBanned.ExpectedStatusCode = 200
-			getAdminBanned.ExpectedLocation = "/admin/banned"
-			getAdminBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-				doc, _ := goquery.NewDocumentFromReader(body)
-				token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
-				uid, _ := doc.Find(`input[data-account-name="` + deletedStr + `"]`).First().Attr("value")
+			banUser := genScenarioBanUser(targetUserAccountName)
+			banUser.Play(w2)
 
-				postAdminBanned := worker.NewScenario("POST", "/admin/banned")
-				postAdminBanned.ExpectedStatusCode = 200
-				postAdminBanned.ExpectedLocation = "/admin/banned"
-				postAdminBanned.PostData = map[string]string{
-					"uid[]":      uid,
-					"csrf_token": token,
-				}
-				postAdminBanned.Play(w)
-
-				return nil
-			}
-			getAdminBanned.Play(w2)
-
-			checkBanned := worker.NewScenario("GET", "/")
-			checkBanned.ExpectedStatusCode = 200
-
-			checkBanned.CheckFunc = func(w *worker.Worker, body io.Reader) error {
-				doc, _ := goquery.NewDocumentFromReader(body)
-
-				exit := 0
-				existErr := false
-
-				doc.Find(`.isu-post-account-name`).EachWithBreak(func(_ int, s *goquery.Selection) bool {
-					account_name := strings.TrimSpace(s.Text())
-					if account_name == deletedStr {
-						existErr = true
-						return false
-					}
-					if exit > 20 {
-						return false
-					} else {
-						exit += 1
-						return true
-					}
-					return true
-				})
-
-				if existErr {
-					return fmt.Errorf("BANされたユーザーの投稿が表示されています")
-				}
-
-				return nil
-			}
+			checkBanned := genScenarioCheckBannedUser(targetUserAccountName)
 			checkBanned.Play(w2)
 			<-interval
 		}
@@ -497,5 +450,64 @@ func genScenarioPostRegister() *worker.Scenario {
 	s := worker.NewScenario("POST", "/register")
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/"
+	return s
+}
+
+func genScenarioBanUser(accountName string) *worker.Scenario {
+	s := worker.NewScenario("GET", "/admin/banned")
+	s.ExpectedStatusCode = 200
+	s.ExpectedLocation = "/admin/banned"
+	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+		uid, _ := doc.Find(`input[data-account-name="` + accountName + `"]`).First().Attr("value")
+
+		postAdminBanned := worker.NewScenario("POST", "/admin/banned")
+		postAdminBanned.ExpectedStatusCode = 200
+		postAdminBanned.ExpectedLocation = "/admin/banned"
+		postAdminBanned.PostData = map[string]string{
+			"uid[]":      uid,
+			"csrf_token": token,
+		}
+		postAdminBanned.Play(w)
+
+		return nil
+	}
+
+	return s
+}
+
+func genScenarioCheckBannedUser(targetUserAccountName string) *worker.Scenario {
+	s := worker.NewScenario("GET", "/")
+	s.ExpectedStatusCode = 200
+
+	s.CheckFunc = func(w *worker.Worker, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		exit := 0
+		existErr := false
+
+		doc.Find(`.isu-post-account-name`).EachWithBreak(func(_ int, selection *goquery.Selection) bool {
+			accountName := strings.TrimSpace(selection.Text())
+			if accountName == targetUserAccountName {
+				existErr = true
+				return false
+			}
+			if exit > 20 {
+				return false
+			} else {
+				exit += 1
+				return true
+			}
+			return true
+		})
+
+		if existErr {
+			return fmt.Errorf("BANされたユーザーの投稿が表示されています")
+		}
+
+		return nil
+	}
+
 	return s
 }
