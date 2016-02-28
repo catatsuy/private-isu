@@ -1,4 +1,4 @@
-package worker
+package checker
 
 import (
 	"bytes"
@@ -25,15 +25,15 @@ var (
 	targetHost string
 )
 
-type Worker struct {
+type Session struct {
 	Client    *http.Client
 	Transport *http.Transport
 
 	logger *log.Logger
 }
 
-func NewWorker() *Worker {
-	w := &Worker{
+func NewSession() *Session {
+	w := &Session{
 		logger: log.New(os.Stdout, "", 0),
 	}
 
@@ -68,7 +68,7 @@ func SetTargetHost(host string) error {
 	return nil
 }
 
-func (w *Worker) NewRequest(method, uri string, body io.Reader) (*http.Request, error) {
+func (s *Session) NewRequest(method, uri string, body io.Reader) (*http.Request, error) {
 	parsedURL, err := url.Parse(uri)
 
 	if err != nil {
@@ -96,7 +96,7 @@ func escapeQuotes(s string) string {
 	return strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(s)
 }
 
-func (w *Worker) NewFileUploadRequest(uri string, params map[string]string, paramName, path string) (*http.Request, error) {
+func (s *Session) NewFileUploadRequest(uri string, params map[string]string, paramName, path string) (*http.Request, error) {
 	parsedURL, err := url.Parse(uri)
 
 	if err != nil {
@@ -152,26 +152,26 @@ func (w *Worker) NewFileUploadRequest(uri string, params map[string]string, para
 	return req, err
 }
 
-func (w *Worker) RefreshClient() {
+func (s *Session) RefreshClient() {
 	jar, _ := cookiejar.New(&cookiejar.Options{})
-	w.Transport = &http.Transport{}
-	w.Client = &http.Client{
-		Transport: w.Transport,
+	s.Transport = &http.Transport{}
+	s.Client = &http.Client{
+		Transport: s.Transport,
 		Jar:       jar,
 	}
 }
 
-func (w *Worker) SendRequest(req *http.Request) (*http.Response, error) {
+func (s *Session) SendRequest(req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
-	return w.Client.Do(req)
+	return s.Client.Do(req)
 }
 
-func (w *Worker) Success(point int64) {
+func (s *Session) Success(point int64) {
 	score.GetInstance().SetScore(point)
 }
 
-func (w *Worker) Fail(req *http.Request, err error) error {
+func (s *Session) Fail(req *http.Request, err error) error {
 	score.GetInstance().SetFails()
 	if req != nil {
 		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
