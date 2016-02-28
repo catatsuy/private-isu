@@ -1,4 +1,4 @@
-package worker
+package score
 
 import (
 	"sort"
@@ -10,25 +10,25 @@ type failErrors struct {
 	errs []error
 }
 
-var instance *failErrors
-var once sync.Once
+var failInstance *failErrors
+var failOnce sync.Once
 
-func getFailErrorsInstance() *failErrors {
-	once.Do(func() {
+func GetFailErrorsInstance() *failErrors {
+	failOnce.Do(func() {
 		errs := make([]error, 0)
-		instance = &failErrors{errs: errs}
+		failInstance = &failErrors{errs: errs}
 	})
 
-	return instance
+	return failInstance
 }
 
 func GetFailErrors() []error {
-	sort.Sort(instance)
+	sort.Sort(failInstance)
 	var tmp string
 	retErrs := make([]error, 0)
 
 	// 適当にuniqする
-	for _, e := range instance.errs {
+	for _, e := range failInstance.errs {
 		if tmp != e.Error() {
 			tmp = e.Error()
 			retErrs = append(retErrs, e)

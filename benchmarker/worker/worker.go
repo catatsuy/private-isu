@@ -177,6 +177,6 @@ func (w *Worker) Fail(req *http.Request, err error) error {
 		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
 	}
 
-	getFailErrorsInstance().Append(err)
+	score.GetFailErrorsInstance().Append(err)
 	return nil
 }
