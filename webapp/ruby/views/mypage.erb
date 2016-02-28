@@ -3,9 +3,12 @@
     <h1><a href="/">Iscogram</a></h1>
   </div>
   <div class="isu-account-name">
-    <a href="/mypage">
-      <%=  escape_html user[:account_name] %>さん
-    </a>
+    <% if user[:id] != 0 %>
+    <div><a href="/mypage"><%=  escape_html user[:account_name] %>さん</a></div>
+    <div><a href="/logout">ログアウト</a></div>
+    <% else %>
+    <div><a href="/login">ログイン</a></div>
+    <% end %>
   </div>
 </div>
 

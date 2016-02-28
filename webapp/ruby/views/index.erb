@@ -4,13 +4,10 @@
   </div>
   <div class="isu-account-name">
     <% if user[:id] != 0 %>
-    <a href="/mypage">
-      <%=  escape_html user[:account_name] %>さん
-    </a>
+    <div><a href="/mypage"><%=  escape_html user[:account_name] %>さん</a></div>
+    <div><a href="/logout">ログアウト</a></div>
     <% else %>
-    <a href="/login">
-      ログイン
-    </a>
+    <div><a href="/login">ログイン</a></div>
     <% end %>
   </div>
 </div>
