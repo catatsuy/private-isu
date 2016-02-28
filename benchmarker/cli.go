@@ -225,7 +225,7 @@ func genActionToppageNotLogin() *worker.Action {
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/"
 	s.Description = "/mypageは非ログイン時に/にリダイレクトがかかる"
-	s.CheckFunc = func(w *worker.Session, body io.Reader) error {
+	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		exit := 0
@@ -271,7 +271,7 @@ func genActionMypageCheck() *worker.Action {
 	s := worker.NewAction("GET", "/mypage")
 	s.ExpectedStatusCode = 200
 
-	s.CheckFunc = func(w *worker.Session, body io.Reader) error {
+	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		url, _ := doc.Find(`img`).First().Attr("src")
@@ -317,7 +317,7 @@ func genActionCheckMypage() *worker.Action {
 	s := worker.NewAction("GET", "/mypage")
 	s.ExpectedStatusCode = 200
 
-	s.CheckFunc = func(cw *worker.Session, body io.Reader) error {
+	s.CheckFunc = func(cs *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		url, _ := doc.Find(`img`).First().Attr("src")
@@ -344,7 +344,7 @@ func genActionGetIndexAfterPostImg(postTopImg *worker.Action, mypageCheck *worke
 	s := worker.NewAction("GET", "/")
 	s.ExpectedStatusCode = 200
 
-	s.CheckFunc = func(w *worker.Session, body io.Reader) error {
+	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
@@ -366,7 +366,7 @@ func genActionGetIndexAfterPostComment(postComment *worker.Action) *worker.Actio
 	s := worker.NewAction("GET", "/")
 	s.ExpectedStatusCode = 200
 
-	s.CheckFunc = func(w *worker.Session, body io.Reader) error {
+	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
@@ -420,7 +420,7 @@ func genActionBanUser(accountName string) *worker.Action {
 	s := worker.NewAction("GET", "/admin/banned")
 	s.ExpectedStatusCode = 200
 	s.ExpectedLocation = "/admin/banned"
-	s.CheckFunc = func(w *worker.Session, body io.Reader) error {
+	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
 		uid, _ := doc.Find(`input[data-account-name="` + accountName + `"]`).First().Attr("value")
@@ -444,7 +444,7 @@ func genActionCheckBannedUser(targetUserAccountName string) *worker.Action {
 	s := worker.NewAction("GET", "/")
 	s.ExpectedStatusCode = 200
 
-	s.CheckFunc = func(w *worker.Session, body io.Reader) error {
+	s.CheckFunc = func(s *worker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		exit := 0
