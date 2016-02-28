@@ -46,18 +46,18 @@ func NewAction(method, path string) *Action {
 
 func (a *Action) Play(s *Session) error {
 	formData := url.Values{}
-	for key, val := range s.PostData {
+	for key, val := range a.PostData {
 		formData.Set(key, val)
 	}
 
 	buf := bytes.NewBufferString(formData.Encode())
-	req, err := w.NewRequest(s.Method, s.Path, buf)
+	req, err := s.NewRequest(a.Method, a.Path, buf)
 
 	if err != nil {
-		return w.Fail(req, err)
+		return s.Fail(req, err)
 	}
 
-	for key, val := range s.Headers {
+	for key, val := range a.Headers {
 		req.Header.Add(key, val)
 	}
 
@@ -65,76 +65,76 @@ func (a *Action) Play(s *Session) error {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	}
 
-	res, err := w.SendRequest(req)
+	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return w.Fail(req, err)
+		return s.Fail(req, err)
 	}
 
 	defer res.Body.Close()
 
-	if res.StatusCode != s.ExpectedStatusCode {
-		w.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", s.ExpectedStatusCode, res.StatusCode))
+	if res.StatusCode != a.ExpectedStatusCode {
+		s.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
-	if s.ExpectedLocation != "" {
-		if s.ExpectedLocation != res.Request.URL.Path {
-			return w.Fail(
+	if a.ExpectedLocation != "" {
+		if a.ExpectedLocation != res.Request.URL.Path {
+			return s.Fail(
 				res.Request,
 				fmt.Errorf(
 					"Expected location is miss match %s, got: %s",
-					s.ExpectedLocation, res.Request.URL.Path,
+					a.ExpectedLocation, res.Request.URL.Path,
 				))
 		}
 	}
 
-	if s.CheckFunc != nil {
-		err := s.CheckFunc(w, res.Body)
+	if a.CheckFunc != nil {
+		err := a.CheckFunc(s, res.Body)
 		if err != nil {
-			return w.Fail(
+			return s.Fail(
 				res.Request,
 				err,
 			)
 		}
 	}
 
-	w.Success(1)
+	s.Success(1)
 
 	return nil
 }
 
 func (a *Action) PlayWithImage(s *Session) error {
 	formData := url.Values{}
-	for key, val := range s.PostData {
+	for key, val := range a.PostData {
 		formData.Set(key, val)
 	}
 
 	buf := bytes.NewBufferString(formData.Encode())
-	req, err := w.NewRequest(s.Method, s.Path, buf)
+	req, err := s.NewRequest(a.Method, a.Path, buf)
 
 	if err != nil {
-		return w.Fail(req, err)
+		return s.Fail(req, err)
 	}
 
-	for key, val := range s.Headers {
+	for key, val := range a.Headers {
 		req.Header.Add(key, val)
 	}
 
-	urlCache, found := cache.GetInstance().Get(s.Path)
+	urlCache, found := cache.GetInstance().Get(a.Path)
 	if found {
 		urlCache.Apply(req)
 	}
 
-	res, err := w.SendRequest(req)
+	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return w.Fail(req, err)
+		return s.Fail(req, err)
 	}
 
 	// 2回ioutil.ReadAllを呼ぶとおかしくなる
 	uc, md5 := cache.NewURLCache(res)
 	if uc != nil {
-		cache.GetInstance().Set(s.Path, uc)
+		cache.GetInstance().Set(a.Path, uc)
 	}
 
 	success := false
@@ -144,22 +144,22 @@ func (a *Action) PlayWithImage(s *Session) error {
 	}
 
 	if res.StatusCode == http.StatusOK &&
-		((uc == nil && util.GetMD5ByIO(res.Body) == s.Asset.MD5) || md5 == s.Asset.MD5) {
+		((uc == nil && util.GetMD5ByIO(res.Body) == a.Asset.MD5) || md5 == a.Asset.MD5) {
 		success = true
 	}
 
 	defer res.Body.Close()
 
 	if !success {
-		return w.Fail(
+		return s.Fail(
 			res.Request,
 			fmt.Errorf(
 				"Expected location is miss match %s, got: %s",
-				s.ExpectedLocation, res.Request.URL.Path,
+				a.ExpectedLocation, res.Request.URL.Path,
 			))
 	}
 
-	w.Success(1)
+	s.Success(1)
 
 	return nil
 }
