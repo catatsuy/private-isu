@@ -44,7 +44,7 @@ func NewAction(method, path string) *Action {
 	}
 }
 
-func (s *Action) Play(w *Session) error {
+func (a *Action) Play(s *Session) error {
 	formData := url.Values{}
 	for key, val := range s.PostData {
 		formData.Set(key, val)
@@ -103,7 +103,7 @@ func (s *Action) Play(w *Session) error {
 	return nil
 }
 
-func (s *Action) PlayWithImage(w *Session) error {
+func (a *Action) PlayWithImage(s *Session) error {
 	formData := url.Values{}
 	for key, val := range s.PostData {
 		formData.Set(key, val)

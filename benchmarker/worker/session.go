@@ -68,7 +68,7 @@ func SetTargetHost(host string) error {
 	return nil
 }
 
-func (w *Session) NewRequest(method, uri string, body io.Reader) (*http.Request, error) {
+func (s *Session) NewRequest(method, uri string, body io.Reader) (*http.Request, error) {
 	parsedURL, err := url.Parse(uri)
 
 	if err != nil {
@@ -96,7 +96,7 @@ func escapeQuotes(s string) string {
 	return strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(s)
 }
 
-func (w *Session) NewFileUploadRequest(uri string, params map[string]string, paramName, path string) (*http.Request, error) {
+func (s *Session) NewFileUploadRequest(uri string, params map[string]string, paramName, path string) (*http.Request, error) {
 	parsedURL, err := url.Parse(uri)
 
 	if err != nil {
@@ -152,7 +152,7 @@ func (w *Session) NewFileUploadRequest(uri string, params map[string]string, par
 	return req, err
 }
 
-func (w *Session) RefreshClient() {
+func (s *Session) RefreshClient() {
 	jar, _ := cookiejar.New(&cookiejar.Options{})
 	w.Transport = &http.Transport{}
 	w.Client = &http.Client{
@@ -161,17 +161,17 @@ func (w *Session) RefreshClient() {
 	}
 }
 
-func (w *Session) SendRequest(req *http.Request) (*http.Response, error) {
+func (s *Session) SendRequest(req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
 	return w.Client.Do(req)
 }
 
-func (w *Session) Success(point int64) {
+func (s *Session) Success(point int64) {
 	score.GetInstance().SetScore(point)
 }
 
-func (w *Session) Fail(req *http.Request, err error) error {
+func (s *Session) Fail(req *http.Request, err error) error {
 	score.GetInstance().SetFails()
 	if req != nil {
 		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
