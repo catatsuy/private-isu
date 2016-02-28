@@ -177,52 +177,7 @@ func (cli *CLI) Run(args []string) int {
 
 	genWorkerMypageCheck(workersC, login, users)
 	genWorkerPostData(workersC, login, users, images)
-
-	postTopImg := genScenarioPostTopImg()
-	mypageCheck := genScenarioCheckMypage()
-
-	getIndexAfterPostImg := genScenarioGetIndexAfterPostImg(postTopImg, mypageCheck)
-
-	postRegister := genScenarioPostRegister()
-
-	interval := time.Tick(10 * time.Second)
-
-	// ユーザーを作って、ログインして画像を投稿する
-	// そのユーザーはBAN機能を使って消される
-	go func() {
-		for {
-			w1 := <-workersC
-
-			targetUserAccountName := util.RandomLUNStr(25)
-			deletedUser := map[string]string{
-				"account_name": targetUserAccountName,
-				"password":     targetUserAccountName,
-			}
-
-			postRegister.PostData = deletedUser
-			postRegister.Play(w1)
-			login.PostData = deletedUser
-			login.Play(w1)
-			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			getIndexAfterPostImg.Play(w1)
-			postTopImg.PlayWithPostFile(w1, "file")
-
-			u := adminUsers[util.RandomNumber(len(adminUsers))]
-			login.PostData = map[string]string{
-				"account_name": u.AccountName,
-				"password":     u.Password,
-			}
-			w2 := <-workersC
-			login.Play(w2)
-
-			banUser := genScenarioBanUser(targetUserAccountName)
-			banUser.Play(w2)
-
-			checkBanned := genScenarioCheckBannedUser(targetUserAccountName)
-			checkBanned.Play(w2)
-			<-interval
-		}
-	}()
+	genWorkerBanUser(workersC, login, images, adminUsers)
 
 	<-timeUp
 
@@ -423,9 +378,10 @@ func genScenarioGetIndexAfterPostComment(postComment *worker.Scenario) *worker.S
 
 func genWorkerPostData(workersC chan *worker.Worker, login *worker.Scenario, users []*user, images []*worker.Asset) {
 	postTopImg := genScenarioPostTopImg()
-	mypageCheck := genScenarioCheckMypage()
 
+	mypageCheck := genScenarioCheckMypage()
 	getIndexAfterPostImg := genScenarioGetIndexAfterPostImg(postTopImg, mypageCheck)
+
 	postComment := genScenarioPostComment()
 	getIndexAfterPostComment := genScenarioGetIndexAfterPostComment(postComment)
 
@@ -510,4 +466,50 @@ func genScenarioCheckBannedUser(targetUserAccountName string) *worker.Scenario {
 	}
 
 	return s
+}
+
+func genWorkerBanUser(workersC chan *worker.Worker, login *worker.Scenario, images []*worker.Asset, adminUsers []*user) {
+	interval := time.Tick(10 * time.Second)
+
+	postRegister := genScenarioPostRegister()
+	postTopImg := genScenarioPostTopImg()
+	mypageCheck := genScenarioCheckMypage()
+	getIndexAfterPostImg := genScenarioGetIndexAfterPostImg(postTopImg, mypageCheck)
+
+	// ユーザーを作って、ログインして画像を投稿する
+	// そのユーザーはBAN機能を使って消される
+	go func() {
+		for {
+			w1 := <-workersC
+
+			targetUserAccountName := util.RandomLUNStr(25)
+			deletedUser := map[string]string{
+				"account_name": targetUserAccountName,
+				"password":     targetUserAccountName,
+			}
+
+			postRegister.PostData = deletedUser
+			postRegister.Play(w1)
+			login.PostData = deletedUser
+			login.Play(w1)
+			postTopImg.Asset = images[util.RandomNumber(len(images))]
+			getIndexAfterPostImg.Play(w1)
+			postTopImg.PlayWithPostFile(w1, "file")
+
+			u := adminUsers[util.RandomNumber(len(adminUsers))]
+			login.PostData = map[string]string{
+				"account_name": u.AccountName,
+				"password":     u.Password,
+			}
+			w2 := <-workersC
+			login.Play(w2)
+
+			banUser := genScenarioBanUser(targetUserAccountName)
+			banUser.Play(w2)
+
+			checkBanned := genScenarioCheckBannedUser(targetUserAccountName)
+			checkBanned.Play(w2)
+			<-interval
+		}
+	}()
 }
