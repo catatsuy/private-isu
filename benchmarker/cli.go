@@ -27,6 +27,11 @@ type CLI struct {
 	outStream, errStream io.Writer
 }
 
+type user struct {
+	AccountName string
+	Password    string
+}
+
 // Run invokes the CLI with the given arguments.
 func (cli *CLI) Run(args []string) int {
 	var (
@@ -61,10 +66,6 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeError
 	}
 
-	type user struct {
-		AccountName string
-		Password    string
-	}
 	users := []*user{
 		&user{
 			AccountName: "user1",
@@ -171,55 +172,16 @@ func (cli *CLI) Run(args []string) int {
 		}
 	}()
 
-	toppageNotLogin := genScenarioToppageNotLogin()
-
-	// TOPページに非ログイン状態でひたすらアクセス
-	// 画像にもリクエストを送っている
-	go func() {
-		for {
-			toppageNotLogin.Play(<-workersC)
-		}
-	}()
-
+	genWorkerToppageNotLogin(workersC)
 	login := genScenarioLogin()
-	mypage := genScenarioMyPage()
 
-	// ログインしてmypageをちゃんと見れるか確認
-	go func() {
-		for {
-			u := users[util.RandomNumber(len(users))]
-			login.PostData = map[string]string{
-				"account_name": u.AccountName,
-				"password":     u.Password,
-			}
-			w := <-workersC
-			login.Play(w)
-			mypage.Play(w)
-		}
-	}()
+	genWorkerMypageCheck(workersC, login, users)
+	genWorkerPostData(workersC, login, users, images)
 
 	postTopImg := genScenarioPostTopImg()
 	mypageCheck := genScenarioCheckMypage()
 
 	getIndexAfterPostImg := genScenarioGetIndexAfterPostImg(postTopImg, mypageCheck)
-	postComment := genScenarioPostComment()
-	getIndexAfterPostComment := genScenarioGetIndexAfterPostComment(postComment)
-
-	// ログインして、画像を投稿して、mypageをcheckして、コメントを投稿
-	go func() {
-		for {
-			u := users[util.RandomNumber(len(users))]
-			login.PostData = map[string]string{
-				"account_name": u.AccountName,
-				"password":     u.Password,
-			}
-			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			w := <-workersC
-			login.Play(w)
-			getIndexAfterPostImg.Play(w)
-			getIndexAfterPostComment.Play(w)
-		}
-	}()
 
 	postRegister := genScenarioPostRegister()
 
@@ -331,6 +293,18 @@ func (cli *CLI) Run(args []string) int {
 	return ExitCodeOK
 }
 
+func genWorkerToppageNotLogin(workersC chan *worker.Worker) {
+	toppageNotLogin := genScenarioToppageNotLogin()
+
+	go func() {
+		for {
+			toppageNotLogin.Play(<-workersC)
+		}
+	}()
+}
+
+// TOPページに非ログイン状態でひたすらアクセス
+// 画像にもリクエストを送っている
 func genScenarioToppageNotLogin() *worker.Scenario {
 	s := worker.NewScenario("GET", "/mypage")
 	s.ExpectedStatusCode = 200
@@ -358,6 +332,24 @@ func genScenarioToppageNotLogin() *worker.Scenario {
 	}
 
 	return s
+}
+
+// ログインしてmypageをちゃんと見れるか確認
+func genWorkerMypageCheck(workersC chan *worker.Worker, login *worker.Scenario, users []*user) {
+
+	mypage := genScenarioMyPage()
+	go func() {
+		for {
+			u := users[util.RandomNumber(len(users))]
+			login.PostData = map[string]string{
+				"account_name": u.AccountName,
+				"password":     u.Password,
+			}
+			w := <-workersC
+			login.Play(w)
+			mypage.Play(w)
+		}
+	}()
 }
 
 func genScenarioMypageCheck() *worker.Scenario {
@@ -474,6 +466,31 @@ func genScenarioGetIndexAfterPostComment(postComment *worker.Scenario) *worker.S
 		return nil
 	}
 	return s
+}
+
+func genWorkerPostData(workersC chan *worker.Worker, login *worker.Scenario, users []*user, images []*worker.Asset) {
+	postTopImg := genScenarioPostTopImg()
+	mypageCheck := genScenarioCheckMypage()
+
+	getIndexAfterPostImg := genScenarioGetIndexAfterPostImg(postTopImg, mypageCheck)
+	postComment := genScenarioPostComment()
+	getIndexAfterPostComment := genScenarioGetIndexAfterPostComment(postComment)
+
+	// ログインして、画像を投稿して、mypageをcheckして、コメントを投稿
+	go func() {
+		for {
+			u := users[util.RandomNumber(len(users))]
+			login.PostData = map[string]string{
+				"account_name": u.AccountName,
+				"password":     u.Password,
+			}
+			postTopImg.Asset = images[util.RandomNumber(len(images))]
+			w := <-workersC
+			login.Play(w)
+			getIndexAfterPostImg.Play(w)
+			getIndexAfterPostComment.Play(w)
+		}
+	}()
 }
 
 func genScenarioPostRegister() *worker.Scenario {
