@@ -32,7 +32,7 @@ type Session struct {
 	logger *log.Logger
 }
 
-func NewWorker() *Session {
+func NewSession() *Session {
 	w := &Session{
 		logger: log.New(os.Stdout, "", 0),
 	}

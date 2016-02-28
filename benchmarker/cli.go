@@ -159,14 +159,14 @@ func (cli *CLI) Run(args []string) int {
 
 	workersQueue := make(chan *worker.Session, 20)
 
-	setupWorkerGenrator(workersQueue, done)
+	setupSessionGenrator(workersQueue, done)
 
-	setupWorkerToppageNotLogin(workersQueue)
+	setupSessionToppageNotLogin(workersQueue)
 	login := genActionLogin()
 
-	setupWorkerMypageCheck(workersQueue, login, users)
-	setupWorkerPostData(workersQueue, login, users, images)
-	setupWorkerBanUser(workersQueue, login, images, adminUsers)
+	setupSessionMypageCheck(workersQueue, login, users)
+	setupSessionPostData(workersQueue, login, users, images)
+	setupSessionBanUser(workersQueue, login, images, adminUsers)
 
 	<-timeUp
 
@@ -190,13 +190,13 @@ func (cli *CLI) Run(args []string) int {
 	return ExitCodeOK
 }
 
-func setupWorkerGenrator(workersQueue chan *worker.Session, done chan bool) {
+func setupSessionGenrator(workersQueue chan *worker.Session, done chan bool) {
 	// workersQueueにworkerを用意しておく
 	// キューとして使って並列度が高くなりすぎないようにするのと、
 	// 時間が来たらcloseする
 	go func() {
 		for {
-			workersQueue <- worker.NewWorker()
+			workersQueue <- worker.NewSession()
 			quitLock.RLock()
 			if quit {
 				quitLock.RUnlock()
@@ -208,7 +208,7 @@ func setupWorkerGenrator(workersQueue chan *worker.Session, done chan bool) {
 	}()
 }
 
-func setupWorkerToppageNotLogin(workersQueue chan *worker.Session) {
+func setupSessionToppageNotLogin(workersQueue chan *worker.Session) {
 	toppageNotLogin := genActionToppageNotLogin()
 
 	go func() {
@@ -250,7 +250,7 @@ func genActionToppageNotLogin() *worker.Action {
 }
 
 // ログインしてmypageをちゃんと見れるか確認
-func setupWorkerMypageCheck(workersQueue chan *worker.Session, login *worker.Action, users []*user) {
+func setupSessionMypageCheck(workersQueue chan *worker.Session, login *worker.Action, users []*user) {
 
 	mypage := genActionMyPage()
 	go func() {
@@ -383,7 +383,7 @@ func genActionGetIndexAfterPostComment(postComment *worker.Action) *worker.Actio
 	return s
 }
 
-func setupWorkerPostData(workersQueue chan *worker.Session, login *worker.Action, users []*user, images []*worker.Asset) {
+func setupSessionPostData(workersQueue chan *worker.Session, login *worker.Action, users []*user, images []*worker.Asset) {
 	postTopImg := genActionPostTopImg()
 
 	mypageCheck := genActionCheckMypage()
@@ -475,7 +475,7 @@ func genActionCheckBannedUser(targetUserAccountName string) *worker.Action {
 	return s
 }
 
-func setupWorkerBanUser(workersQueue chan *worker.Session, login *worker.Action, images []*worker.Asset, adminUsers []*user) {
+func setupSessionBanUser(workersQueue chan *worker.Session, login *worker.Action, images []*worker.Asset, adminUsers []*user) {
 	interval := time.Tick(10 * time.Second)
 
 	postRegister := genActionPostRegister()
