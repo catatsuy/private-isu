@@ -54,7 +54,7 @@ def validate_user(account_name:, password:)
   return true
 end
 
-users = YAML::load(IO::read('users.yml'))
+users = YAML::load(IO::read("#{__dir__}/users.yml"))
 
 users.each do |u|
   result = register_user(
