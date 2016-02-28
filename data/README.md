@@ -17,18 +17,10 @@ convert $file -type GrayScale gray-$file
 convert $file -flop flop-$file
 ```
 
-## git lfs
+## names.txt
 
-`git lfs` を使っているので、
+http://names.mongabay.com/female_names.htm から女性名トップ1000をスクレイピングした
 
-```
-brew install git-lfs
-```
+## ime_std.txt
 
-しておく必要がある。
-
-単純に `git pull` しただけだと、画像ファイルは単にテキストファイルになっている。
-
-その状態で `git lfs pull origin master` みたいにやる。
-
-http://qiita.com/kiida/items/0d51c43ac73f14f09f5a
+http://matsucon.net/material/dic/ このサイトからダウンロードした
