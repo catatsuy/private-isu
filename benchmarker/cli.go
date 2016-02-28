@@ -55,7 +55,11 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	worker.SetTargetHost(target)
+	terr := worker.SetTargetHost(target)
+	if terr != nil {
+		fmt.Println(terr.Error())
+		return ExitCodeError
+	}
 
 	type user struct {
 		AccountName string

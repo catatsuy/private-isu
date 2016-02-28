@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	targetURL string
+	targetHost string
 )
 
 type Worker struct {
@@ -49,8 +49,25 @@ func NewWorker() *Worker {
 	return w
 }
 
-func SetTargetHost(host string) {
-	targetURL = host
+func SetTargetHost(host string) error {
+	parsedURL, err := url.Parse(host)
+
+	if err != nil {
+		return err
+	}
+
+	targetHost = ""
+
+	// 完璧にチェックするのは難しい
+	if parsedURL.Scheme == "http" {
+		targetHost += parsedURL.Host
+	} else if parsedURL.Scheme != "" && parsedURL.Scheme != "https" {
+		targetHost += parsedURL.Scheme + ":" + parsedURL.Opaque
+	} else {
+		return fmt.Errorf("不正なホスト名です")
+	}
+
+	return nil
 }
 
 func (w *Worker) NewRequest(method, uri string, body io.Reader) (*http.Request, error) {
@@ -65,7 +82,7 @@ func (w *Worker) NewRequest(method, uri string, body io.Reader) (*http.Request, 
 	}
 
 	if parsedURL.Host == "" {
-		parsedURL.Host = targetURL
+		parsedURL.Host = targetHost
 	}
 
 	req, err := http.NewRequest(method, parsedURL.String(), body)
@@ -93,7 +110,7 @@ func (w *Worker) NewFileUploadRequest(uri string, params map[string]string, para
 	}
 
 	if parsedURL.Host == "" {
-		parsedURL.Host = targetURL
+		parsedURL.Host = targetHost
 	}
 
 	file, err := os.Open(path)
