@@ -445,39 +445,20 @@ EOS
 
       posts_all = db.query('SELECT * FROM `posts` ORDER BY `created_at` DESC')
       comments_all = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
-      posts = []
-      comments = []
+      mixed = []
 
       posts_all.each do |p|
         if p[:user_id] == session[:user][:id]
-          posts.push(p)
+          mixed.push({type: :post, value: p})
         end
       end
 
       comments_all.each do |c|
         if c[:user_id] == session[:user][:id]
-          comments.push(c)
+          mixed.push({type: :comment, value: c})
         end
       end
-
-      mixed = []
-      index = 0
-
-      (0..(posts.length - 1)).each do |pi|
-        if comments.length > 0 && comments[index][:created_at] > posts[pi][:created_at]
-          mixed.push({type: :comment, value: comments[index]})
-        else
-          mixed.push({type: :post, value: posts[pi]})
-        end
-
-        if index < comments.length - 1
-          index += 1
-        else
-          (pi..(posts.length - 1)).each do |i|
-            mixed.push({type: :post, value: posts[i]})
-          end
-        end
-      end
+      mixed = mixed.sort! { |a, b| a[:value][:created_at] <=> b[:value][:created_at] }
 
       user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
         session[:user][:id]
