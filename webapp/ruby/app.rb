@@ -146,7 +146,8 @@ EOS
     end
 
     get '/login' do
-      if session[:user]
+      if session[:user] && session[:user][:id]
+        # ログイン済みはリダイレクト
         redirect '/', 302
       end
       erb :login, layout: :layout
@@ -276,50 +277,7 @@ EOS
           posts << p
         end
       end
-
-template = <<'EOS'
-<div>
-  <% display = 0 %>
-  <% posts.each do |p| %>
-  <%   break if display > 30 %>
-  <%   display = display + 1 %>
-  <div class="isu-post" data-max="<%= p[:created_at] %>">
-    <div class="isu-post-image">
-      <img src="/image/<%= p[:id] %>" class="isu-image">
-    </div>
-    <div class="isu-post-text">
-      <%= escape_html(p[:body]).gsub(/\r?\n/, '<br>') %>
-      <div class="isu-post-account-name">
-        <%= escape_html(users[p[:user_id]][:account_name]) %>
-      </div>
-    </div>
-    <div class="isu-post-comment">
-      <% if count[p[:id]] %>
-        <div class="isu-post-comment-count">
-          comments: <%= escape_html(count[p[:id]]) %>
-        </div>
-      <% end %>
-
-      <% if comments[p[:id]] %>
-      <%   comments[p[:id]].each do |c| %>
-      <div class="isu-comment-text">
-        <%= escape_html(c[:comment]) %>
-        <span class="isu-comment-account-name"><%= escape_html(users[c[:user_id]][:account_name]) %></span>
-      </div>
-      <%   end %>
-      <% end %>
-      <form method="post" action="/comment">
-        <input type="text" name="comment">
-        <input type="hidden" name="post_id" value="<%= p[:id] %>">
-        <input type="hidden" name="csrf_token" value="<%= escape_html session.id %>">
-        <input type="submit" name="submit" value="submit">
-      </form>
-    </div>
-  </div>
-  <% end %>
-</div>
-EOS
-    ERB.new(template).result(binding)
+      erb :posts, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users }
     end
 
     post '/' do
