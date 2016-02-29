@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -230,7 +231,7 @@ func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
 // 画像にもリクエストを送っている
 func genActionToppageNotLogin() *checker.Action {
 	a := checker.NewAction("GET", "/mypage")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
 	a.Description = "/mypageは非ログイン時に/にリダイレクトがかかる"
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
@@ -240,7 +241,7 @@ func genActionToppageNotLogin() *checker.Action {
 		doc.Find("img").EachWithBreak(func(_ int, selection *goquery.Selection) bool {
 			url, _ := selection.Attr("src")
 			imgReq := checker.NewAction("GET", url)
-			imgReq.ExpectedStatusCode = 200
+			imgReq.ExpectedStatusCode = http.StatusOK
 			imgReq.Asset = &checker.Asset{}
 			imgReq.PlayWithImage(s)
 			if exit > 15 {
@@ -278,7 +279,7 @@ func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) 
 
 func genActionLogin() *checker.Action {
 	a := checker.NewAction("POST", "/login")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
 	a.Description = "ログイン"
 
@@ -287,7 +288,7 @@ func genActionLogin() *checker.Action {
 
 func genActionMyPage() *checker.Action {
 	a := checker.NewAction("GET", "/mypage")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/mypage"
 	a.Description = "ログインして、/mypageに"
 
@@ -296,7 +297,7 @@ func genActionMyPage() *checker.Action {
 
 func genActionPostTopImg() *checker.Action {
 	a := checker.NewAction("POST", "/")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
 	a.Description = "画像を投稿"
 
@@ -305,14 +306,14 @@ func genActionPostTopImg() *checker.Action {
 
 func genActionCheckMypage() *checker.Action {
 	a := checker.NewAction("GET", "/mypage")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		url, _ := doc.Find(`img`).First().Attr("src")
 		imgReq := checker.NewAction("GET", url)
-		imgReq.ExpectedStatusCode = 200
+		imgReq.ExpectedStatusCode = http.StatusOK
 		imgReq.Asset = &checker.Asset{}
 		imgReq.PlayWithImage(s)
 
@@ -324,7 +325,7 @@ func genActionCheckMypage() *checker.Action {
 
 func genActionPostComment() *checker.Action {
 	a := checker.NewAction("POST", "/comment")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
 
 	return a
@@ -332,7 +333,7 @@ func genActionPostComment() *checker.Action {
 
 func genActionGetIndexAfterPostImg(postTopImg *checker.Action, checkMypage *checker.Action) *checker.Action {
 	a := checker.NewAction("GET", "/")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
@@ -354,7 +355,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.Action, checkMypage *chec
 
 func genActionGetIndexAfterPostComment(postComment *checker.Action) *checker.Action {
 	a := checker.NewAction("GET", "/")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
@@ -402,14 +403,14 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, ima
 
 func genActionPostRegister() *checker.Action {
 	a := checker.NewAction("POST", "/register")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
 	return a
 }
 
 func genActionBanUser(accountName string) *checker.Action {
 	a := checker.NewAction("GET", "/admin/banned")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/admin/banned"
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
@@ -417,7 +418,7 @@ func genActionBanUser(accountName string) *checker.Action {
 		uid, _ := doc.Find(`input[data-account-name="` + accountName + `"]`).First().Attr("value")
 
 		postAdminBanned := checker.NewAction("POST", "/admin/banned")
-		postAdminBanned.ExpectedStatusCode = 200
+		postAdminBanned.ExpectedStatusCode = http.StatusOK
 		postAdminBanned.ExpectedLocation = "/admin/banned"
 		postAdminBanned.PostData = map[string]string{
 			"uid[]":      uid,
@@ -433,7 +434,7 @@ func genActionBanUser(accountName string) *checker.Action {
 
 func genActionCheckBannedUser(targetUserAccountName string) *checker.Action {
 	a := checker.NewAction("GET", "/")
-	a.ExpectedStatusCode = 200
+	a.ExpectedStatusCode = http.StatusOK
 
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
