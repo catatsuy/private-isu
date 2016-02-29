@@ -237,17 +237,18 @@ func genActionToppageNotLogin() *checker.Action {
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
-		exit := 0
+		imageRequestCount := 0
+		maxImageRequest := 15
 		doc.Find("img").EachWithBreak(func(_ int, selection *goquery.Selection) bool {
 			url, _ := selection.Attr("src")
 			imgReq := checker.NewAction("GET", url)
 			imgReq.ExpectedStatusCode = http.StatusOK
 			imgReq.Asset = &checker.Asset{}
 			imgReq.PlayWithImage(s)
-			if exit > 15 {
+			if imageRequestCount > maxImageRequest {
 				return false
 			} else {
-				exit += 1
+				imageRequestCount += 1
 				return true
 			}
 		})
@@ -439,7 +440,8 @@ func genActionCheckBannedUser(targetUserAccountName string) *checker.Action {
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
-		exit := 0
+		imageRequestCount := 0
+		maxImageRequest := 20
 		existErr := false
 
 		doc.Find(`.isu-post-account-name`).EachWithBreak(func(_ int, selection *goquery.Selection) bool {
@@ -448,10 +450,10 @@ func genActionCheckBannedUser(targetUserAccountName string) *checker.Action {
 				existErr = true
 				return false
 			}
-			if exit > 20 {
+			if imageRequestCount > maxImageRequest {
 				return false
 			} else {
-				exit += 1
+				imageRequestCount += 1
 				return true
 			}
 			return true
