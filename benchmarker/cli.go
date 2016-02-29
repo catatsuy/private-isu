@@ -162,11 +162,10 @@ func (cli *CLI) Run(args []string) int {
 	setupSessionGenrator(sessionsQueue, done)
 
 	setupWorkerToppageNotLogin(sessionsQueue)
-	login := genActionLogin()
 
-	setupWorkerMypageCheck(sessionsQueue, login, users)
-	setupWorkerPostData(sessionsQueue, login, users, images)
-	setupWorkerBanUser(sessionsQueue, login, images, adminUsers)
+	setupWorkerMypageCheck(sessionsQueue, users)
+	setupWorkerPostData(sessionsQueue, users, images)
+	setupWorkerBanUser(sessionsQueue, images, adminUsers)
 
 	<-timeUp
 
@@ -250,9 +249,10 @@ func genActionToppageNotLogin() *checker.Action {
 }
 
 // ログインしてmypageをちゃんと見れるか確認
-func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, login *checker.Action, users []*user) {
-
+func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) {
+	login := genActionLogin()
 	mypage := genActionMyPage()
+
 	go func() {
 		for {
 			u := users[util.RandomNumber(len(users))]
@@ -383,7 +383,8 @@ func genActionGetIndexAfterPostComment(postComment *checker.Action) *checker.Act
 	return a
 }
 
-func setupWorkerPostData(sessionsQueue chan *checker.Session, login *checker.Action, users []*user, images []*checker.Asset) {
+func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, images []*checker.Asset) {
+	login := genActionLogin()
 	postTopImg := genActionPostTopImg()
 
 	mypageCheck := genActionCheckMypage()
@@ -475,9 +476,10 @@ func genActionCheckBannedUser(targetUserAccountName string) *checker.Action {
 	return a
 }
 
-func setupWorkerBanUser(sessionsQueue chan *checker.Session, login *checker.Action, images []*checker.Asset, adminUsers []*user) {
+func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.Asset, adminUsers []*user) {
 	interval := time.Tick(10 * time.Second)
 
+	login := genActionLogin()
 	postRegister := genActionPostRegister()
 	postTopImg := genActionPostTopImg()
 	mypageCheck := genActionCheckMypage()
