@@ -18,6 +18,8 @@ import (
 const (
 	ExitCodeOK    int = 0
 	ExitCodeError int = 1 + iota
+
+	FailThreshold = 5
 )
 
 // CLI is the command line object
@@ -184,6 +186,11 @@ func (cli *CLI) Run(args []string) int {
 
 	for _, err := range score.GetFailErrors() {
 		fmt.Println(err.Error())
+	}
+
+	// Failが多い場合はステータスコードを非0にする
+	if score.GetInstance().GetFails() >= FailThreshold {
+		return ExitCodeError
 	}
 
 	return ExitCodeOK
