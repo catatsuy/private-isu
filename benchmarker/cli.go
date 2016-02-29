@@ -191,7 +191,7 @@ func (cli *CLI) Run(args []string) int {
 }
 
 func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
-	// sessionsQueueにworkerを用意しておく
+	// sessionsQueueにsessionを用意しておく
 	// キューとして使って並列度が高くなりすぎないようにするのと、
 	// 時間が来たらcloseする
 	go func() {
