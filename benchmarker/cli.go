@@ -21,7 +21,7 @@ const (
 	ExitCodeError int = 1 + iota
 
 	FailThreshold    = 5
-	TimeUpSecond     = 30 * time.Second
+	BenchmarkTimeout = 30 * time.Second
 	SessionQueueSize = 20
 )
 
@@ -159,7 +159,7 @@ func (cli *CLI) Run(args []string) int {
 		},
 	}
 
-	timeUp := time.After(TimeUpSecond)
+	timeUp := time.After(BenchmarkTimeout)
 	done := make(chan bool)
 
 	sessionsQueue := make(chan *checker.Session, SessionQueueSize)
