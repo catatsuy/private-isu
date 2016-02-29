@@ -40,7 +40,7 @@ func NewAction(method, path string) *Action {
 		Method: method,
 		Path:   path,
 
-		ExpectedStatusCode: 200,
+		ExpectedStatusCode: http.StatusOK,
 	}
 }
 
