@@ -20,9 +20,9 @@ const (
 	ExitCodeOK    int = 0
 	ExitCodeError int = 1 + iota
 
-	FailThreshold     = 5
-	TimeUpSecond      = 30 * time.Second
-	SessionQueueCount = 20
+	FailThreshold    = 5
+	TimeUpSecond     = 30 * time.Second
+	SessionQueueSize = 20
 )
 
 // CLI is the command line object
@@ -162,7 +162,7 @@ func (cli *CLI) Run(args []string) int {
 	timeUp := time.After(TimeUpSecond)
 	done := make(chan bool)
 
-	sessionsQueue := make(chan *checker.Session, SessionQueueCount)
+	sessionsQueue := make(chan *checker.Session, SessionQueueSize)
 
 	setupSessionGenrator(sessionsQueue, done)
 
