@@ -274,25 +274,6 @@ func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) 
 	}()
 }
 
-func genActionMypageCheck() *checker.Action {
-	a := checker.NewAction("GET", "/mypage")
-	a.ExpectedStatusCode = 200
-
-	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-
-		url, _ := doc.Find(`img`).First().Attr("src")
-		imgReq := checker.NewAction("GET", url)
-		imgReq.ExpectedStatusCode = 200
-		imgReq.Asset = &checker.Asset{}
-		imgReq.PlayWithImage(s)
-
-		return nil
-	}
-
-	return a
-}
-
 func genActionLogin() *checker.Action {
 	a := checker.NewAction("POST", "/login")
 	a.ExpectedStatusCode = 200
@@ -347,7 +328,7 @@ func genActionPostComment() *checker.Action {
 	return a
 }
 
-func genActionGetIndexAfterPostImg(postTopImg *checker.Action, mypageCheck *checker.Action) *checker.Action {
+func genActionGetIndexAfterPostImg(postTopImg *checker.Action, checkMypage *checker.Action) *checker.Action {
 	a := checker.NewAction("GET", "/")
 	a.ExpectedStatusCode = 200
 
@@ -361,7 +342,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.Action, mypageCheck *chec
 			"type":       "image/jpeg",
 		}
 		postTopImg.PlayWithPostFile(s, "file")
-		mypageCheck.Play(s)
+		checkMypage.Play(s)
 
 		return nil
 	}
@@ -394,8 +375,8 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, ima
 	login := genActionLogin()
 	postTopImg := genActionPostTopImg()
 
-	mypageCheck := genActionCheckMypage()
-	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, mypageCheck)
+	checkMypage := genActionCheckMypage()
+	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, checkMypage)
 
 	postComment := genActionPostComment()
 	getIndexAfterPostComment := genActionGetIndexAfterPostComment(postComment)
@@ -489,8 +470,8 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 	login := genActionLogin()
 	postRegister := genActionPostRegister()
 	postTopImg := genActionPostTopImg()
-	mypageCheck := genActionCheckMypage()
-	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, mypageCheck)
+	checkMypage := genActionCheckMypage()
+	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, checkMypage)
 
 	// ユーザーを作って、ログインして画像を投稿する
 	// そのユーザーはBAN機能を使って消される
