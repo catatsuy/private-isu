@@ -101,6 +101,7 @@ func (cli *CLI) Run(args []string) int {
 
 	setupSessionGenrator(sessionsQueue, done)
 
+	setupWorkerStaticFileCheck(sessionsQueue)
 	setupWorkerToppageNotLogin(sessionsQueue)
 
 	setupWorkerMypageCheck(sessionsQueue, users)
@@ -515,6 +516,74 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 			checkBanned := genActionCheckBannedUser(targetUserAccountName)
 			checkBanned.Play(s2)
 			<-interval
+		}
+	}()
+}
+
+func genActionAppleTouchIconCheck() *checker.Action {
+	a := checker.NewAction("GET", "/apple-touch-icon-precomposed.png")
+	a.ExpectedStatusCode = http.StatusNotFound
+	a.Description = "apple-touch-icon-precomposed.png should not exist"
+
+	return a
+}
+
+func genActionFaviconCheck() *checker.Action {
+	a := checker.NewAction("GET", "/favicon.ico")
+	a.ExpectedStatusCode = http.StatusOK
+	a.ExpectedLocation = "/favicon.ico"
+	a.Description = "favicon.ico"
+
+	return a
+}
+
+func genActionJsMainFileCheck() *checker.Action {
+	a := checker.NewAction("GET", "/js/main.js")
+	a.ExpectedStatusCode = http.StatusOK
+	a.ExpectedLocation = "/js/main.js"
+	a.Description = "js/main.js"
+
+	return a
+}
+
+func genActionJsJqueryFileCheck() *checker.Action {
+	a := checker.NewAction("GET", "js/jquery-2.2.0.js")
+	a.ExpectedStatusCode = http.StatusOK
+	a.ExpectedLocation = "js/jquery-2.2.0.js"
+	a.Description = "js/jquery-2.2.0.js"
+
+	return a
+}
+
+func genActionCssFileCheck() *checker.Action {
+	a := checker.NewAction("GET", "/css/style.css")
+	a.ExpectedStatusCode = http.StatusOK
+	a.ExpectedLocation = "/css/style.css"
+	a.Description = "/css/style.css"
+
+	return a
+}
+
+func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
+	go func() {
+		for {
+			s := <-sessionsQueue
+			faviconCheck := genActionFaviconCheck()
+			appleIconCheck := genActionAppleTouchIconCheck()
+			faviconCheck.Asset = &checker.Asset{}
+			jsMainFileCheck := genActionJsMainFileCheck()
+			jsMainFileCheck.Asset = &checker.Asset{}
+			jsJQueryFileCheck := genActionJsJqueryFileCheck()
+			jsJQueryFileCheck.Asset = &checker.Asset{}
+			cssFileCheck := genActionCssFileCheck()
+			cssFileCheck.Asset = &checker.Asset{}
+			for i := 0; i < 3; i++ {
+				faviconCheck.PlayWithImage(s)
+				appleIconCheck.Play(s)
+				jsJQueryFileCheck.PlayWithImage(s)
+				jsMainFileCheck.PlayWithImage(s)
+				cssFileCheck.PlayWithImage(s)
+			}
 		}
 	}()
 }
