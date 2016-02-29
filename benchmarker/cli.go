@@ -47,6 +47,7 @@ func (cli *CLI) Run(args []string) int {
 		target string
 
 		version bool
+		debug   bool
 	)
 
 	// Define option flag parse
@@ -57,6 +58,9 @@ func (cli *CLI) Run(args []string) int {
 	flags.StringVar(&target, "t", "", "(Short)")
 
 	flags.BoolVar(&version, "version", false, "Print version information and quit.")
+
+	flags.BoolVar(&debug, "debug", false, "Debug mode")
+	flags.BoolVar(&debug, "d", false, "Debug mode")
 
 	// Parse commandline flag
 	if err := flags.Parse(args[1:]); err != nil {
@@ -187,8 +191,16 @@ func (cli *CLI) Run(args []string) int {
 		score.GetInstance().GetFails(),
 	)
 
-	for _, err := range score.GetFailErrors() {
-		fmt.Println(err.Error())
+	if !debug {
+		// 通常は適当にsortしてuniqしたログを出す
+		for _, err := range score.GetFailErrors() {
+			fmt.Println(err.Error())
+		}
+	} else {
+		// debugモードなら生ログを出力
+		for _, err := range score.GetFailRawErrors() {
+			fmt.Println(err.Error())
+		}
 	}
 
 	// Failが多い場合はステータスコードを非0にする

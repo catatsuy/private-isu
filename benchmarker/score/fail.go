@@ -37,6 +37,10 @@ func GetFailErrors() []error {
 	return retErrs
 }
 
+func GetFailRawErrors() []error {
+	return GetFailErrorsInstance().errs
+}
+
 func (fes failErrors) Len() int {
 	return len(fes.errs)
 }
