@@ -219,21 +219,37 @@ func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
 
 func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
 	toppageNotLogin := genActionToppageNotLogin()
+	mypageNotLogin := genActionMypageNotLogin()
 
 	go func() {
 		for {
-			toppageNotLogin.Play(<-sessionsQueue)
+			s := <-sessionsQueue
+			// /にログインせずにアクセスして、画像にリクエストを送る
+			// その後、同じセッションを使い回して/mypageにアクセス
+			// 画像のキャッシュにSet-Cookieを含んでいた場合、/mypageのリダイレクト先でfailする
+			toppageNotLogin.Play(s)
+			mypageNotLogin.Play(s)
 		}
 	}()
+}
+
+// 非ログインで/mypageにアクセスして/にリダイレクトするかチェック
+func genActionMypageNotLogin() *checker.Action {
+	a := checker.NewAction("GET", "/mypage")
+	a.ExpectedStatusCode = http.StatusOK
+	a.ExpectedLocation = "/"
+	a.Description = "/mypageは非ログイン時に/にリダイレクトがかかる"
+
+	return a
 }
 
 // TOPページに非ログイン状態でひたすらアクセス
 // 画像にもリクエストを送っている
 func genActionToppageNotLogin() *checker.Action {
-	a := checker.NewAction("GET", "/mypage")
+	a := checker.NewAction("GET", "/")
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
-	a.Description = "/mypageは非ログイン時に/にリダイレクトがかかる"
+	a.Description = "/にある画像にひたすらアクセス"
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
@@ -262,7 +278,7 @@ func genActionToppageNotLogin() *checker.Action {
 // ログインしてmypageをちゃんと見れるか確認
 func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) {
 	login := genActionLogin()
-	mypage := genActionMyPage()
+	mypage := genActionMypage()
 
 	go func() {
 		for {
@@ -287,7 +303,7 @@ func genActionLogin() *checker.Action {
 	return a
 }
 
-func genActionMyPage() *checker.Action {
+func genActionMypage() *checker.Action {
 	a := checker.NewAction("GET", "/mypage")
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/mypage"
