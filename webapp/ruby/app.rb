@@ -1,5 +1,4 @@
 require 'sinatra/base'
-require 'sinatra/reloader'
 require 'mysql2'
 require 'rack-flash'
 require 'digest/md5'
