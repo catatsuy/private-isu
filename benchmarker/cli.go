@@ -324,8 +324,8 @@ func genActionMypage() *checker.Action {
 	return a
 }
 
-func genActionPostTopImg() *checker.Action {
-	a := checker.NewAction("POST", "/")
+func genActionPostTopImg() *checker.UploadAction {
+	a := checker.NewUploadAction("POST", "/", "file")
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
 	a.Description = "画像を投稿"
@@ -360,7 +360,7 @@ func genActionPostComment() *checker.Action {
 	return a
 }
 
-func genActionGetIndexAfterPostImg(postTopImg *checker.Action, checkMypage *checker.Action) *checker.Action {
+func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, checkMypage *checker.Action) *checker.Action {
 	a := checker.NewAction("GET", "/")
 	a.ExpectedStatusCode = http.StatusOK
 
@@ -373,7 +373,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.Action, checkMypage *chec
 			"csrf_token": token,
 			"type":       "image/jpeg",
 		}
-		postTopImg.PlayWithPostFile(s, "file")
+		postTopImg.Play(s)
 		checkMypage.Play(s)
 
 		return nil
@@ -524,7 +524,7 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 			login.Play(s1)
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
 			getIndexAfterPostImg.Play(s1)
-			postTopImg.PlayWithPostFile(s1, "file")
+			postTopImg.Play(s1)
 
 			u := adminUsers[util.RandomNumber(len(adminUsers))]
 			login.PostData = map[string]string{

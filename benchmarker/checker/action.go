@@ -185,8 +185,23 @@ func (a *AssetAction) Play(s *Session) error {
 	return nil
 }
 
-func (a *Action) PlayWithPostFile(s *Session, paramName string) error {
-	req, err := s.NewFileUploadRequest(a.Path, a.PostData, paramName, a.Asset.Path)
+type UploadAction struct {
+	*Action
+	UploadParamName string
+}
+
+func NewUploadAction(method, path, uploadParamname string) *UploadAction {
+	return &UploadAction{
+		UploadParamName: uploadParamname,
+		Action: &Action{
+			Method: method,
+			Path:   path,
+		},
+	}
+}
+
+func (a *UploadAction) Play(s *Session) error {
+	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset.Path)
 
 	if err != nil {
 		return s.Fail(req, err)
