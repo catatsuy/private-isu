@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/catatsuy/private-isu/benchmarker/score"
 )
@@ -42,6 +43,7 @@ func NewSession() *Session {
 	w.Client = &http.Client{
 		Transport: w.Transport,
 		Jar:       jar,
+		Timeout:   time.Duration(3) * time.Second,
 	}
 
 	return w
