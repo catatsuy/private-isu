@@ -19,14 +19,11 @@ type Action struct {
 	Method string
 	Path   string
 
-	PostData map[string]string
-	Headers  map[string]string
-	Asset    *Asset
-
+	PostData           map[string]string
+	Headers            map[string]string
 	ExpectedStatusCode int
 	ExpectedLocation   string
 	ExpectedHeaders    map[string]string
-	ExpectedAssets     map[string]string
 	ExpectedHTML       map[string]string
 
 	Description string
@@ -112,13 +109,16 @@ func (a *Action) Play(s *Session) error {
 
 type AssetAction struct {
 	*Action
+	Asset *Asset
 }
 
-func NewAssetAction(method, path string) *AssetAction {
+func NewAssetAction(path string, asset *Asset) *AssetAction {
 	return &AssetAction{
-		&Action{
-			Method: method,
-			Path:   path,
+		Asset: asset,
+		Action: &Action{
+			Method:             "GET",
+			Path:               path,
+			ExpectedStatusCode: http.StatusOK,
 		},
 	}
 }
@@ -188,6 +188,7 @@ func (a *AssetAction) Play(s *Session) error {
 type UploadAction struct {
 	*Action
 	UploadParamName string
+	Asset           *Asset
 }
 
 func NewUploadAction(method, path, uploadParamname string) *UploadAction {
