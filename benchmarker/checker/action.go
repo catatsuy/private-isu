@@ -11,6 +11,10 @@ import (
 	"github.com/catatsuy/private-isu/benchmarker/util"
 )
 
+type Actionable interface {
+	Play(s *Session) error
+}
+
 type Action struct {
 	Method string
 	Path   string
@@ -33,6 +37,10 @@ type Action struct {
 type Asset struct {
 	Path string
 	MD5  string
+}
+
+func init() {
+	var _ Actionable = &Action{}
 }
 
 func NewAction(method, path string) *Action {
