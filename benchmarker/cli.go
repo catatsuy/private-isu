@@ -269,10 +269,10 @@ func genActionToppageNotLogin() *checker.Action {
 		maxImageRequest := 15
 		doc.Find("img").EachWithBreak(func(_ int, selection *goquery.Selection) bool {
 			url, _ := selection.Attr("src")
-			imgReq := checker.NewAction("GET", url)
+			imgReq := checker.NewAssetAction("GET", url)
 			imgReq.ExpectedStatusCode = http.StatusOK
 			imgReq.Asset = &checker.Asset{}
-			imgReq.PlayWithImage(s)
+			imgReq.Play(s)
 			if imageRequestCount > maxImageRequest {
 				return false
 			} else {
@@ -341,10 +341,10 @@ func genActionCheckMypage() *checker.Action {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		url, _ := doc.Find(`img`).First().Attr("src")
-		imgReq := checker.NewAction("GET", url)
+		imgReq := checker.NewAssetAction("GET", url)
 		imgReq.ExpectedStatusCode = http.StatusOK
 		imgReq.Asset = &checker.Asset{}
-		imgReq.PlayWithImage(s)
+		imgReq.Play(s)
 
 		return nil
 	}

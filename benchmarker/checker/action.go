@@ -45,9 +45,8 @@ func init() {
 
 func NewAction(method, path string) *Action {
 	return &Action{
-		Method: method,
-		Path:   path,
-
+		Method:             method,
+		Path:               path,
 		ExpectedStatusCode: http.StatusOK,
 	}
 }
@@ -111,7 +110,20 @@ func (a *Action) Play(s *Session) error {
 	return nil
 }
 
-func (a *Action) PlayWithImage(s *Session) error {
+type AssetAction struct {
+	*Action
+}
+
+func NewAssetAction(method, path string) *AssetAction {
+	return &AssetAction{
+		&Action{
+			Method: method,
+			Path:   path,
+		},
+	}
+}
+
+func (a *AssetAction) Play(s *Session) error {
 	formData := url.Values{}
 	for key, val := range a.PostData {
 		formData.Set(key, val)
