@@ -38,6 +38,8 @@ type Asset struct {
 
 func init() {
 	var _ Actionable = &Action{}
+	var _ Actionable = &AssetAction{}
+	var _ Actionable = &UploadAction{}
 }
 
 func NewAction(method, path string) *Action {
