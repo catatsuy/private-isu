@@ -6,7 +6,7 @@ require 'pp'
 
 module Isuconp
   class App < Sinatra::Base
-    use Rack::Session::Cookie, secret: ENV['ISUCONP_SESSION_SECRET'] || 'sendagaya'
+    use Rack::Session::Memcache, autofix_keys: true, secret: ENV['ISUCONP_SESSION_SECRET'] || 'sendagaya'
     use Rack::Flash
     set :public_folder, File.expand_path('../../public', __FILE__)
 
@@ -37,6 +37,47 @@ module Isuconp
         client.query_options.merge!(symbolize_keys: true)
         Thread.current[:isuconp_db] = client
         client
+      end
+
+      def db_initialize
+        sql = []
+        sql << 'DROP TABLE IF EXISTS users;'
+        sql << <<'EOS'
+CREATE TABLE IF NOT EXISTS users (
+  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `account_name` varchar(64) NOT NULL UNIQUE,
+  `passhash` varchar(128) NOT NULL, -- SHA2 512 non-binary (hex)
+  `authority` tinyint(1) NOT NULL DEFAULT 0,
+  `del_flg` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) DEFAULT CHARSET=utf8mb4;
+EOS
+        sql << 'DROP TABLE IF EXISTS posts;'
+        sql << <<'EOS'
+CREATE TABLE IF NOT EXISTS posts (
+  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `user_id` int NOT NULL,
+  `mime` varchar(64) NOT NULL,
+  `imgdata` mediumblob NOT NULL,
+  `body` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) DEFAULT CHARSET=utf8mb4;
+EOS
+        sql << 'DROP TABLE IF EXISTS comments;'
+        sql << <<'EOS'
+CREATE TABLE IF NOT EXISTS comments (
+  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `post_id` int NOT NULL,
+  `user_id` int NOT NULL,
+  `comment` text NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
+) DEFAULT CHARSET=utf8mb4;
+EOS
+        sql.each do |s|
+          db.prepare(s).execute
+        end
+        load "#{File.dirname(__dir__)}/scripts/create_user.rb"
+        ""
       end
 
       def try_login(account_name, password)
@@ -86,18 +127,26 @@ module Isuconp
         return true
       end
 
-      def calculate_passhash(password, account_name)
-        salt = calculate_salt(account_name)
-        Digest::SHA256.hexdigest("#{password}:#{salt}")
+      def digest(src)
+        `echo '#{src}' | openssl dgst -sha512`.strip
       end
 
       def calculate_salt(account_name)
-        Digest::MD5.hexdigest(account_name)
+        digest account_name
+      end
+
+      def calculate_passhash(password, account_name)
+        digest "#{password}:#{calculate_salt(account_name)}"
       end
     end
 
+    get '/initialize' do
+      db_initialize
+    end
+
     get '/login' do
-      if session[:user]
+      if session[:user] && session[:user][:id]
+        # ログイン済みはリダイレクト
         redirect '/', 302
       end
       erb :login, layout: :layout
@@ -152,15 +201,21 @@ module Isuconp
     end
 
     get '/' do
-      posts = db.query('SELECT * FROM posts ORDER BY created_at DESC')
+      ps = db.query('SELECT * FROM posts ORDER BY created_at DESC')
       cs = db.query('SELECT * FROM comments ORDER BY created_at DESC')
+      cc = db.query('SELECT post_id, COUNT(*) as count FROM comments GROUP BY post_id ORDER BY created_at DESC')
+      posts = []
+      count = {}
       comments = {}
+      cc.each do |c|
+        count[c[:post_id]] = c[:count]
+      end
+
       cs.each do |c|
-        if !comments[c[:post_id]]
-          comments[c[:post_id]] = [c]
-        else
-          comments[c[:post_id]].push(c)
+        unless comments[c[:post_id]]
+          comments[c[:post_id]] = []
         end
+        comments[c[:post_id]].push(c)
       end
 
       user = {}
@@ -178,12 +233,98 @@ module Isuconp
         users[u[:id]] = u
       end
 
-      erb :index, layout: :layout, locals: { posts: posts, comments: comments, users: users, user: user }
+      ps.each do |p|
+        posts << p if users[p[:user_id]][:del_flg] == 0
+      end
+
+      erb :index, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
+    end
+
+    get '/posts' do
+      max = params['max_created_at']
+      posts = []
+      count = {}
+      comments = {}
+      users = {}
+
+      ps = if max
+        db.prepare('SELECT * FROM posts WHERE created_at <= ? ORDER BY created_at DESC').execute(Time.parse(max))
+      else
+        db.query('SELECT * FROM posts ORDER BY created_at DESC')
+      end
+      cs = db.query('SELECT * FROM comments ORDER BY created_at DESC')
+      cc = db.query('SELECT post_id, COUNT(*) as count FROM comments GROUP BY post_id ORDER BY created_at DESC')
+
+      cc.each do |c|
+        count[c[:post_id]] = c[:count]
+      end
+
+      cs.each do |c|
+        unless comments[c[:post_id]]
+          comments[c[:post_id]] = []
+        end
+        comments[c[:post_id]].push(c)
+      end
+
+      user = {}
+      if session[:user]
+        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+          session[:user][:id]
+        ).first
+      else
+        user = { id: 0 }
+      end
+
+      users_raw = db.query('SELECT * FROM `users`')
+      users_raw.each do |u|
+        users[u[:id]] = u
+      end
+      ps.each do |p|
+        if users[p[:user_id]][:del_flg] == 0
+          p[:imgdata] = "#{request.base_url}/image/#{p[:id]}"
+          posts << p
+        end
+      end
+      erb :posts, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
+    end
+
+    get '/posts/:id' do
+      post = db.prepare('SELECT * FROM posts WHERE id = ? ORDER BY created_at DESC').execute(
+        params[:id]
+      ).first
+
+      rs = db.prepare('SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC').execute(
+        params[:id]
+      )
+      comments = []
+      rs.each do |p|
+        comments << p
+      end
+      count = db.prepare('SELECT COUNT(*) FROM comments WHERE post_id = ? ORDER BY created_at DESC').execute(
+        params[:id]
+      ).first
+
+      user = {}
+      if session[:user]
+        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+          session[:user][:id]
+        ).first
+      else
+        user = { id: 0 }
+      end
+
+      users_raw = db.query('SELECT * FROM `users`')
+      users = {}
+      users_raw.each do |u|
+        users[u[:id]] = u
+      end
+
+      erb :posts_id, layout: :layout, locals: { post: post, count: count, comments: comments, users: users, user: user }
     end
 
     post '/' do
       unless session[:user] && session[:user][:id]
-        # 非ログインはリダイレクト
+        # 未ログインはリダイレクト
         redirect '/login', 302
       end
 
@@ -233,7 +374,7 @@ module Isuconp
 
     post '/comment' do
       unless session[:user] && session[:user][:id]
-        # 非ログインはリダイレクト
+        # 未ログインはリダイレクト
         redirect '/login', 302
       end
 
@@ -249,19 +390,6 @@ module Isuconp
       )
 
       redirect '/', 302
-    end
-
-    get '/notify' do
-      comments = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
-      notifies = []
-
-      comments.each do |c|
-        if c[:user_id] == session[:user][:id]
-          notifies.push(c)
-        end
-      end
-
-      erb :notify, layout: :layout, locals: { notifies: notifies }
     end
 
     get '/admin/banned' do
@@ -284,7 +412,7 @@ module Isuconp
 
     post '/admin/banned' do
       unless session[:user] && session[:user][:id]
-        # 非ログインはリダイレクト
+        # 未ログインはリダイレクト
         redirect '/', 302
       end
 
@@ -311,51 +439,47 @@ module Isuconp
 
     get '/mypage' do
       unless session[:user] && session[:user][:id]
-        # 非ログインはリダイレクト
+        # 未ログインはリダイレクト
         redirect '/', 302
       end
 
-      posts_all = db.query('SELECT * FROM `posts` ORDER BY `created_at` DESC')
-      comments_all = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
-      posts = []
-      comments = []
-
-      posts_all.each do |p|
-        if p[:user_id] == session[:user][:id]
-          posts.push(p)
-        end
-      end
-
-      comments_all.each do |c|
-        if c[:user_id] == session[:user][:id]
-          comments.push(c)
-        end
-      end
-
       mixed = []
-      index = 0
-
-      (0..(posts.length - 1)).each do |pi|
-        if comments.length > 0 && comments[index][:created_at] > posts[pi][:created_at]
-          mixed.push({type: :comment, value: comments[index]})
-        else
-          mixed.push({type: :post, value: posts[pi]})
-        end
-
-        if index < comments.length - 1
-          index += 1
-        else
-          (pi..(posts.length - 1)).each do |i|
-            mixed.push({type: :post, value: posts[i]})
-          end
-        end
+      posts_all = db.query('SELECT * FROM `posts` ORDER BY `created_at` DESC')
+      posts_all.each do |p|
+        mixed << {type: :post, value: p}
       end
+      comments_all = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
+      comments_all.each do |c|
+        mixed << {type: :comment, value: c}
+      end
+
+      mixed = mixed.map do |m|
+        if m[:type] == :post
+          posts_comments = []
+          rs = db.prepare('SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC').execute(
+            m[:value][:id]
+          )
+          rs.each do |pc|
+            posts_comments << pc
+          end
+          m.merge!({comments: posts_comments})
+        end
+        m
+      end
+      mixed = mixed.select { |m| m[:value][:user_id] == session[:user][:id] }
+      mixed.sort! { |a, b| a[:value][:created_at] <=> b[:value][:created_at] }
 
       user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
         session[:user][:id]
       ).first
 
-      erb :mypage, layout: :layout, locals: { mixed: mixed, user: user }
+      users_raw = db.query('SELECT * FROM `users`')
+      users = {}
+      users_raw.each do |u|
+        users[u[:id]] = u
+      end
+
+      erb :mypage, layout: :layout, locals: { mixed: mixed, user: user, users: users }
     end
 
   end

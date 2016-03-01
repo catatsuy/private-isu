@@ -3,9 +3,12 @@
     <h1><a href="/">Iscogram</a></h1>
   </div>
   <div class="isu-account-name">
-    <a href="/mypage">
-      <%=  escape_html user[:account_name] %>さん
-    </a>
+    <% if user[:id] != 0 %>
+    <div><a href="/mypage"><%=  escape_html user[:account_name] %>さん</a></div>
+    <div><a href="/logout">ログアウト</a></div>
+    <% else %>
+    <div><a href="/login">ログイン</a></div>
+    <% end %>
   </div>
 </div>
 
@@ -19,6 +22,14 @@
     <div class="isu-post-text">
       <%= escape_html(m[:value][:body]).gsub(/\r?\n/, '<br>') %>
     </div>
+    <% if m[:comments] && !m[:comments].empty? %>
+      <% m[:comments].each do |c| %>
+        <div class="isu-post-comment-text">
+          <%= escape_html(c[:comment]) %>
+          <span class="isu-comment-account-name"><%= escape_html(users[c[:user_id]][:account_name]) %></span>
+        </div>
+      <% end %>
+    <% end %>
     <% elsif m[:type] == :comment %>
     <div class="isu-comment-text">
       <%= escape_html(m[:value][:comment]) %>
