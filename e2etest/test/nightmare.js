@@ -51,13 +51,4 @@ describe('e2etest', () => {
       });
       expect('catatsuyさん').to.equal(name);
 
-      await nightmare
-      .goto(`${baseurl}/`)
-      .wait(shortWait)
-      .uploadFile('input[type=file]', '../benchmarker/userdata/img/Cb0e066UYAAwxtT.jpg')
-      .type('textarea[name=body]', 'test')
-      .click('input[type=submit]')
-      .wait(shortWait);
-    });
-
 });
