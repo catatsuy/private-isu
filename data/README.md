@@ -23,10 +23,6 @@ convert $file -flop flop-$file
 
 http://names.mongabay.com/female_names.htm から女性名トップ1000をスクレイピングした
 
-## ime_std.txt
+## kaomoji.txt
 
-http://matsucon.net/material/dic/ このサイトからダウンロードした
-
-```
-curl http://matsucon.net/material/dic/dictxt/ime_std.txt | nkf -xw > ime_std.txt
-```
+http://kamoji.wiki.fc2.com/ から「挨拶」をスクレイピングした

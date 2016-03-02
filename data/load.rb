@@ -3,10 +3,10 @@
 require 'mysql2'
 
 puts "imgディレクトリに画像を展開"
-`curl -O https://github.com/catatsuy/private-isu/releases/download/img/img.zip`
+`curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/img.zip`
 `unzip img.zip`
 
-kaomoji = open('ime_std.txt'){|f| f.each_line.drop(4).map{|line| line.split("\t")[1]}}
+kaomoji = File.read('kaomoji.txt').strip().split("\n")
 
 db = Mysql2::Client.new(
   host: 'localhost',
