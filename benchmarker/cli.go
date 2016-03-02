@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"crypto/md5"
 	"errors"
 	"flag"
 	"fmt"
@@ -183,7 +182,7 @@ func prepareUserdata(userdata string) ([]*user, []*user, []*checker.Asset, error
 			return nil, nil, nil, err
 		}
 		images = append(images, &checker.Asset{
-			MD5:  fmt.Sprintf("%x", md5.Sum(data)),
+			MD5:  util.GetMD5(data),
 			Path: img,
 		})
 	}
