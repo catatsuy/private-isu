@@ -90,7 +90,7 @@ func (cli *CLI) Run(args []string) int {
 
 	users, adminUsers, images, err := prepareUserdata(userdata)
 	if err != nil {
-		fmt.Println(terr.Error())
+		fmt.Println(err.Error())
 		return ExitCodeError
 	}
 
