@@ -63,11 +63,10 @@ Dir.glob("img/*").shuffle(random: Random.new(1)).each.with_index(1) do |image, i
   user_id = (36011 * i) % 1000 + 1 # 36011 は適当に大きな素数
   mime = image.end_with?('.jpg') ? 'image/jpeg' : image.end_with?('.png') ? 'image/png' : 'image/gif'
   created_at = DateTime.parse('2016-01-02 00:00:00') + (1.to_r / 24 / 60 / 60 * i) # 毎秒1投稿されたことにする
-  bodies = ['様子','様子です','今日の様子です','ラーメン','うまい','飯テロ']
   body = kaomoji[(26183 * i) % kaomoji.length] # 26183 は適当に大きな素数
 
   open(image) do |f|
-    query.execute(i, user_id, mime, f.read, bodies[i % bodies.length], created_at.to_time)
+    query.execute(i, user_id, mime, f.read, body, created_at.to_time)
   end
 
   p i if i % 100 == 0
