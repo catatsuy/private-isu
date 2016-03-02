@@ -1,8 +1,6 @@
 require 'sinatra/base'
 require 'mysql2'
 require 'rack-flash'
-require 'digest/md5'
-require 'pp'
 
 module Isuconp
   class App < Sinatra::Base
@@ -43,43 +41,12 @@ module Isuconp
 
       def db_initialize
         sql = []
-        sql << 'DROP TABLE IF EXISTS users;'
-        sql << <<'EOS'
-CREATE TABLE IF NOT EXISTS users (
-  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `account_name` varchar(64) NOT NULL UNIQUE,
-  `passhash` varchar(128) NOT NULL, -- SHA2 512 non-binary (hex)
-  `authority` tinyint(1) NOT NULL DEFAULT 0,
-  `del_flg` tinyint(1) NOT NULL DEFAULT 0,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
-EOS
-        sql << 'DROP TABLE IF EXISTS posts;'
-        sql << <<'EOS'
-CREATE TABLE IF NOT EXISTS posts (
-  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `user_id` int NOT NULL,
-  `mime` varchar(64) NOT NULL,
-  `imgdata` mediumblob NOT NULL,
-  `body` text NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
-EOS
-        sql << 'DROP TABLE IF EXISTS comments;'
-        sql << <<'EOS'
-CREATE TABLE IF NOT EXISTS comments (
-  `id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `post_id` int NOT NULL,
-  `user_id` int NOT NULL,
-  `comment` text NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
-) DEFAULT CHARSET=utf8mb4;
-EOS
+        sql << 'DELETE FROM users WHERE id > 1000'
+        sql << 'DELETE FROM posts WHERE id > 10000'
+        sql << 'DELETE FROM comments WHERE id > 100000'
         sql.each do |s|
           db.prepare(s).execute
         end
-        load "#{File.dirname(__dir__)}/scripts/create_user.rb"
-        ""
       end
 
       def try_login(account_name, password)
@@ -122,15 +89,11 @@ EOS
           return false
         end
 
-        if password.length <= 7
-          return false
-        end
-
         return true
       end
 
       def digest(src)
-        `echo '#{src}' | openssl dgst -sha512`.strip
+        `echo -n #{src} | openssl dgst -sha512 | sed 's/^.*= //'`.strip # opensslのバージョンによっては (stdin)= というのがつくので取る
       end
 
       def calculate_salt(account_name)

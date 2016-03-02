@@ -1,0 +1,6 @@
+img/
+img.zip
+dump.sql
+dump.sql.bz2
+node_modules/
+.bundle

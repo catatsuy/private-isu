@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -44,7 +49,8 @@ var quitLock sync.RWMutex
 func (cli *CLI) Run(args []string) int {
 	quit = false
 	var (
-		target string
+		target   string
+		userdata string
 
 		version bool
 		debug   bool
@@ -56,6 +62,9 @@ func (cli *CLI) Run(args []string) int {
 
 	flags.StringVar(&target, "target", "", "")
 	flags.StringVar(&target, "t", "", "(Short)")
+
+	flags.StringVar(&userdata, "userdata", "", "userdata directory")
+	flags.StringVar(&userdata, "u", "", "userdata directory")
 
 	flags.BoolVar(&version, "version", false, "Print version information and quit.")
 
@@ -79,88 +88,10 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeError
 	}
 
-	users := []*user{
-		&user{
-			AccountName: "user1",
-			Password:    "user1user1",
-		},
-		&user{
-			AccountName: "user2",
-			Password:    "user2user2",
-		},
-		&user{
-			AccountName: "user3",
-			Password:    "user3user3",
-		},
-		&user{
-			AccountName: "user4",
-			Password:    "user4user4",
-		},
-		&user{
-			AccountName: "user5",
-			Password:    "user5user5",
-		},
-	}
-	adminUsers := []*user{
-		&user{
-			AccountName: "adminuser1",
-			Password:    "adminuser1",
-		},
-		&user{
-			AccountName: "adminuser2",
-			Password:    "adminuser2",
-		},
-		&user{
-			AccountName: "adminuser3",
-			Password:    "adminuser3",
-		},
-		&user{
-			AccountName: "adminuser4",
-			Password:    "adminuser4",
-		},
-	}
-
-	images := []*checker.Asset{
-		&checker.Asset{
-			MD5:  "8c4d0286cc2c92b418cb6b20fa2055d4",
-			Path: "./userdata/img/Cb0e066UYAAwxtT.jpg",
-		},
-		&checker.Asset{
-			MD5:  "e43267883243c297d8f6f66582fc098b",
-			Path: "./userdata/img/Cb0rChYUUAAERl8.jpg",
-		},
-		&checker.Asset{
-			MD5:  "623176077a8da7cc7602c132cb91deeb",
-			Path: "./userdata/img/Cb5XdejUcAA78Nz.jpg",
-		},
-		&checker.Asset{
-			MD5:  "45d7ba976202a85a90e17282d7f7a781",
-			Path: "./userdata/img/CbJLMlcUcAER_Sg.jpg",
-		},
-		&checker.Asset{
-			MD5:  "de906699516c228eee7f025d3e88057b",
-			Path: "./userdata/img/CbOuZvjUEAA5r0K.jpg",
-		},
-		&checker.Asset{
-			MD5:  "b50e41b163b501f1aa3cada9a21696c4",
-			Path: "./userdata/img/CbT1pABVAAA1OMG.jpg",
-		},
-		&checker.Asset{
-			MD5:  "aa7929fb4ec357063e12701226d0fa3d",
-			Path: "./userdata/img/Cba_gezUMAApMPw.jpg",
-		},
-		&checker.Asset{
-			MD5:  "a36c35c8db3e32bde24f9e77d811fecb",
-			Path: "./userdata/img/CbyvdPtUcAMiasE.jpg",
-		},
-		&checker.Asset{
-			MD5:  "5985d209ba9d3fe9c0ded4fdbf4cdeb5",
-			Path: "./userdata/img/CcCJ26eVAAAf9sh.jpg",
-		},
-		&checker.Asset{
-			MD5:  "c5e0fb9d1132ed936813c07c480730b9",
-			Path: "./userdata/img/CcJYpMDUUAA2xXc.jpg",
-		},
+	users, adminUsers, images, err := prepareUserdata(userdata)
+	if err != nil {
+		fmt.Println(terr.Error())
+		return ExitCodeError
 	}
 
 	timeUp := time.After(BenchmarkTimeout)
@@ -209,6 +140,54 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	return ExitCodeOK
+}
+
+func prepareUserdata(userdata string) ([]*user, []*user, []*checker.Asset, error) {
+	if userdata == "" {
+		return nil, nil, nil, errors.New("userdataディレクトリが指定されていません")
+	}
+	info, err := os.Stat(userdata)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	if !info.IsDir() {
+		return nil, nil, nil, errors.New("userdataがディレクトリではありません")
+	}
+
+	file, err := os.Open(userdata + "/names.txt")
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	defer file.Close()
+
+	users := []*user{}
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		name := scanner.Text()
+		users = append(users, &user{AccountName: name, Password: name + name})
+	}
+	adminUsers := users[:10]
+
+	imgs, err := filepath.Glob(userdata + "/img/000*") // 00001.jpg, 00002.png, 00003.gif など
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	images := []*checker.Asset{}
+
+	for _, img := range imgs {
+		data, err := ioutil.ReadFile(img)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		images = append(images, &checker.Asset{
+			MD5:  util.GetMD5(data),
+			Path: img,
+		})
+	}
+
+	return users, adminUsers, images, err
 }
 
 func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
