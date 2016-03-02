@@ -91,10 +91,6 @@ module Isuconp
           return false
         end
 
-        if password.length <= 7
-          return false
-        end
-
         return true
       end
 
@@ -172,43 +168,43 @@ module Isuconp
     end
 
     get '/' do
-      ps = db.query('SELECT * FROM posts ORDER BY created_at DESC')
-      cs = db.query('SELECT * FROM comments ORDER BY created_at DESC')
-      cc = db.query('SELECT post_id, COUNT(*) as count FROM comments GROUP BY post_id ORDER BY created_at DESC')
-      posts = []
-      count = {}
-      comments = {}
-      cc.each do |c|
-        count[c[:post_id]] = c[:count]
-      end
+      #ps = db.query('SELECT * FROM posts ORDER BY created_at DESC')
+      #cs = db.query('SELECT * FROM comments ORDER BY created_at DESC')
+      #cc = db.query('SELECT post_id, COUNT(*) as count FROM comments GROUP BY post_id ORDER BY created_at DESC')
+      #posts = []
+      #count = {}
+      #comments = {}
+      #cc.each do |c|
+        #count[c[:post_id]] = c[:count]
+      #end
 
-      cs.each do |c|
-        unless comments[c[:post_id]]
-          comments[c[:post_id]] = []
-        end
-        comments[c[:post_id]].push(c)
-      end
+      #cs.each do |c|
+        #unless comments[c[:post_id]]
+          #comments[c[:post_id]] = []
+        #end
+        #comments[c[:post_id]].push(c)
+      #end
 
-      user = {}
-      if session[:user]
-        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-          session[:user][:id]
-        ).first
-      else
-        user = { id: 0 }
-      end
+      #user = {}
+      #if session[:user]
+        #user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+          #session[:user][:id]
+        #).first
+      #else
+        #user = { id: 0 }
+      #end
 
-      users_raw = db.query('SELECT * FROM `users`')
-      users = {}
-      users_raw.each do |u|
-        users[u[:id]] = u
-      end
+      #users_raw = db.query('SELECT * FROM `users`')
+      #users = {}
+      #users_raw.each do |u|
+        #users[u[:id]] = u
+      #end
 
-      ps.each do |p|
-        posts << p if users[p[:user_id]][:del_flg] == 0
-      end
+      #ps.each do |p|
+        #posts << p if users[p[:user_id]][:del_flg] == 0
+      #end
 
-      erb :index, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
+      #erb :index, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
     end
 
     get '/posts' do
