@@ -269,10 +269,8 @@ func genActionToppageNotLogin() *checker.Action {
 		maxImageRequest := 15
 		doc.Find("img").EachWithBreak(func(_ int, selection *goquery.Selection) bool {
 			url, _ := selection.Attr("src")
-			imgReq := checker.NewAction("GET", url)
-			imgReq.ExpectedStatusCode = http.StatusOK
-			imgReq.Asset = &checker.Asset{}
-			imgReq.PlayWithImage(s)
+			imgReq := checker.NewAssetAction(url, &checker.Asset{})
+			imgReq.Play(s)
 			if imageRequestCount > maxImageRequest {
 				return false
 			} else {
@@ -324,8 +322,8 @@ func genActionMypage() *checker.Action {
 	return a
 }
 
-func genActionPostTopImg() *checker.Action {
-	a := checker.NewAction("POST", "/")
+func genActionPostTopImg() *checker.UploadAction {
+	a := checker.NewUploadAction("POST", "/", "file")
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
 	a.Description = "画像を投稿"
@@ -341,10 +339,8 @@ func genActionCheckMypage() *checker.Action {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		url, _ := doc.Find(`img`).First().Attr("src")
-		imgReq := checker.NewAction("GET", url)
-		imgReq.ExpectedStatusCode = http.StatusOK
-		imgReq.Asset = &checker.Asset{}
-		imgReq.PlayWithImage(s)
+		imgReq := checker.NewAssetAction(url, &checker.Asset{})
+		imgReq.Play(s)
 
 		return nil
 	}
@@ -360,7 +356,7 @@ func genActionPostComment() *checker.Action {
 	return a
 }
 
-func genActionGetIndexAfterPostImg(postTopImg *checker.Action, checkMypage *checker.Action) *checker.Action {
+func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, checkMypage *checker.Action) *checker.Action {
 	a := checker.NewAction("GET", "/")
 	a.ExpectedStatusCode = http.StatusOK
 
@@ -373,7 +369,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.Action, checkMypage *chec
 			"csrf_token": token,
 			"type":       "image/jpeg",
 		}
-		postTopImg.PlayWithPostFile(s, "file")
+		postTopImg.Play(s)
 		checkMypage.Play(s)
 
 		return nil
@@ -524,7 +520,7 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 			login.Play(s1)
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
 			getIndexAfterPostImg.Play(s1)
-			postTopImg.PlayWithPostFile(s1, "file")
+			postTopImg.Play(s1)
 
 			u := adminUsers[util.RandomNumber(len(adminUsers))]
 			login.PostData = map[string]string{

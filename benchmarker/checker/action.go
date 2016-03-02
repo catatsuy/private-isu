@@ -15,14 +15,11 @@ type Action struct {
 	Method string
 	Path   string
 
-	PostData map[string]string
-	Headers  map[string]string
-	Asset    *Asset
-
+	PostData           map[string]string
+	Headers            map[string]string
 	ExpectedStatusCode int
 	ExpectedLocation   string
 	ExpectedHeaders    map[string]string
-	ExpectedAssets     map[string]string
 	ExpectedHTML       map[string]string
 
 	Description string
@@ -37,9 +34,8 @@ type Asset struct {
 
 func NewAction(method, path string) *Action {
 	return &Action{
-		Method: method,
-		Path:   path,
-
+		Method:             method,
+		Path:               path,
 		ExpectedStatusCode: http.StatusOK,
 	}
 }
@@ -103,7 +99,23 @@ func (a *Action) Play(s *Session) error {
 	return nil
 }
 
-func (a *Action) PlayWithImage(s *Session) error {
+type AssetAction struct {
+	*Action
+	Asset *Asset
+}
+
+func NewAssetAction(path string, asset *Asset) *AssetAction {
+	return &AssetAction{
+		Asset: asset,
+		Action: &Action{
+			Method:             "GET",
+			Path:               path,
+			ExpectedStatusCode: http.StatusOK,
+		},
+	}
+}
+
+func (a *AssetAction) Play(s *Session) error {
 	formData := url.Values{}
 	for key, val := range a.PostData {
 		formData.Set(key, val)
@@ -165,8 +177,24 @@ func (a *Action) PlayWithImage(s *Session) error {
 	return nil
 }
 
-func (a *Action) PlayWithPostFile(s *Session, paramName string) error {
-	req, err := s.NewFileUploadRequest(a.Path, a.PostData, paramName, a.Asset.Path)
+type UploadAction struct {
+	*Action
+	UploadParamName string
+	Asset           *Asset
+}
+
+func NewUploadAction(method, path, uploadParamname string) *UploadAction {
+	return &UploadAction{
+		UploadParamName: uploadParamname,
+		Action: &Action{
+			Method: method,
+			Path:   path,
+		},
+	}
+}
+
+func (a *UploadAction) Play(s *Session) error {
+	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset.Path)
 
 	if err != nil {
 		return s.Fail(req, err)
