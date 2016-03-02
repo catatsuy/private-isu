@@ -2,6 +2,20 @@
 
 require 'mysql2'
 
+# app.rb の実装をコピった
+def digest(src)
+  `echo -n #{src} | openssl dgst -sha512 | sed 's/^.*= //'`.strip
+end
+
+def calculate_salt(account_name)
+  digest account_name
+end
+
+def calculate_passhash(password, account_name)
+  digest "#{password}:#{calculate_salt(account_name)}"
+end
+
+
 puts "imgディレクトリに画像を展開"
 `curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/img.zip`
 `unzip img.zip`
@@ -36,8 +50,7 @@ open('names.txt') do |f|
     account_name = line.chomp
     password = account_name * 2
 
-    salt = Digest::MD5.hexdigest(account_name)
-    passhash = Digest::SHA256.hexdigest("#{password}:#{salt}")
+    passhash = calculate_passhash(password, account_name)
 
     authority = i < 10 ? 1 : 0
     created_at = DateTime.parse('2016-01-01 00:00:00') + (1.to_r / 24 / 60 / 60 * i) # 毎秒1アカウント作られたことにする

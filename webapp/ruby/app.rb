@@ -99,7 +99,7 @@ module Isuconp
       end
 
       def digest(src)
-        `echo '#{src}' | openssl dgst -sha512`.strip
+        `echo -n #{src} | openssl dgst -sha512 | sed 's/^.*= //'`.strip
       end
 
       def calculate_salt(account_name)
