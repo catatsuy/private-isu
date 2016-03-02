@@ -39,7 +39,7 @@ open('names.txt') do |f|
     salt = Digest::MD5.hexdigest(account_name)
     passhash = Digest::SHA256.hexdigest("#{password}:#{salt}")
 
-    authority = i == 1 ? 1 : 0
+    authority = i < 10 ? 1 : 0
     created_at = DateTime.parse('2016-01-01 00:00:00') + (1.to_r / 24 / 60 / 60 * i) # 毎秒1アカウント作られたことにする
 
     query.execute(i, account_name, passhash, authority, created_at.to_time)
