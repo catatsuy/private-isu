@@ -1,8 +1,6 @@
 require 'sinatra/base'
 require 'mysql2'
 require 'rack-flash'
-require 'digest/md5'
-require 'pp'
 
 module Isuconp
   class App < Sinatra::Base
