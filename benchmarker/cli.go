@@ -89,7 +89,6 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeError
 	}
 
-	fmt.Println("hoge")
 	users, adminUsers, images, err := prepareUserdata(userdata)
 	if err != nil {
 		fmt.Println(terr.Error())
