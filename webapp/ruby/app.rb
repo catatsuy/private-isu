@@ -10,6 +10,8 @@ module Isuconp
     use Rack::Flash
     set :public_folder, File.expand_path('../../public', __FILE__)
 
+    UPLOAD_LIMIT = 10 * 1024 * 1024 # 10mb
+
     helpers do
       def config
         @config ||= {
@@ -343,6 +345,11 @@ EOS
           mime = "image/gif"
         else
           flash[:notice] = '投稿できる画像形式はjpgとpngとgifだけです'
+          redirect '/', 302
+        end
+
+        if params['file'][:tempfile].read.length > UPLOAD_LIMIT
+          flash[:notice] = 'ファイルサイズが大きすぎます'
           redirect '/', 302
         end
 
