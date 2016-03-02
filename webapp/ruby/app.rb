@@ -353,6 +353,7 @@ EOS
           redirect '/', 302
         end
 
+        params['file'][:tempfile].rewind
         query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)'
         db.prepare(query).execute(
           session[:user][:id],
