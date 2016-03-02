@@ -241,3 +241,52 @@ func (a *UploadAction) Play(s *Session) error {
 
 	return nil
 }
+
+func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
+	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset.Path)
+
+	if err != nil {
+		return "", s.Fail(req, err)
+	}
+
+	for key, val := range a.Headers {
+		req.Header.Add(key, val)
+	}
+
+	res, err := s.SendRequest(req)
+
+	if err != nil {
+		return "", s.Fail(req, err)
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode != a.ExpectedStatusCode {
+		s.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+	}
+
+	if a.ExpectedLocation != "" {
+		if a.ExpectedLocation != res.Request.URL.Path {
+			return "", s.Fail(
+				res.Request,
+				fmt.Errorf(
+					"Expected location is miss match %s, got: %s",
+					a.ExpectedLocation, res.Request.URL.Path,
+				))
+		}
+	}
+
+	if a.CheckFunc != nil {
+		err := a.CheckFunc(s, res.Body)
+		if err != nil {
+			return "", s.Fail(
+				res.Request,
+				err,
+			)
+		}
+	}
+
+	s.Success(1)
+
+	return res.Request.URL.Path, nil
+}
