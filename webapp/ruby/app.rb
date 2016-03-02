@@ -353,8 +353,9 @@ EOS
           params["file"][:tempfile].read,
           params["body"],
         )
+        pid = db.last_id
 
-        redirect '/', 302
+        redirect "/posts/#{pid}", 302
       else
         flash[:notice] = '画像が必須です'
         redirect '/', 302
