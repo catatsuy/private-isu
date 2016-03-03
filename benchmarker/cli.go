@@ -101,6 +101,7 @@ func (cli *CLI) Run(args []string) int {
 
 	setupSessionGenrator(sessionsQueue, done)
 
+	setupWorkerStaticFileCheck(sessionsQueue)
 	setupWorkerToppageNotLogin(sessionsQueue)
 
 	setupWorkerMypageCheck(sessionsQueue, users)
@@ -515,6 +516,69 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 			checkBanned := genActionCheckBannedUser(targetUserAccountName)
 			checkBanned.Play(s2)
 			<-interval
+		}
+	}()
+}
+
+func genActionAppleTouchIconCheck() *checker.Action {
+	a := checker.NewAction("GET", "/apple-touch-icon-precomposed.png")
+	a.ExpectedStatusCode = http.StatusNotFound
+	a.Description = "apple-touch-icon-precomposed.png should not exist"
+
+	return a
+}
+
+func genActionFaviconCheck() *checker.AssetAction {
+	a := checker.NewAssetAction("/favicon.ico", &checker.Asset{})
+	a.ExpectedStatusCode = http.StatusOK
+	a.ExpectedLocation = "/favicon.ico"
+	a.Description = "favicon.ico"
+
+	return a
+}
+
+func genActionJsMainFileCheck() *checker.AssetAction {
+	a := checker.NewAssetAction("/js/main.js", &checker.Asset{})
+	a.ExpectedStatusCode = http.StatusOK
+	a.ExpectedLocation = "/js/main.js"
+	a.Description = "js/main.js"
+
+	return a
+}
+
+func genActionJsJqueryFileCheck() *checker.AssetAction {
+	a := checker.NewAssetAction("js/jquery-2.2.0.js", &checker.Asset{})
+	a.ExpectedStatusCode = http.StatusOK
+	a.ExpectedLocation = "js/jquery-2.2.0.js"
+	a.Description = "js/jquery-2.2.0.js"
+
+	return a
+}
+
+func genActionCssFileCheck() *checker.AssetAction {
+	a := checker.NewAssetAction("/css/style.css", &checker.Asset{})
+	a.ExpectedStatusCode = http.StatusOK
+	a.ExpectedLocation = "/css/style.css"
+	a.Description = "/css/style.css"
+
+	return a
+}
+
+func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
+	faviconCheck := genActionFaviconCheck()
+	appleIconCheck := genActionAppleTouchIconCheck()
+	jsMainFileCheck := genActionJsMainFileCheck()
+	jsJQueryFileCheck := genActionJsJqueryFileCheck()
+	cssFileCheck := genActionCssFileCheck()
+
+	go func() {
+		for {
+			s := <-sessionsQueue
+			faviconCheck.Play(s)
+			appleIconCheck.Play(s)
+			jsJQueryFileCheck.Play(s)
+			jsMainFileCheck.Play(s)
+			cssFileCheck.Play(s)
 		}
 	}()
 }
