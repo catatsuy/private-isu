@@ -364,6 +364,10 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, postComment
 		}
 		redirectedURL, _ := postTopImg.PlayWithURL(s)
 		result := re.FindStringSubmatch(redirectedURL)
+		if len(result) < 2 {
+			return fmt.Errorf("POSTした後のredirect先が誤っています")
+		}
+
 		postComment.PostData = map[string]string{
 			"post_id":    result[1],
 			"comment":    "comment",
