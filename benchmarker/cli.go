@@ -528,8 +528,8 @@ func genActionAppleTouchIconCheck() *checker.Action {
 	return a
 }
 
-func genActionFaviconCheck() *checker.Action {
-	a := checker.NewAction("GET", "/favicon.ico")
+func genActionFaviconCheck() *checker.AssetAction {
+	a := checker.NewAssetAction("/favicon.ico", &checker.Asset{})
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/favicon.ico"
 	a.Description = "favicon.ico"
@@ -537,8 +537,8 @@ func genActionFaviconCheck() *checker.Action {
 	return a
 }
 
-func genActionJsMainFileCheck() *checker.Action {
-	a := checker.NewAction("GET", "/js/main.js")
+func genActionJsMainFileCheck() *checker.AssetAction {
+	a := checker.NewAssetAction("/js/main.js", &checker.Asset{})
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/js/main.js"
 	a.Description = "js/main.js"
@@ -546,8 +546,8 @@ func genActionJsMainFileCheck() *checker.Action {
 	return a
 }
 
-func genActionJsJqueryFileCheck() *checker.Action {
-	a := checker.NewAction("GET", "js/jquery-2.2.0.js")
+func genActionJsJqueryFileCheck() *checker.AssetAction {
+	a := checker.NewAssetAction("js/jquery-2.2.0.js", &checker.Asset{})
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "js/jquery-2.2.0.js"
 	a.Description = "js/jquery-2.2.0.js"
@@ -555,8 +555,8 @@ func genActionJsJqueryFileCheck() *checker.Action {
 	return a
 }
 
-func genActionCssFileCheck() *checker.Action {
-	a := checker.NewAction("GET", "/css/style.css")
+func genActionCssFileCheck() *checker.AssetAction {
+	a := checker.NewAssetAction("/css/style.css", &checker.Asset{})
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/css/style.css"
 	a.Description = "/css/style.css"
@@ -565,25 +565,20 @@ func genActionCssFileCheck() *checker.Action {
 }
 
 func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
+	faviconCheck := genActionFaviconCheck()
+	appleIconCheck := genActionAppleTouchIconCheck()
+	jsMainFileCheck := genActionJsMainFileCheck()
+	jsJQueryFileCheck := genActionJsJqueryFileCheck()
+	cssFileCheck := genActionCssFileCheck()
+
 	go func() {
 		for {
 			s := <-sessionsQueue
-			faviconCheck := genActionFaviconCheck()
-			appleIconCheck := genActionAppleTouchIconCheck()
-			faviconCheck.Asset = &checker.Asset{}
-			jsMainFileCheck := genActionJsMainFileCheck()
-			jsMainFileCheck.Asset = &checker.Asset{}
-			jsJQueryFileCheck := genActionJsJqueryFileCheck()
-			jsJQueryFileCheck.Asset = &checker.Asset{}
-			cssFileCheck := genActionCssFileCheck()
-			cssFileCheck.Asset = &checker.Asset{}
-			for i := 0; i < 3; i++ {
-				faviconCheck.PlayWithImage(s)
-				appleIconCheck.Play(s)
-				jsJQueryFileCheck.PlayWithImage(s)
-				jsMainFileCheck.PlayWithImage(s)
-				cssFileCheck.PlayWithImage(s)
-			}
+			faviconCheck.Play(s)
+			appleIconCheck.Play(s)
+			jsJQueryFileCheck.Play(s)
+			jsMainFileCheck.Play(s)
+			cssFileCheck.Play(s)
 		}
 	}()
 }
