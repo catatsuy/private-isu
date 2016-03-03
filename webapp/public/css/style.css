@@ -53,11 +53,15 @@ textarea {
 .isu-post-account-name {
   color: gray;
   font-size: small;
+  font-weight: bold;
+  margin-right: 3px;
 }
 
 .isu-comment-account-name {
   color: gray;
   font-size: small;
+  font-weight: bold;
+  margin-right: 2px;
 }
 
 .header {
@@ -74,6 +78,19 @@ textarea {
   width: 25%;
   float: left;
   text-align: right;
+}
+
+.isu-post-comment {
+  margin: 10px 15px 5px 15px;
+}
+
+.isu-post-comment-count {
+  font-size: small;
+  color: gray;
+}
+
+.isu-comment-form {
+  margin-top: 15px;
 }
 
 .isu-register {

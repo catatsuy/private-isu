@@ -167,7 +167,7 @@ module Isuconp
 
     get '/' do
       ps = db.query('SELECT * FROM posts ORDER BY created_at DESC')
-      cs = db.query('SELECT * FROM comments ORDER BY created_at DESC')
+      cs = db.query('SELECT * FROM comments ORDER BY created_at ASC')
       cc = db.query('SELECT post_id, COUNT(*) as count FROM comments GROUP BY post_id ORDER BY created_at DESC')
       posts = []
       count = {}
