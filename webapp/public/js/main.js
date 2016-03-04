@@ -6,7 +6,7 @@ $(function () {
       data: {
         max_created_at: $('.isu-post:last').attr('data-max')
       }
-    }).done(function(data) {
+    }).done(function (data) {
       $('#isu-post-more').before(data);
     });
   });
