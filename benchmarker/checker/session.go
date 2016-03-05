@@ -49,11 +49,11 @@ func NewSession() *Session {
 	return w
 }
 
-func SetTargetHost(host string) error {
+func SetTargetHost(host string) (string, error) {
 	parsedURL, err := url.Parse(host)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	targetHost = ""
@@ -64,10 +64,10 @@ func SetTargetHost(host string) error {
 	} else if parsedURL.Scheme != "" && parsedURL.Scheme != "https" {
 		targetHost += parsedURL.Scheme + ":" + parsedURL.Opaque
 	} else {
-		return fmt.Errorf("不正なホスト名です")
+		return "", fmt.Errorf("不正なホスト名です")
 	}
 
-	return nil
+	return targetHost, nil
 }
 
 func (s *Session) NewRequest(method, uri string, body io.Reader) (*http.Request, error) {

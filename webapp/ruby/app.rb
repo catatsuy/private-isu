@@ -107,6 +107,7 @@ module Isuconp
 
     get '/initialize' do
       db_initialize
+      return 200
     end
 
     get '/login' do
