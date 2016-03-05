@@ -359,11 +359,6 @@ func genActionPostComment() *checker.Action {
 	a := checker.NewAction("POST", "/comment")
 	a.ExpectedStatusCode = http.StatusOK
 
-	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
-
-		return nil
-	}
-
 	return a
 }
 
@@ -400,27 +395,6 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, postComment
 		return nil
 	}
 
-	return a
-}
-
-func genActionGetIndexAfterPostComment(postComment *checker.Action) *checker.Action {
-	a := checker.NewAction("GET", "/")
-	a.ExpectedStatusCode = http.StatusOK
-
-	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-
-		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
-		postID, _ := doc.Find(`input[name="post_id"]`).First().Attr("value")
-		postComment.PostData = map[string]string{
-			"post_id":    postID,
-			"comment":    "comment",
-			"csrf_token": token,
-		}
-		postComment.Play(s)
-
-		return nil
-	}
 	return a
 }
 
