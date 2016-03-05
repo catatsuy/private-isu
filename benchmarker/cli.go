@@ -572,6 +572,8 @@ func genActionCssFileCheck() *checker.AssetAction {
 }
 
 func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
+	interval := time.Tick(10 * time.Second)
+
 	faviconCheck := genActionFaviconCheck()
 	appleIconCheck := genActionAppleTouchIconCheck()
 	jsMainFileCheck := genActionJsMainFileCheck()
@@ -586,6 +588,7 @@ func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
 			jsJQueryFileCheck.Play(s)
 			jsMainFileCheck.Play(s)
 			cssFileCheck.Play(s)
+			<-interval
 		}
 	}()
 }
