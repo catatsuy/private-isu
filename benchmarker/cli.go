@@ -319,6 +319,25 @@ func genActionPostTopImg() *checker.UploadAction {
 	return a
 }
 
+// /posts/:id にリクエストを飛ばして画像のURLを見る
+// その画像のURLにリクエストを飛ばして画像が一致しているか確認
+func genActionGetPostPageImg(url string, image *checker.Asset) *checker.Action {
+	a := checker.NewAction("GET", url)
+	a.ExpectedStatusCode = http.StatusOK
+
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		url, _ := doc.Find(`img`).First().Attr("src")
+		imgReq := checker.NewAssetAction(url, image)
+		imgReq.Play(s)
+
+		return nil
+	}
+
+	return a
+}
+
 func genActionCheckMypage() *checker.Action {
 	a := checker.NewAction("GET", "/mypage")
 	a.ExpectedStatusCode = http.StatusOK
@@ -367,6 +386,9 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, postComment
 		if len(result) < 2 {
 			return fmt.Errorf("POSTした後のredirect先が誤っています")
 		}
+
+		getPostPageImg := genActionGetPostPageImg(redirectedURL, postTopImg.Asset)
+		getPostPageImg.Play(s)
 
 		postComment.PostData = map[string]string{
 			"post_id":    result[1],
