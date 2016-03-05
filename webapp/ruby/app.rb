@@ -325,7 +325,7 @@ module Isuconp
         return "csrf_token error"
       end
 
-      if /[0-9]+/.match(params['post_id'])
+      unless /[0-9]+/.match(params['post_id'])
         return 'post_idは整数のみです'
       end
       post_id = params['post_id']
