@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,9 +26,10 @@ const (
 	ExitCodeOK    int = 0
 	ExitCodeError int = 1 + iota
 
-	FailThreshold    = 5
-	BenchmarkTimeout = 30 * time.Second
-	SessionQueueSize = 20
+	FailThreshold     = 5
+	InitializeTimeout = time.Duration(10) * time.Second
+	BenchmarkTimeout  = 30 * time.Second
+	SessionQueueSize  = 20
 )
 
 // CLI is the command line object
@@ -82,17 +84,39 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	terr := checker.SetTargetHost(target)
+	targetHost, terr := checker.SetTargetHost(target)
 	if terr != nil {
 		fmt.Println(terr.Error())
 		return ExitCodeError
 	}
+
+	initialize := make(chan bool)
+
+	go func(targetHost string) {
+		client := &http.Client{
+			Timeout: InitializeTimeout,
+		}
+
+		parsedURL, _ := url.Parse("/initialize")
+		parsedURL.Scheme = "http"
+		parsedURL.Host = targetHost
+
+		res, err := client.Get(parsedURL.String())
+		if err != nil {
+			initialize <- false
+			return
+		}
+		defer res.Body.Close()
+		initialize <- true
+	}(targetHost)
 
 	users, adminUsers, images, err := prepareUserdata(userdata)
 	if err != nil {
 		fmt.Println(err.Error())
 		return ExitCodeError
 	}
+
+	<-initialize
 
 	timeUp := time.After(BenchmarkTimeout)
 	done := make(chan bool)
