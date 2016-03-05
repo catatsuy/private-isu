@@ -468,7 +468,6 @@ func genActionCheckBannedUser(targetUserAccountName string) *checker.Action {
 				imageRequestCount += 1
 				return true
 			}
-			return true
 		})
 
 		if existErr {
