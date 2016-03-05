@@ -92,23 +92,7 @@ func (cli *CLI) Run(args []string) int {
 
 	initialize := make(chan bool)
 
-	go func(targetHost string) {
-		client := &http.Client{
-			Timeout: InitializeTimeout,
-		}
-
-		parsedURL, _ := url.Parse("/initialize")
-		parsedURL.Scheme = "http"
-		parsedURL.Host = targetHost
-
-		res, err := client.Get(parsedURL.String())
-		if err != nil {
-			initialize <- false
-			return
-		}
-		defer res.Body.Close()
-		initialize <- true
-	}(targetHost)
+	setupInitialize(targetHost, initialize)
 
 	users, adminUsers, images, err := prepareUserdata(userdata)
 	if err != nil {
@@ -605,4 +589,24 @@ func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
 			cssFileCheck.Play(s)
 		}
 	}()
+}
+
+func setupInitialize(targetHost string, initialize chan bool) {
+	go func(targetHost string) {
+		client := &http.Client{
+			Timeout: InitializeTimeout,
+		}
+
+		parsedURL, _ := url.Parse("/initialize")
+		parsedURL.Scheme = "http"
+		parsedURL.Host = targetHost
+
+		res, err := client.Get(parsedURL.String())
+		if err != nil {
+			initialize <- false
+			return
+		}
+		defer res.Body.Close()
+		initialize <- true
+	}(targetHost)
 }
