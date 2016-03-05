@@ -355,14 +355,23 @@ func genActionCheckMypage() *checker.Action {
 	return a
 }
 
-func genActionPostComment() *checker.Action {
+func genActionPostComment(url, postID, comment, csrfToken string) *checker.Action {
 	a := checker.NewAction("POST", "/comment")
 	a.ExpectedStatusCode = http.StatusOK
+	a.PostData = map[string]string{
+		"post_id":    postID,
+		"comment":    comment,
+		"csrf_token": csrfToken,
+	}
+
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		return nil
+	}
 
 	return a
 }
 
-func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, postComment *checker.Action) *checker.Action {
+func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction) *checker.Action {
 	re := regexp.MustCompile("/posts/([0-9]+)")
 
 	a := checker.NewAction("GET", "/")
@@ -385,11 +394,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, postComment
 		getPostPageImg := genActionGetPostPageImg(redirectedURL, postTopImg.Asset)
 		getPostPageImg.Play(s)
 
-		postComment.PostData = map[string]string{
-			"post_id":    result[1],
-			"comment":    "comment",
-			"csrf_token": token,
-		}
+		postComment := genActionPostComment(redirectedURL, result[1], "comment", token)
 		postComment.Play(s)
 
 		return nil
@@ -401,9 +406,8 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, postComment
 func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, images []*checker.Asset) {
 	login := genActionLogin()
 	postTopImg := genActionPostTopImg()
-	postComment := genActionPostComment()
 
-	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, postComment)
+	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg)
 
 	// ログインして、画像を投稿して、投稿単体ページを確認して、コメントを投稿
 	go func() {
@@ -493,9 +497,8 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 	login := genActionLogin()
 	postRegister := genActionPostRegister()
 	postTopImg := genActionPostTopImg()
-	postComment := genActionPostComment()
 
-	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, postComment)
+	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg)
 
 	// ユーザーを作って、ログインして画像を投稿する
 	// そのユーザーはBAN機能を使って消される
