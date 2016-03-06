@@ -149,16 +149,14 @@ module Isuconp
     end
 
     get '/login' do
-      if session[:user] && session[:user][:id]
-        # ログイン済みはリダイレクト
+      if get_session_user()
         redirect '/', 302
       end
       erb :login, layout: :layout, locals: { me: nil }
     end
 
     post '/login' do
-      if session[:user] && session[:user][:id]
-        # ログイン済みはリダイレクト
+      if get_session_user()
         redirect '/', 302
       end
 
@@ -175,15 +173,14 @@ module Isuconp
     end
 
     get '/register' do
-      if session[:user]
+      if get_session_user()
         redirect '/', 302
       end
       erb :register, layout: :layout, locals: { me: nil }
     end
 
     post '/register' do
-      if session[:user] && session[:user][:id]
-        # ログイン済みはリダイレクト
+      if get_session_user()
         redirect '/', 302
       end
 
@@ -275,8 +272,9 @@ module Isuconp
     end
 
     post '/' do
-      unless session[:user] && session[:user][:id]
-        # 未ログインはリダイレクト
+      me = get_session_user()
+
+      if me.nil?
         redirect '/login', 302
       end
 
@@ -306,7 +304,7 @@ module Isuconp
         params['file'][:tempfile].rewind
         query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)'
         db.prepare(query).execute(
-          session[:user][:id],
+          me[:id],
           mime,
           params["file"][:tempfile].read,
           params["body"],
@@ -332,8 +330,9 @@ module Isuconp
     end
 
     post '/comment' do
-      unless session[:user] && session[:user][:id]
-        # 未ログインはリダイレクト
+      me = get_session_user()
+
+      if me.nil?
         redirect '/login', 302
       end
 
@@ -349,7 +348,7 @@ module Isuconp
       query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)'
       db.prepare(query).execute(
         post_id,
-        session[:user][:id],
+        me[:id],
         params['comment']
       )
 
@@ -357,12 +356,13 @@ module Isuconp
     end
 
     get '/admin/banned' do
-      if !session[:user]
+      me = get_session_user()
+
+      if me.nil?
         redirect '/login', 302
       end
 
-      me = get_session_user()
-      if me.nil? or me[:authority] == 0
+      if me[:authority] == 0
         return 403
       end
 
@@ -372,13 +372,13 @@ module Isuconp
     end
 
     post '/admin/banned' do
-      unless session[:user] && session[:user][:id]
-        # 未ログインはリダイレクト
+      me = get_session_user()
+
+      if me.nil?
         redirect '/', 302
       end
 
-      me = get_session_user()
-      if me.nil? or me[:authority] == 0
+      if me[:authority] == 0
         return 403
       end
 
