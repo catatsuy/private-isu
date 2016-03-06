@@ -10,6 +10,8 @@ module Isuconp
 
     UPLOAD_LIMIT = 10 * 1024 * 1024 # 10mb
 
+    POSTS_PER_PAGE = 20
+
     helpers do
       def config
         @config ||= {
@@ -136,7 +138,7 @@ module Isuconp
           ).first
 
           posts.push(post) if post[:user][:del_flg] == 0
-          break if posts.length > 30
+          break if posts.length > POSTS_PER_PAGE
         end
 
         posts
