@@ -255,7 +255,7 @@ module Isuconp
       )
       posts = make_posts(results)
 
-      erb :posts, layout: :layout, locals: { posts: posts, me: nil }
+      erb :posts, layout: false, locals: { posts: posts }
     end
 
     get '/posts/:id' do
