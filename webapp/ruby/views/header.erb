@@ -1,0 +1,14 @@
+<div class="header">
+  <div class="isu-title">
+    <h1>Iscogram</h1>
+  </div>
+  <div class="isu-account-name">
+    <% if me[:id] != 0 %>
+    <div><a href="/@<%=  escape_html CGI.escape(me[:account_name]) %>"><%=  escape_html me[:account_name] %>さん</a></div>
+    <div><a href="/logout">ログアウト</a></div>
+    <% else %>
+    <div><a href="/login">ログイン</a></div>
+    <% end %>
+  </div>
+</div>
+
