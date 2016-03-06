@@ -87,7 +87,6 @@ describe('e2etest', () => {
 
       // formDataにblobを指定してXHRで送信することでファイルアップロードできる
       formData.append('file', blob, 'square.gif');
-      //formData.append('body', 'あいうえお かきくけこ さしすせそ');
 
       // FormDataはXHRで送信するしかないので、送信後にリダイレクト先URLにlocation.hrefで遷移する
       const xhr = new XMLHttpRequest();
