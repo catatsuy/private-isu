@@ -60,6 +60,62 @@ describe('e2etest', () => {
     expect(58).to.equal(postLen2);
   });
 
+  it('画像を投稿できる', async () => {
+    await nightmare
+    .goto(`${baseurl}/login`)
+    .type('input[name=account_name]', 'mary')
+    .type('input[name=password]', 'marymary')
+    .click('input[type=submit]')
+    .wait(longWait)
+    .type('textarea[name=body]', 'あいうえお かきくけこ さしすせそ')
+    .wait(shortWait)
+    ;
+
+    const urlAfterPost = await nightmare.evaluate(() => {
+      const form = document.querySelector('.isu-submit form');
+      const formData = new FormData(form);
+      // 10x10の赤い正方形のgif
+      const b64 = 'R0lGODdhBQAFAPAAAP8AAAAAACwAAAAABQAFAAACBISPqVgAOw==';
+
+      // data URIをblobに変える方法: http://stackoverflow.com/a/11954337
+      const binary = atob(b64);
+      const array = [];
+      for (let i = 0; i < binary.length; i++) {
+        array.push(binary.charCodeAt(i));
+      }
+      const blob = new Blob([new Uint8Array(array)], {type: 'image/gif'});
+
+      // formDataにblobを指定してXHRで送信することでファイルアップロードできる
+      formData.append('file', blob, 'square.gif');
+      //formData.append('body', 'あいうえお かきくけこ さしすせそ');
+
+      // FormDataはXHRで送信するしかないので、送信後にリダイレクト先URLにlocation.hrefで遷移する
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", form.getAttribute('action'));
+      xhr.onload = function() {
+        location.href = xhr.responseURL;
+      };
+      xhr.send(formData);
+    })
+    .wait(mediumWait)
+    .url()
+    ;
+
+    // 単体ページにリダイレクトされる
+    expect(urlAfterPost).to.match(/\/posts\/(\d+)/);
+
+    const id = RegExp.$1;
+
+    // トップページにも反映される
+    const postExists = await nightmare
+    .goto(`${baseurl}/`)
+    .wait(longWait)
+    .exists('#pid_' + id)
+    ;
+
+    expect(postExists).to.be.true;
+  });
+
   it('コメントできる', async () => {
     await nightmare
     .goto(`${baseurl}/login`)
