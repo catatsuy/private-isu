@@ -104,7 +104,7 @@ module Isuconp
         digest "#{password}:#{calculate_salt(account_name)}"
       end
 
-      def make_posts(max_created_at)
+      def get_posts(max_created_at)
         if max_created_at.nil?
           results = db.query('SELECT id,user_id,body,created_at FROM posts ORDER BY created_at DESC')
         else
@@ -212,14 +212,14 @@ module Isuconp
         user = { id: 0 }
       end
 
-      posts = make_posts(nil)
+      posts = get_posts(nil)
 
       erb :index, layout: :layout, locals: { posts: posts, user: user }
     end
 
     get '/posts' do
       max_created_at = params['max_created_at']
-      posts = make_posts(max_created_at.nil? ? nil : Time.parse(max_created_at))
+      posts = get_posts(max_created_at.nil? ? nil : Time.parse(max_created_at))
 
       erb :posts, layout: :layout, locals: { posts: posts }
     end
