@@ -45,6 +45,3 @@ DEPENDENCIES
   sinatra
   sinatra-contrib
   unicorn
-
-BUNDLED WITH
-   1.11.2
