@@ -42,7 +42,7 @@ describe('e2etest', () => {
     .wait(longWait)
     ;
 
-    const postLen1 = await nightmare.evaluate(function() {
+    const postLen1 = await nightmare.evaluate(() => {
       return document.querySelectorAll('.isu-post').length;
     });
     expect(39).to.equal(postLen1);
@@ -54,7 +54,7 @@ describe('e2etest', () => {
     .wait(longWait)
     ;
 
-    const postLen2 = await nightmare.evaluate(function() {
+    const postLen2 = await nightmare.evaluate(() => {
       return document.querySelectorAll('.isu-post').length;
     });
     expect(58).to.equal(postLen2);
@@ -69,7 +69,7 @@ describe('e2etest', () => {
     .wait(longWait)
     ;
 
-    const [id, commentCount] = await nightmare.evaluate(function() {
+    const [id, commentCount] = await nightmare.evaluate(() => {
       return [document.querySelector('.isu-post').id, document.querySelector('.isu-post-comment-count b').textContent];
     });
 
@@ -82,7 +82,7 @@ describe('e2etest', () => {
     ;
     expect(urlAfterComment).to.equal(`${baseurl}/posts/${id}`);
 
-    const commentCount2 = await nightmare.evaluate(function() {
+    const commentCount2 = await nightmare.evaluate(() => {
       return document.querySelector('.isu-post-comment-count b').textContent;
     });
     expect(commentCount2).to.equal(+commentCount + 1 + '');
@@ -99,7 +99,7 @@ describe('e2etest', () => {
     .wait(shortWait)
     ;
 
-    const name = await nightmare.evaluate(function() {
+    const name = await nightmare.evaluate(() => {
       return document.querySelector('input[name="uid[]"]').getAttribute('data-account-name');
     });
 
@@ -145,7 +145,7 @@ describe('e2etest', () => {
     ;
     expect(urlAfterLogin).to.equal(`${baseurl}/`);
 
-    const name = await nightmare.evaluate(function() {
+    const name = await nightmare.evaluate(() => {
       return document.querySelector('.isu-account-name a').textContent;
     });
     expect('catatsuyさん').to.equal(name);
