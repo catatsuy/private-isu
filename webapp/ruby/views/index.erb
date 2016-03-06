@@ -4,7 +4,7 @@
   </div>
   <div class="isu-account-name">
     <% if user[:id] != 0 %>
-    <div><a href="/mypage"><%=  escape_html user[:account_name] %>さん</a></div>
+    <div><a href="/@<%=  escape_html CGI.escape(user[:account_name]) %>"><%=  escape_html user[:account_name] %>さん</a></div>
     <div><a href="/logout">ログアウト</a></div>
     <% else %>
     <div><a href="/login">ログイン</a></div>

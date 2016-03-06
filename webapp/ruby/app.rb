@@ -414,51 +414,5 @@ module Isuconp
 
       redirect '/admin/banned', 302
     end
-
-    get '/mypage' do
-      unless session[:user] && session[:user][:id]
-        # 未ログインはリダイレクト
-        redirect '/', 302
-      end
-
-      mixed = []
-      posts_all = db.query('SELECT * FROM `posts` ORDER BY `created_at` DESC')
-      posts_all.each do |p|
-        mixed << {type: :post, value: p}
-      end
-      comments_all = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
-      comments_all.each do |c|
-        mixed << {type: :comment, value: c}
-      end
-
-      mixed = mixed.map do |m|
-        if m[:type] == :post
-          posts_comments = []
-          rs = db.prepare('SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC').execute(
-            m[:value][:id]
-          )
-          rs.each do |pc|
-            posts_comments << pc
-          end
-          m.merge!({comments: posts_comments})
-        end
-        m
-      end
-      mixed = mixed.select { |m| m[:value][:user_id] == session[:user][:id] }
-      mixed.sort! { |a, b| a[:value][:created_at] <=> b[:value][:created_at] }
-
-      user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-        session[:user][:id]
-      ).first
-
-      users_raw = db.query('SELECT * FROM `users`')
-      users = {}
-      users_raw.each do |u|
-        users[u[:id]] = u
-      end
-
-      erb :mypage, layout: :layout, locals: { mixed: mixed, user: user, users: users }
-    end
-
   end
 end
