@@ -1,0 +1,12 @@
+<% diff = Time.now - time %>
+<% if diff < 60 %>
+  <%= diff.to_i %>秒前
+<% elsif diff < 60 * 60 %>
+  <%= (diff / 60).to_i %>分前
+<% elsif diff < 60 * 60 * 24 %>
+  <%= (diff / 60 / 60).to_i %>時間前
+<% elsif diff < 60 * 60 * 24 * 7 %>
+  <%= (diff / 60 / 60).to_i %>日前
+<% else %>
+  <%= time.strftime('%F') %>
+<% end %>
