@@ -105,9 +105,13 @@ module Isuconp
       end
 
       def get_session_user()
-        db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-          session[:user][:id]
-        ).first
+        if session[:user]
+          db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+            session[:user][:id]
+          ).first
+        else
+          nil
+        end
       end
 
       def make_posts(results)
@@ -149,7 +153,7 @@ module Isuconp
         # ログイン済みはリダイレクト
         redirect '/', 302
       end
-      erb :login, layout: :layout
+      erb :login, layout: :layout, locals: { me: nil }
     end
 
     post '/login' do
@@ -174,7 +178,7 @@ module Isuconp
       if session[:user]
         redirect '/', 302
       end
-      erb :register, layout: :layout
+      erb :register, layout: :layout, locals: { me: nil }
     end
 
     post '/register' do
@@ -252,7 +256,7 @@ module Isuconp
       )
       posts = make_posts(results)
 
-      erb :posts, layout: :layout, locals: { posts: posts }
+      erb :posts, layout: :layout, locals: { posts: posts, me: nil }
     end
 
     get '/posts/:id' do
@@ -364,7 +368,7 @@ module Isuconp
 
       users = db.query('SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC')
 
-      erb :banned, layout: :layout, locals: { users: users }
+      erb :banned, layout: :layout, locals: { users: users, me: me }
     end
 
     post '/admin/banned' do
