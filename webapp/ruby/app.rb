@@ -116,14 +116,18 @@ module Isuconp
         end
       end
 
-      def make_posts(results)
+      def make_posts(results, all_comments: false)
         posts = []
         results.to_a.each do |post|
           post[:comment_count] = db.prepare('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?').execute(
             post[:id]
           ).first[:count]
 
-          comments = db.prepare('SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC LIMIT 3').execute(
+          query = 'SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC'
+          unless all_comments
+            query += ' LIMIT 3'
+          end
+          comments = db.prepare(query).execute(
             post[:id]
           ).to_a
           comments.each do |comment|
@@ -262,7 +266,7 @@ module Isuconp
       results = db.prepare('SELECT * FROM posts WHERE id = ?').execute(
         params[:id]
       )
-      posts = make_posts(results)
+      posts = make_posts(results, all_comments: true)
 
       return 404 if posts.length == 0
 
