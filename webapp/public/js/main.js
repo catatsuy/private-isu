@@ -1,3 +1,4 @@
+'use strict';
 $(function () {
   $('#isu-post-more-btn').on('click', function () {
     $('#isu-post-more').addClass('loading');
@@ -10,7 +11,7 @@ $(function () {
       dataType: 'html',
     }).done(function (html) {
       $(html).find('.isu-post').each(function() {
-        id = $(this).attr('id')
+        var id = $(this).attr('id');
         if ($('#' + id).length === 0) {
           $('.isu-posts').append($(this).clone());
         }
