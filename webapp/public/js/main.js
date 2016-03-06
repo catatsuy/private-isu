@@ -18,4 +18,6 @@ $(function () {
       $('#isu-post-more').removeClass('loading');
     });
   });
+
+  $('time.timeago').timeago();
 });

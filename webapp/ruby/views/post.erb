@@ -2,7 +2,7 @@
   <div class="isu-post-header">
     <a href="/@<%= escape_html(CGI.escape(post[:user][:account_name])) %>" class="isu-post-account-name"><%= escape_html(post[:user][:account_name]) %></a>
     <a href="/posts/<%= post[:id] %>" class="isu-post-permalink">
-      <%= erb :smart_time, locals: { time: post[:created_at] } %>
+      <time class="timeago" datetime="<%= post[:created_at].iso8601 %>"></time>
     </a>
   </div>
   <div class="isu-post-image">
