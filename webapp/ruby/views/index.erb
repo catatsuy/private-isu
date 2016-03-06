@@ -1,17 +1,3 @@
-<div class="header">
-  <div class="isu-title">
-    <h1>Iscogram</h1>
-  </div>
-  <div class="isu-account-name">
-    <% if user[:id] != 0 %>
-    <div><a href="/mypage"><%=  escape_html user[:account_name] %>さん</a></div>
-    <div><a href="/logout">ログアウト</a></div>
-    <% else %>
-    <div><a href="/login">ログイン</a></div>
-    <% end %>
-  </div>
-</div>
-
 <div class="isu-submit">
   <form method="post" action="/" enctype="multipart/form-data">
     <div class="isu-form">
@@ -32,8 +18,9 @@
   </form>
 </div>
 
-<%= erb :posts, layout: :layout, locals: { posts: posts } %>
+<%= erb :posts, locals: { posts: posts } %>
 
 <div id="isu-post-more">
-  <button id="isu-post-more-btn">More</button>
+  <button id="isu-post-more-btn">もっと見る</button>
+  <img class="isu-loading-icon" src="/img/ajax-loader.gif">
 </div>

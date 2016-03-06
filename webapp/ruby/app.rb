@@ -10,6 +10,8 @@ module Isuconp
 
     UPLOAD_LIMIT = 10 * 1024 * 1024 # 10mb
 
+    POSTS_PER_PAGE = 20
+
     helpers do
       def config
         @config ||= {
@@ -104,22 +106,28 @@ module Isuconp
         digest "#{password}:#{calculate_salt(account_name)}"
       end
 
-      def get_posts(max_created_at)
-        if max_created_at.nil?
-          results = db.query('SELECT id,user_id,body,created_at FROM posts ORDER BY created_at DESC')
+      def get_session_user()
+        if session[:user]
+          db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+            session[:user][:id]
+          ).first
         else
-          results = db.prepare('SELECT id,user_id,body,created_at FROM posts WHERE created_at <= ? ORDER BY created_at DESC').execute(
-            max_created_at
-          )
+          nil
         end
+      end
 
+      def make_posts(results, all_comments: false)
         posts = []
         results.to_a.each do |post|
           post[:comment_count] = db.prepare('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?').execute(
             post[:id]
           ).first[:count]
 
-          comments = db.prepare('SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC LIMIT 3').execute(
+          query = 'SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC'
+          unless all_comments
+            query += ' LIMIT 3'
+          end
+          comments = db.prepare(query).execute(
             post[:id]
           ).to_a
           comments.each do |comment|
@@ -134,7 +142,7 @@ module Isuconp
           ).first
 
           posts.push(post) if post[:user][:del_flg] == 0
-          break if posts.length > 30
+          break if posts.length > POSTS_PER_PAGE
         end
 
         posts
@@ -147,16 +155,14 @@ module Isuconp
     end
 
     get '/login' do
-      if session[:user] && session[:user][:id]
-        # ログイン済みはリダイレクト
+      if get_session_user()
         redirect '/', 302
       end
-      erb :login, layout: :layout
+      erb :login, layout: :layout, locals: { me: nil }
     end
 
     post '/login' do
-      if session[:user] && session[:user][:id]
-        # ログイン済みはリダイレクト
+      if get_session_user()
         redirect '/', 302
       end
 
@@ -173,15 +179,14 @@ module Isuconp
     end
 
     get '/register' do
-      if session[:user]
+      if get_session_user()
         redirect '/', 302
       end
-      erb :register, layout: :layout
+      erb :register, layout: :layout, locals: { me: nil }
     end
 
     post '/register' do
-      if session[:user] && session[:user][:id]
-        # ログイン済みはリダイレクト
+      if get_session_user()
         redirect '/', 302
       end
 
@@ -203,64 +208,79 @@ module Isuconp
     end
 
     get '/' do
-      user = {}
-      if session[:user]
-        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-          session[:user][:id]
-        ).first
-      else
-        user = { id: 0 }
+      me = get_session_user()
+
+      results = db.query('SELECT id,user_id,body,created_at FROM posts ORDER BY created_at DESC')
+      posts = make_posts(results)
+
+      erb :index, layout: :layout, locals: { posts: posts, me: me }
+    end
+
+    get '/@:account_name' do
+      user = db.prepare('SELECT * FROM users WHERE account_name = ? AND del_flg = 0').execute(
+        params[:account_name]
+      ).first
+
+      if user.nil?
+        return 404
       end
 
-      posts = get_posts(nil)
+      results = db.prepare('SELECT id,user_id,body,created_at FROM posts WHERE user_id = ? ORDER BY created_at DESC').execute(
+        user[:id]
+      )
+      posts = make_posts(results)
 
-      erb :index, layout: :layout, locals: { posts: posts, user: user }
+      comment_count = db.prepare('SELECT COUNT(*) AS count FROM comments WHERE user_id = ?').execute(
+        user[:id]
+      ).first[:count]
+
+      post_ids = db.prepare('SELECT id FROM posts WHERE user_id = ?').execute(
+        user[:id]
+      ).map{|post| post[:id]}
+      post_count = post_ids.length
+
+      commented_count = 0
+      if post_count > 0
+        placeholder = (['?'] * post_ids.length).join(",")
+        commented_count = db.prepare("SELECT COUNT(*) AS count FROM comments WHERE post_id IN (#{placeholder})").execute(
+          *post_ids
+        ).first[:count]
+      end
+
+      me = get_session_user()
+
+      erb :user, layout: :layout, locals: { posts: posts, user: user, post_count: post_count, comment_count: comment_count, commented_count: commented_count, me: me }
     end
 
     get '/posts' do
       max_created_at = params['max_created_at']
-      posts = get_posts(max_created_at.nil? ? nil : Time.parse(max_created_at))
+      results = db.prepare('SELECT id,user_id,body,created_at FROM posts WHERE created_at <= ? ORDER BY created_at DESC').execute(
+        max_created_at.nil? ? nil : Time.parse(max_created_at)
+      )
+      posts = make_posts(results)
 
-      erb :posts, layout: :layout, locals: { posts: posts }
+      erb :posts, layout: false, locals: { posts: posts }
     end
 
     get '/posts/:id' do
-      post = db.prepare('SELECT * FROM posts WHERE id = ? ORDER BY created_at DESC').execute(
-        params[:id]
-      ).first
-
-      rs = db.prepare('SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC').execute(
+      results = db.prepare('SELECT * FROM posts WHERE id = ?').execute(
         params[:id]
       )
-      comments = []
-      rs.each do |p|
-        comments << p
-      end
-      count = db.prepare('SELECT COUNT(*) FROM comments WHERE post_id = ? ORDER BY created_at DESC').execute(
-        params[:id]
-      ).first
+      posts = make_posts(results, all_comments: true)
 
-      user = {}
-      if session[:user]
-        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-          session[:user][:id]
-        ).first
-      else
-        user = { id: 0 }
-      end
+      return 404 if posts.length == 0
 
-      users_raw = db.query('SELECT * FROM `users`')
-      users = {}
-      users_raw.each do |u|
-        users[u[:id]] = u
-      end
+      post = posts[0]
 
-      erb :posts_id, layout: :layout, locals: { post: post, count: count, comments: comments, users: users, user: user }
+      me = get_session_user()
+
+      erb :post, layout: :layout, locals: { post: post, me: me }
     end
 
     post '/' do
-      unless session[:user] && session[:user][:id]
-        # 未ログインはリダイレクト
+      me = get_session_user()
+
+      if me.nil?
         redirect '/login', 302
       end
 
@@ -290,7 +310,7 @@ module Isuconp
         params['file'][:tempfile].rewind
         query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)'
         db.prepare(query).execute(
-          session[:user][:id],
+          me[:id],
           mime,
           params["file"][:tempfile].read,
           params["body"],
@@ -316,8 +336,9 @@ module Isuconp
     end
 
     post '/comment' do
-      unless session[:user] && session[:user][:id]
-        # 未ログインはリダイレクト
+      me = get_session_user()
+
+      if me.nil?
         redirect '/login', 302
       end
 
@@ -333,7 +354,7 @@ module Isuconp
       query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)'
       db.prepare(query).execute(
         post_id,
-        session[:user][:id],
+        me[:id],
         params['comment']
       )
 
@@ -341,34 +362,29 @@ module Isuconp
     end
 
     get '/admin/banned' do
-      if !session[:user]
+      me = get_session_user()
+
+      if me.nil?
         redirect '/login', 302
       end
 
-      user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-        session[:user][:id]
-      ).first
-
-      if user[:authority] == 0
+      if me[:authority] == 0
         return 403
       end
 
       users = db.query('SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC')
 
-      erb :banned, layout: :layout, locals: { users: users }
+      erb :banned, layout: :layout, locals: { users: users, me: me }
     end
 
     post '/admin/banned' do
-      unless session[:user] && session[:user][:id]
-        # 未ログインはリダイレクト
+      me = get_session_user()
+
+      if me.nil?
         redirect '/', 302
       end
 
-      user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-        session[:user][:id]
-      ).first
-
-      if user[:authority] == 0
+      if me[:authority] == 0
         return 403
       end
 
@@ -384,51 +400,5 @@ module Isuconp
 
       redirect '/admin/banned', 302
     end
-
-    get '/mypage' do
-      unless session[:user] && session[:user][:id]
-        # 未ログインはリダイレクト
-        redirect '/', 302
-      end
-
-      mixed = []
-      posts_all = db.query('SELECT * FROM `posts` ORDER BY `created_at` DESC')
-      posts_all.each do |p|
-        mixed << {type: :post, value: p}
-      end
-      comments_all = db.query('SELECT * FROM `comments` ORDER BY `created_at` DESC')
-      comments_all.each do |c|
-        mixed << {type: :comment, value: c}
-      end
-
-      mixed = mixed.map do |m|
-        if m[:type] == :post
-          posts_comments = []
-          rs = db.prepare('SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC').execute(
-            m[:value][:id]
-          )
-          rs.each do |pc|
-            posts_comments << pc
-          end
-          m.merge!({comments: posts_comments})
-        end
-        m
-      end
-      mixed = mixed.select { |m| m[:value][:user_id] == session[:user][:id] }
-      mixed.sort! { |a, b| a[:value][:created_at] <=> b[:value][:created_at] }
-
-      user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-        session[:user][:id]
-      ).first
-
-      users_raw = db.query('SELECT * FROM `users`')
-      users = {}
-      users_raw.each do |u|
-        users[u[:id]] = u
-      end
-
-      erb :mypage, layout: :layout, locals: { mixed: mixed, user: user, users: users }
-    end
-
   end
 end
