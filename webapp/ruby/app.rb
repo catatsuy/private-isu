@@ -195,19 +195,19 @@ module Isuconp
     end
 
     get '/' do
-      user = {}
+      me = {}
       if session[:user]
-        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+        me = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
           session[:user][:id]
         ).first
       else
-        user = { id: 0 }
+        me = { id: 0 }
       end
 
       results = db.query('SELECT id,user_id,body,created_at FROM posts ORDER BY created_at DESC')
       posts = make_posts(results)
 
-      erb :index, layout: :layout, locals: { posts: posts, user: user }
+      erb :index, layout: :layout, locals: { posts: posts, me: me }
     end
 
     get '/@:account_name' do
@@ -270,13 +270,13 @@ module Isuconp
         params[:id]
       ).first
 
-      user = {}
+      me = {}
       if session[:user]
-        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+        me = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
           session[:user][:id]
         ).first
       else
-        user = { id: 0 }
+        me = { id: 0 }
       end
 
       users_raw = db.query('SELECT * FROM `users`')
@@ -285,7 +285,7 @@ module Isuconp
         users[u[:id]] = u
       end
 
-      erb :posts_id, layout: :layout, locals: { post: post, count: count, comments: comments, users: users, user: user }
+      erb :posts_id, layout: :layout, locals: { post: post, count: count, comments: comments, users: users, me: me }
     end
 
     post '/' do
@@ -375,11 +375,11 @@ module Isuconp
         redirect '/login', 302
       end
 
-      user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+      me = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
         session[:user][:id]
       ).first
 
-      if user[:authority] == 0
+      if me[:authority] == 0
         return 403
       end
 
@@ -394,11 +394,11 @@ module Isuconp
         redirect '/', 302
       end
 
-      user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+      me = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
         session[:user][:id]
       ).first
 
-      if user[:authority] == 0
+      if me[:authority] == 0
         return 403
       end
 
