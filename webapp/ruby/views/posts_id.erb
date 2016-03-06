@@ -32,8 +32,8 @@
 
       <% if comments %>
       <%   comments.each do |c| %>
-      <div class="isu-comment-text">
-        <%= escape_html(c[:comment]) %>
+      <div class="isu-comment">
+        <span class="isu-comment-text"><%= escape_html(c[:comment]) %></span>
         <span class="isu-comment-account-name"><%= escape_html(users[c[:user_id]][:account_name]) %></span>
       </div>
       <%   end %>

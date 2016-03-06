@@ -355,8 +355,9 @@ func genActionCheckMypage() *checker.Action {
 	return a
 }
 
-func genActionPostComment(url, postID, comment, csrfToken string) *checker.Action {
+func genActionPostComment(url, postID, comment, accountName, csrfToken string) *checker.Action {
 	a := checker.NewAction("POST", "/comment")
+	a.ExpectedLocation = url
 	a.ExpectedStatusCode = http.StatusOK
 	a.PostData = map[string]string{
 		"post_id":    postID,
@@ -365,13 +366,33 @@ func genActionPostComment(url, postID, comment, csrfToken string) *checker.Actio
 	}
 
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
-		return nil
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		success := false
+
+		doc.Find(".isu-comment").EachWithBreak(func(_ int, selection *goquery.Selection) bool {
+			c := selection.Find(".isu-comment-text").Text()
+			an := selection.Find(".isu-comment-account-name").Text()
+
+			if c == comment && an == accountName {
+				success = true
+				return false
+			}
+
+			return true
+		})
+
+		if success {
+			return nil
+		} else {
+			return fmt.Errorf("投稿したコメントが表示されていません")
+		}
 	}
 
 	return a
 }
 
-func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction) *checker.Action {
+func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName string) *checker.Action {
 	re := regexp.MustCompile("/posts/([0-9]+)")
 
 	a := checker.NewAction("GET", "/")
@@ -394,7 +415,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction) *checker.Ac
 		getPostPageImg := genActionGetPostPageImg(redirectedURL, postTopImg.Asset)
 		getPostPageImg.Play(s)
 
-		postComment := genActionPostComment(redirectedURL, result[1], "comment", token)
+		postComment := genActionPostComment(redirectedURL, result[1], util.RandomLUNStr(util.RandomNumber(20)+10), accountName, token)
 		postComment.Play(s)
 
 		return nil
@@ -407,8 +428,6 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, ima
 	login := genActionLogin()
 	postTopImg := genActionPostTopImg()
 
-	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg)
-
 	// ログインして、画像を投稿して、投稿単体ページを確認して、コメントを投稿
 	go func() {
 		for {
@@ -420,6 +439,7 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, ima
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
 			s := <-sessionsQueue
 			login.Play(s)
+			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName)
 			getIndexAfterPostImg.Play(s)
 		}
 	}()
@@ -498,8 +518,6 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 	postRegister := genActionPostRegister()
 	postTopImg := genActionPostTopImg()
 
-	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg)
-
 	// ユーザーを作って、ログインして画像を投稿する
 	// そのユーザーはBAN機能を使って消される
 	go func() {
@@ -517,6 +535,7 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 			login.PostData = deletedUser
 			login.Play(s1)
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
+			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, targetUserAccountName)
 			getIndexAfterPostImg.Play(s1)
 			postTopImg.Play(s1)
 
