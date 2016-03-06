@@ -15,6 +15,7 @@ $(function () {
           $('.isu-posts').append($(this).clone());
         }
       });
+      $('time.timeago').timeago();
       $('#isu-post-more').removeClass('loading');
     });
   });
