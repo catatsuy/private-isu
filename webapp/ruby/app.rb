@@ -271,7 +271,7 @@ module Isuconp
 
       me = get_session_user()
 
-      erb :posts_id, layout: :layout, locals: { post: post, me: me }
+      erb :post, layout: :layout, locals: { post: post, me: me }
     end
 
     post '/' do
