@@ -8,7 +8,7 @@ $(function () {
       data: {
         max_created_at: $('.isu-post:last').attr('data-created-at')
       },
-      dataType: 'html',
+      dataType: 'html'
     }).done(function (html) {
       $(html).find('.isu-post').each(function() {
         var id = $(this).attr('id');
