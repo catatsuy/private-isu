@@ -104,6 +104,12 @@ module Isuconp
         digest "#{password}:#{calculate_salt(account_name)}"
       end
 
+      def get_session_user()
+        db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+          session[:user][:id]
+        ).first
+      end
+
       def make_posts(results)
         posts = []
         results.to_a.each do |post|
@@ -195,14 +201,7 @@ module Isuconp
     end
 
     get '/' do
-      me = {}
-      if session[:user]
-        me = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-          session[:user][:id]
-        ).first
-      else
-        me = { id: 0 }
-      end
+      me = get_session_user()
 
       results = db.query('SELECT id,user_id,body,created_at FROM posts ORDER BY created_at DESC')
       posts = make_posts(results)
@@ -270,14 +269,7 @@ module Isuconp
         params[:id]
       ).first
 
-      me = {}
-      if session[:user]
-        me = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-          session[:user][:id]
-        ).first
-      else
-        me = { id: 0 }
-      end
+      me = get_session_user()
 
       users_raw = db.query('SELECT * FROM `users`')
       users = {}
@@ -375,11 +367,8 @@ module Isuconp
         redirect '/login', 302
       end
 
-      me = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-        session[:user][:id]
-      ).first
-
-      if me[:authority] == 0
+      me = get_session_user()
+      if me.nil? or me[:authority] == 0
         return 403
       end
 
@@ -394,11 +383,8 @@ module Isuconp
         redirect '/', 302
       end
 
-      me = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-        session[:user][:id]
-      ).first
-
-      if me[:authority] == 0
+      me = get_session_user()
+      if me.nil? or me[:authority] == 0
         return 403
       end
 
