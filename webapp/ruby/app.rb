@@ -210,6 +210,40 @@ module Isuconp
       erb :index, layout: :layout, locals: { posts: posts, user: user }
     end
 
+    get '/@:account_name' do
+      user = db.prepare('SELECT * FROM users WHERE account_name = ? AND del_flg = 0').execute(
+        params[:account_name]
+      ).first
+
+      if user.nil?
+        return 404
+      end
+
+      results = db.prepare('SELECT id,user_id,body,created_at FROM posts WHERE user_id = ? ORDER BY created_at DESC').execute(
+        user[:id]
+      )
+      posts = make_posts(results)
+
+      comment_count = db.prepare('SELECT COUNT(*) AS count FROM comments WHERE user_id = ?').execute(
+        user[:id]
+      ).first[:count]
+
+      post_ids = db.prepare('SELECT id FROM posts WHERE user_id = ?').execute(
+        user[:id]
+      ).map{|post| post[:id]}
+      post_count = post_ids.length
+
+      commented_count = 0
+      if post_count > 0
+        placeholder = (['?'] * post_ids.length).join(",")
+        commented_count = db.prepare("SELECT COUNT(*) AS count FROM comments WHERE post_id IN (#{placeholder})").execute(
+          *post_ids
+        ).first[:count]
+      end
+
+      erb :user, layout: :layout, locals: { posts: posts, user: user, post_count: post_count, comment_count: comment_count, commented_count: commented_count }
+    end
+
     get '/posts' do
       max_created_at = params['max_created_at']
       results = db.prepare('SELECT id,user_id,body,created_at FROM posts WHERE created_at <= ? ORDER BY created_at DESC').execute(
