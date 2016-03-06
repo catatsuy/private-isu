@@ -325,14 +325,19 @@ module Isuconp
         return "csrf_token error"
       end
 
+      unless /[0-9]+/.match(params['post_id'])
+        return 'post_idは整数のみです'
+      end
+      post_id = params['post_id']
+
       query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)'
       db.prepare(query).execute(
-        params['post_id'],
+        post_id,
         session[:user][:id],
         params['comment']
       )
 
-      redirect '/', 302
+      redirect "/posts/#{post_id}", 302
     end
 
     get '/admin/banned' do
