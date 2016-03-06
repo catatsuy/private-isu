@@ -256,30 +256,18 @@ module Isuconp
     end
 
     get '/posts/:id' do
-      post = db.prepare('SELECT * FROM posts WHERE id = ? ORDER BY created_at DESC').execute(
-        params[:id]
-      ).first
-
-      rs = db.prepare('SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC').execute(
+      results = db.prepare('SELECT * FROM posts WHERE id = ?').execute(
         params[:id]
       )
-      comments = []
-      rs.each do |p|
-        comments << p
-      end
-      count = db.prepare('SELECT COUNT(*) FROM comments WHERE post_id = ? ORDER BY created_at DESC').execute(
-        params[:id]
-      ).first
+      posts = make_posts(results)
+
+      return 404 if posts.length == 0
+
+      post = posts[0]
 
       me = get_session_user()
 
-      users_raw = db.query('SELECT * FROM `users`')
-      users = {}
-      users_raw.each do |u|
-        users[u[:id]] = u
-      end
-
-      erb :posts_id, layout: :layout, locals: { post: post, count: count, comments: comments, users: users, me: me }
+      erb :posts_id, layout: :layout, locals: { post: post, me: me }
     end
 
     post '/' do
