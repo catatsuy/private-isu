@@ -7,7 +7,7 @@ GEM
     kgio (2.10.0)
     memcache-client (1.8.5)
     multi_json (1.11.2)
-    mysql2 (0.4.2)
+    mysql2 (0.4.3)
     rack (1.6.4)
     rack-flash3 (1.0.5)
       rack
@@ -15,7 +15,7 @@ GEM
       rack
     rack-test (0.6.3)
       rack (>= 1.0)
-    raindrops (0.15.0)
+    raindrops (0.16.0)
     sinatra (1.4.7)
       rack (~> 1.5)
       rack-protection (~> 1.4)
