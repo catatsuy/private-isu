@@ -114,20 +114,20 @@ module Isuconp
         end
 
         posts = []
-        results.each do |post|
+        results.to_a.each do |post|
           post[:comment_count] = db.prepare('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?').execute(
             post[:id]
           ).first[:count]
 
           comments = db.prepare('SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC LIMIT 3').execute(
             post[:id]
-          )
+          ).to_a
           comments.each do |comment|
             comment[:user] = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
               comment[:user_id]
             ).first
           end
-          post[:comments] = comments
+          post[:comments] = comments.reverse
 
           post[:user] = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
             post[:user_id]
