@@ -142,7 +142,7 @@ module Isuconp
           ).first
 
           posts.push(post) if post[:user][:del_flg] == 0
-          break if posts.length > POSTS_PER_PAGE
+          break if posts.length >= POSTS_PER_PAGE
         end
 
         posts
