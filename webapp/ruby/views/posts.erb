@@ -1,37 +1,30 @@
 <div>
-  <% display = 0 %>
-  <% posts.each do |p| %>
-  <%   break if display > 30 %>
-  <%   display = display + 1 %>
-  <div class="isu-post" data-max="<%= p[:created_at] %>">
+  <% posts.each do |post| %>
+  <div class="isu-post" data-max="<%= post[:created_at] %>">
     <div class="isu-post-image">
-      <img src="/image/<%= p[:id] %>" class="isu-image">
+      <img src="/image/<%= post[:id] %>" class="isu-image">
     </div>
     <div class="isu-post-text">
       <span class="isu-post-account-name">
-        <%= escape_html(users[p[:user_id]][:account_name]) %>
+        <%= escape_html(post[:user][:account_name]) %>
       </span>
-      <%= escape_html(p[:body]).gsub(/\r?\n/, '<br>') %>
+      <%= escape_html(post[:body]).gsub(/\r?\n/, '<br>') %>
     </div>
     <div class="isu-post-comment">
-      <% if count[p[:id]] %>
-        <div class="isu-post-comment-count">
-          comments: <b><%= escape_html(count[p[:id]]) %></b>
-        </div>
-      <% end %>
-
-      <% if comments[p[:id]] %>
-      <%   comments[p[:id]].each do |c| %>
-      <div class="isu-comment-text">
-        <span class="isu-comment-account-name"><%= escape_html(users[c[:user_id]][:account_name]) %></span>
-        <%= escape_html(c[:comment]) %>
+      <div class="isu-post-comment-count">
+        comments: <b><%= escape_html(post[:comment_count]) %></b>
       </div>
-      <%   end %>
+
+      <% post[:comments].each do |comment| %>
+      <div class="isu-comment-text">
+        <span class="isu-comment-account-name"><%= escape_html(comment[:user][:account_name]) %></span>
+        <%= escape_html(comment[:comment]) %>
+      </div>
       <% end %>
       <div class="isu-comment-form">
         <form method="post" action="/comment">
           <input type="text" name="comment">
-          <input type="hidden" name="post_id" value="<%= p[:id] %>">
+          <input type="hidden" name="post_id" value="<%= post[:id] %>">
           <input type="hidden" name="csrf_token" value="<%= escape_html session.id %>">
           <input type="submit" name="submit" value="submit">
         </form>

@@ -103,6 +103,42 @@ module Isuconp
       def calculate_passhash(password, account_name)
         digest "#{password}:#{calculate_salt(account_name)}"
       end
+
+      def make_posts(max_created_at)
+        if max_created_at.nil?
+          results = db.query('SELECT id,user_id,body,created_at FROM posts ORDER BY created_at DESC')
+        else
+          results = db.prepare('SELECT id,user_id,body,created_at FROM posts WHERE created_at <= ? ORDER BY created_at DESC').execute(
+            max_created_at
+          )
+        end
+
+        posts = []
+        results.each do |post|
+          post[:comment_count] = db.prepare('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?').execute(
+            post[:id]
+          ).first[:count]
+
+          comments = db.prepare('SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC LIMIT 3').execute(
+            post[:id]
+          )
+          comments.each do |comment|
+            comment[:user] = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+              comment[:user_id]
+            ).first
+          end
+          post[:comments] = comments
+
+          post[:user] = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
+            post[:user_id]
+          ).first
+
+          posts.push(post) if post[:user][:del_flg] == 0
+          break if posts.length > 30
+        end
+
+        posts
+      end
     end
 
     get '/initialize' do
@@ -167,23 +203,6 @@ module Isuconp
     end
 
     get '/' do
-      ps = db.query('SELECT * FROM posts ORDER BY created_at DESC')
-      cs = db.query('SELECT * FROM comments ORDER BY created_at ASC')
-      cc = db.query('SELECT post_id, COUNT(*) as count FROM comments GROUP BY post_id ORDER BY created_at DESC')
-      posts = []
-      count = {}
-      comments = {}
-      cc.each do |c|
-        count[c[:post_id]] = c[:count]
-      end
-
-      cs.each do |c|
-        unless comments[c[:post_id]]
-          comments[c[:post_id]] = []
-        end
-        comments[c[:post_id]].push(c)
-      end
-
       user = {}
       if session[:user]
         user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
@@ -193,65 +212,16 @@ module Isuconp
         user = { id: 0 }
       end
 
-      users_raw = db.query('SELECT * FROM `users`')
-      users = {}
-      users_raw.each do |u|
-        users[u[:id]] = u
-      end
+      posts = make_posts(nil)
 
-      ps.each do |p|
-        posts << p if users[p[:user_id]][:del_flg] == 0
-      end
-
-      erb :index, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
+      erb :index, layout: :layout, locals: { posts: posts, user: user }
     end
 
     get '/posts' do
-      max = params['max_created_at']
-      posts = []
-      count = {}
-      comments = {}
-      users = {}
+      max_created_at = params['max_created_at']
+      posts = make_posts(max_created_at.nil? ? nil : Time.parse(max_created_at))
 
-      ps = if max
-        db.prepare('SELECT * FROM posts WHERE created_at <= ? ORDER BY created_at DESC').execute(Time.parse(max))
-      else
-        db.query('SELECT * FROM posts ORDER BY created_at DESC')
-      end
-      cs = db.query('SELECT * FROM comments ORDER BY created_at DESC')
-      cc = db.query('SELECT post_id, COUNT(*) as count FROM comments GROUP BY post_id ORDER BY created_at DESC')
-
-      cc.each do |c|
-        count[c[:post_id]] = c[:count]
-      end
-
-      cs.each do |c|
-        unless comments[c[:post_id]]
-          comments[c[:post_id]] = []
-        end
-        comments[c[:post_id]].push(c)
-      end
-
-      user = {}
-      if session[:user]
-        user = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-          session[:user][:id]
-        ).first
-      else
-        user = { id: 0 }
-      end
-
-      users_raw = db.query('SELECT * FROM `users`')
-      users_raw.each do |u|
-        users[u[:id]] = u
-      end
-      ps.each do |p|
-        if users[p[:user_id]][:del_flg] == 0
-          p[:imgdata] = "#{request.base_url}/image/#{p[:id]}"
-          posts << p
-        end
-      end
-      erb :posts, layout: :layout, locals: { posts: posts, count: count, comments: comments, users: users, user: user }
+      erb :posts, layout: :layout, locals: { posts: posts }
     end
 
     get '/posts/:id' do
