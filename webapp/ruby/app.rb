@@ -240,7 +240,9 @@ module Isuconp
         ).first[:count]
       end
 
-      erb :user, layout: :layout, locals: { posts: posts, user: user, post_count: post_count, comment_count: comment_count, commented_count: commented_count }
+      me = get_session_user()
+
+      erb :user, layout: :layout, locals: { posts: posts, user: user, post_count: post_count, comment_count: comment_count, commented_count: commented_count, me: me }
     end
 
     get '/posts' do
