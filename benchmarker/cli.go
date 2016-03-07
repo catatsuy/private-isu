@@ -110,12 +110,13 @@ func (cli *CLI) Run(args []string) int {
 
 	setupSessionGenrator(sessionsQueue, done)
 
-	setupWorkerStaticFileCheck(sessionsQueue)
-	setupWorkerToppageNotLogin(sessionsQueue)
+	shutdownWorkerChans := make([]chan bool, 0)
+	shutdownWorkerChans = append(shutdownWorkerChans, setupWorkerStaticFileCheck(sessionsQueue))
+	shutdownWorkerChans = append(shutdownWorkerChans, setupWorkerToppageNotLogin(sessionsQueue))
 
-	setupWorkerMypageCheck(sessionsQueue, users)
-	setupWorkerPostData(sessionsQueue, users, images)
-	setupWorkerBanUser(sessionsQueue, images, adminUsers)
+	shutdownWorkerChans = append(shutdownWorkerChans, setupWorkerMypageCheck(sessionsQueue, users))
+	shutdownWorkerChans = append(shutdownWorkerChans, setupWorkerPostData(sessionsQueue, users, images))
+	shutdownWorkerChans = append(shutdownWorkerChans, setupWorkerBanUser(sessionsQueue, images, adminUsers))
 
 	<-timeUp
 
@@ -124,6 +125,11 @@ func (cli *CLI) Run(args []string) int {
 	quitLock.Unlock()
 
 	<-done
+	for _, shutdown := range shutdownWorkerChans {
+		go func() {
+			shutdown <- true
+		}()
+	}
 	close(sessionsQueue)
 
 	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
@@ -218,20 +224,27 @@ func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
 	}()
 }
 
-func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
+func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) chan bool {
 	toppageNotLogin := genActionToppageNotLogin()
 	mypageNotLogin := genActionMypageNotLogin()
+	shutdown := make(chan bool)
 
 	go func() {
 		for {
-			s := <-sessionsQueue
-			// /にログインせずにアクセスして、画像にリクエストを送る
-			// その後、同じセッションを使い回して/mypageにアクセス
-			// 画像のキャッシュにSet-Cookieを含んでいた場合、/mypageのリダイレクト先でfailする
-			toppageNotLogin.Play(s)
-			mypageNotLogin.Play(s)
+			select {
+			case <-shutdown:
+				break
+			case s := <-sessionsQueue:
+				// /にログインせずにアクセスして、画像にリクエストを送る
+				// その後、同じセッションを使い回して/mypageにアクセス
+				// 画像のキャッシュにSet-Cookieを含んでいた場合、/mypageのリダイレクト先でfailする
+				toppageNotLogin.Play(s)
+				mypageNotLogin.Play(s)
+			}
 		}
 	}()
+
+	return shutdown
 }
 
 // 非ログインで/mypageにアクセスして/にリダイレクトするかチェック
@@ -275,22 +288,29 @@ func genActionToppageNotLogin() *checker.Action {
 }
 
 // ログインしてmypageをちゃんと見れるか確認
-func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) {
+func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) chan bool {
 	login := genActionLogin()
 	mypage := genActionMypage()
+	shutdown := make(chan bool)
 
 	go func() {
 		for {
-			u := users[util.RandomNumber(len(users))]
-			login.PostData = map[string]string{
-				"account_name": u.AccountName,
-				"password":     u.Password,
+			select {
+			case <-shutdown:
+				break
+			case s := <-sessionsQueue:
+				u := users[util.RandomNumber(len(users))]
+				login.PostData = map[string]string{
+					"account_name": u.AccountName,
+					"password":     u.Password,
+				}
+				login.Play(s)
+				mypage.Play(s)
 			}
-			s := <-sessionsQueue
-			login.Play(s)
-			mypage.Play(s)
 		}
 	}()
+
+	return shutdown
 }
 
 func genActionLogin() *checker.Action {
@@ -424,25 +444,32 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName
 	return a
 }
 
-func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, images []*checker.Asset) {
+func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, images []*checker.Asset) chan bool {
 	login := genActionLogin()
 	postTopImg := genActionPostTopImg()
+	shutdown := make(chan bool)
 
 	// ログインして、画像を投稿して、投稿単体ページを確認して、コメントを投稿
 	go func() {
 		for {
-			u := users[util.RandomNumber(len(users))]
-			login.PostData = map[string]string{
-				"account_name": u.AccountName,
-				"password":     u.Password,
+			select {
+			case <-shutdown:
+				break
+			case s := <-sessionsQueue:
+				u := users[util.RandomNumber(len(users))]
+				login.PostData = map[string]string{
+					"account_name": u.AccountName,
+					"password":     u.Password,
+				}
+				postTopImg.Asset = images[util.RandomNumber(len(images))]
+				login.Play(s)
+				getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName)
+				getIndexAfterPostImg.Play(s)
 			}
-			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			s := <-sessionsQueue
-			login.Play(s)
-			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName)
-			getIndexAfterPostImg.Play(s)
 		}
 	}()
+
+	return shutdown
 }
 
 func genActionPostRegister() *checker.Action {
@@ -511,50 +538,56 @@ func genActionCheckBannedUser(targetUserAccountName string) *checker.Action {
 	return a
 }
 
-func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.Asset, adminUsers []*user) {
+func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.Asset, adminUsers []*user) chan bool {
 	interval := time.Tick(10 * time.Second)
 
 	login := genActionLogin()
 	postRegister := genActionPostRegister()
 	postTopImg := genActionPostTopImg()
+	shutdown := make(chan bool)
 
 	// ユーザーを作って、ログインして画像を投稿する
 	// そのユーザーはBAN機能を使って消される
 	go func() {
 		for {
-			s1 := <-sessionsQueue
+			select {
+			case <-shutdown:
+				break
+			case s1 := <-sessionsQueue:
+				targetUserAccountName := util.RandomLUNStr(25)
+				deletedUser := map[string]string{
+					"account_name": targetUserAccountName,
+					"password":     targetUserAccountName,
+				}
 
-			targetUserAccountName := util.RandomLUNStr(25)
-			deletedUser := map[string]string{
-				"account_name": targetUserAccountName,
-				"password":     targetUserAccountName,
+				postRegister.PostData = deletedUser
+				postRegister.Play(s1)
+				login.PostData = deletedUser
+				login.Play(s1)
+				postTopImg.Asset = images[util.RandomNumber(len(images))]
+				getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, targetUserAccountName)
+				getIndexAfterPostImg.Play(s1)
+				postTopImg.Play(s1)
+
+				u := adminUsers[util.RandomNumber(len(adminUsers))]
+				login.PostData = map[string]string{
+					"account_name": u.AccountName,
+					"password":     u.Password,
+				}
+				s2 := <-sessionsQueue
+				login.Play(s2)
+
+				banUser := genActionBanUser(targetUserAccountName)
+				banUser.Play(s2)
+
+				checkBanned := genActionCheckBannedUser(targetUserAccountName)
+				checkBanned.Play(s2)
+				<-interval
 			}
-
-			postRegister.PostData = deletedUser
-			postRegister.Play(s1)
-			login.PostData = deletedUser
-			login.Play(s1)
-			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, targetUserAccountName)
-			getIndexAfterPostImg.Play(s1)
-			postTopImg.Play(s1)
-
-			u := adminUsers[util.RandomNumber(len(adminUsers))]
-			login.PostData = map[string]string{
-				"account_name": u.AccountName,
-				"password":     u.Password,
-			}
-			s2 := <-sessionsQueue
-			login.Play(s2)
-
-			banUser := genActionBanUser(targetUserAccountName)
-			banUser.Play(s2)
-
-			checkBanned := genActionCheckBannedUser(targetUserAccountName)
-			checkBanned.Play(s2)
-			<-interval
 		}
 	}()
+
+	return shutdown
 }
 
 func genActionAppleTouchIconCheck() *checker.Action {
@@ -601,7 +634,7 @@ func genActionCssFileCheck() *checker.AssetAction {
 	return a
 }
 
-func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
+func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) chan bool {
 	interval := time.Tick(10 * time.Second)
 
 	faviconCheck := genActionFaviconCheck()
@@ -609,18 +642,25 @@ func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
 	jsMainFileCheck := genActionJsMainFileCheck()
 	jsJQueryFileCheck := genActionJsJqueryFileCheck()
 	cssFileCheck := genActionCssFileCheck()
+	shutdown := make(chan bool)
 
 	go func() {
 		for {
-			s := <-sessionsQueue
-			faviconCheck.Play(s)
-			appleIconCheck.Play(s)
-			jsJQueryFileCheck.Play(s)
-			jsMainFileCheck.Play(s)
-			cssFileCheck.Play(s)
-			<-interval
+			select {
+			case <-shutdown:
+				break
+			case s := <-sessionsQueue:
+				faviconCheck.Play(s)
+				appleIconCheck.Play(s)
+				jsJQueryFileCheck.Play(s)
+				jsMainFileCheck.Play(s)
+				cssFileCheck.Play(s)
+				<-interval
+			}
 		}
 	}()
+
+	return shutdown
 }
 
 func setupInitialize(targetHost string, initialize chan bool) {
