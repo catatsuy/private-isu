@@ -210,14 +210,14 @@ module Isuconp
     get '/' do
       me = get_session_user()
 
-      results = db.query('SELECT id,user_id,body,created_at FROM posts ORDER BY created_at DESC')
+      results = db.query('SELECT `id`, `user_id`, `body`, `created_at` FROM `posts` ORDER BY `created_at` DESC')
       posts = make_posts(results)
 
       erb :index, layout: :layout, locals: { posts: posts, me: me }
     end
 
     get '/@:account_name' do
-      user = db.prepare('SELECT * FROM users WHERE account_name = ? AND del_flg = 0').execute(
+      user = db.prepare('SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0').execute(
         params[:account_name]
       ).first
 
@@ -225,16 +225,16 @@ module Isuconp
         return 404
       end
 
-      results = db.prepare('SELECT id,user_id,body,created_at FROM posts WHERE user_id = ? ORDER BY created_at DESC').execute(
+      results = db.prepare('SELECT `id`, `user_id`, `body`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC').execute(
         user[:id]
       )
       posts = make_posts(results)
 
-      comment_count = db.prepare('SELECT COUNT(*) AS count FROM comments WHERE user_id = ?').execute(
+      comment_count = db.prepare('SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?').execute(
         user[:id]
       ).first[:count]
 
-      post_ids = db.prepare('SELECT id FROM posts WHERE user_id = ?').execute(
+      post_ids = db.prepare('SELECT `id` FROM `posts` WHERE `user_id` = ?').execute(
         user[:id]
       ).map{|post| post[:id]}
       post_count = post_ids.length
@@ -242,7 +242,7 @@ module Isuconp
       commented_count = 0
       if post_count > 0
         placeholder = (['?'] * post_ids.length).join(",")
-        commented_count = db.prepare("SELECT COUNT(*) AS count FROM comments WHERE post_id IN (#{placeholder})").execute(
+        commented_count = db.prepare("SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN (#{placeholder})").execute(
           *post_ids
         ).first[:count]
       end
@@ -254,7 +254,7 @@ module Isuconp
 
     get '/posts' do
       max_created_at = params['max_created_at']
-      results = db.prepare('SELECT id,user_id,body,created_at FROM posts WHERE created_at <= ? ORDER BY created_at DESC').execute(
+      results = db.prepare('SELECT `id`, `user_id`, `body`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC').execute(
         max_created_at.nil? ? nil : Time.parse(max_created_at)
       )
       posts = make_posts(results)
@@ -263,7 +263,7 @@ module Isuconp
     end
 
     get '/posts/:id' do
-      results = db.prepare('SELECT * FROM posts WHERE id = ?').execute(
+      results = db.prepare('SELECT * FROM `posts` WHERE `id` = ?').execute(
         params[:id]
       )
       posts = make_posts(results, all_comments: true)
@@ -329,7 +329,7 @@ module Isuconp
         return ""
       end
 
-      post = db.prepare('SELECT * FROM posts WHERE id = ?').execute(params[:id].to_i).first
+      post = db.prepare('SELECT * FROM `posts` WHERE `id` = ?').execute(params[:id].to_i).first
 
       headers['Content-Type'] = post[:mime]
       post[:imgdata]
