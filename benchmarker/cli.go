@@ -224,8 +224,8 @@ func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
 
 	go func() {
 		for {
-			s := <-sessionsQueue
-			if s == nil {
+			s, opened := <-sessionsQueue
+			if !opened {
 				break
 			}
 			// /にログインせずにアクセスして、画像にリクエストを送る
@@ -289,8 +289,8 @@ func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) 
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
-			s := <-sessionsQueue
-			if s == nil {
+			s, opened := <-sessionsQueue
+			if !opened {
 				break
 			}
 			login.Play(s)
@@ -443,8 +443,8 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, ima
 				"password":     u.Password,
 			}
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			s := <-sessionsQueue
-			if s == nil {
+			s, opened := <-sessionsQueue
+			if !opened {
 				break
 			}
 			login.Play(s)
@@ -531,8 +531,8 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 	// そのユーザーはBAN機能を使って消される
 	go func() {
 		for {
-			s1 := <-sessionsQueue
-			if s1 == nil {
+			s1, opened := <-sessionsQueue
+			if !opened {
 				break
 			}
 
@@ -556,8 +556,8 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
-			s2 := <-sessionsQueue
-			if s2 == nil {
+			s2, opened := <-sessionsQueue
+			if !opened {
 				break
 			}
 			login.Play(s2)
@@ -627,8 +627,8 @@ func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
 
 	go func() {
 		for {
-			s := <-sessionsQueue
-			if s == nil {
+			s, opened := <-sessionsQueue
+			if !opened {
 				break
 			}
 			faviconCheck.Play(s)
