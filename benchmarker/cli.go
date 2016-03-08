@@ -224,7 +224,10 @@ func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
 
 	go func() {
 		for {
-			s := <-sessionsQueue
+			s, opened := <-sessionsQueue
+			if !opened {
+				break
+			}
 			// /にログインせずにアクセスして、画像にリクエストを送る
 			// その後、同じセッションを使い回して/mypageにアクセス
 			// 画像のキャッシュにSet-Cookieを含んでいた場合、/mypageのリダイレクト先でfailする
@@ -286,7 +289,10 @@ func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) 
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
-			s := <-sessionsQueue
+			s, opened := <-sessionsQueue
+			if !opened {
+				break
+			}
 			login.Play(s)
 			mypage.Play(s)
 		}
@@ -437,7 +443,10 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, ima
 				"password":     u.Password,
 			}
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			s := <-sessionsQueue
+			s, opened := <-sessionsQueue
+			if !opened {
+				break
+			}
 			login.Play(s)
 			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName)
 			getIndexAfterPostImg.Play(s)
@@ -522,7 +531,10 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 	// そのユーザーはBAN機能を使って消される
 	go func() {
 		for {
-			s1 := <-sessionsQueue
+			s1, opened := <-sessionsQueue
+			if !opened {
+				break
+			}
 
 			targetUserAccountName := util.RandomLUNStr(25)
 			deletedUser := map[string]string{
@@ -544,7 +556,10 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 				"account_name": u.AccountName,
 				"password":     u.Password,
 			}
-			s2 := <-sessionsQueue
+			s2, opened := <-sessionsQueue
+			if !opened {
+				break
+			}
 			login.Play(s2)
 
 			banUser := genActionBanUser(targetUserAccountName)
@@ -612,7 +627,10 @@ func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
 
 	go func() {
 		for {
-			s := <-sessionsQueue
+			s, opened := <-sessionsQueue
+			if !opened {
+				break
+			}
 			faviconCheck.Play(s)
 			appleIconCheck.Play(s)
 			jsJQueryFileCheck.Play(s)
