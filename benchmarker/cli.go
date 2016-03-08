@@ -225,6 +225,9 @@ func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
 	go func() {
 		for {
 			s := <-sessionsQueue
+			if s == nil {
+				break
+			}
 			// /にログインせずにアクセスして、画像にリクエストを送る
 			// その後、同じセッションを使い回して/mypageにアクセス
 			// 画像のキャッシュにSet-Cookieを含んでいた場合、/mypageのリダイレクト先でfailする
@@ -287,6 +290,9 @@ func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) 
 				"password":     u.Password,
 			}
 			s := <-sessionsQueue
+			if s == nil {
+				break
+			}
 			login.Play(s)
 			mypage.Play(s)
 		}
@@ -438,6 +444,9 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, ima
 			}
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
 			s := <-sessionsQueue
+			if s == nil {
+				break
+			}
 			login.Play(s)
 			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName)
 			getIndexAfterPostImg.Play(s)
@@ -523,6 +532,9 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 	go func() {
 		for {
 			s1 := <-sessionsQueue
+			if s1 == nil {
+				break
+			}
 
 			targetUserAccountName := util.RandomLUNStr(25)
 			deletedUser := map[string]string{
@@ -545,6 +557,9 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 				"password":     u.Password,
 			}
 			s2 := <-sessionsQueue
+			if s2 == nil {
+				break
+			}
 			login.Play(s2)
 
 			banUser := genActionBanUser(targetUserAccountName)
@@ -613,6 +628,9 @@ func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
 	go func() {
 		for {
 			s := <-sessionsQueue
+			if s == nil {
+				break
+			}
 			faviconCheck.Play(s)
 			appleIconCheck.Play(s)
 			jsJQueryFileCheck.Play(s)
