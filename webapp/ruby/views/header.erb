@@ -2,11 +2,11 @@
   <div class="isu-title">
     <h1><a href="/">Iscogram</a></h1>
   </div>
-  <div class="isu-account-name">
+  <div class="isu-header-menu">
     <% if me.nil? %>
     <div><a href="/login">ログイン</a></div>
     <% else %>
-    <div><a href="/@<%=  escape_html CGI.escape(me[:account_name]) %>"><%=  escape_html me[:account_name] %>さん</a></div>
+    <div class="isu-account-name"><a href="/@<%=  escape_html CGI.escape(me[:account_name]) %>"><%=  escape_html me[:account_name] %>さん</a></div>
     <div><a href="/logout">ログアウト</a></div>
     <% end %>
   </div>
