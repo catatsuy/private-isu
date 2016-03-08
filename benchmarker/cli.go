@@ -125,11 +125,16 @@ func (cli *CLI) Run(args []string) int {
 	quitLock.Unlock()
 
 	<-done
+	var wg sync.WaitGroup
 	for _, shutdown := range shutdownWorkerChans {
-		go func() {
+		wg.Add(1)
+		go func(shutdown chan bool) {
+			defer wg.Done()
 			shutdown <- true
-		}()
+		}(shutdown)
 	}
+
+	wg.Wait()
 	close(sessionsQueue)
 
 	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
@@ -230,10 +235,11 @@ func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) chan bool {
 	shutdown := make(chan bool)
 
 	go func() {
+	loop:
 		for {
 			select {
 			case <-shutdown:
-				break
+				break loop
 			case s := <-sessionsQueue:
 				// /にログインせずにアクセスして、画像にリクエストを送る
 				// その後、同じセッションを使い回して/mypageにアクセス
@@ -294,10 +300,11 @@ func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) 
 	shutdown := make(chan bool)
 
 	go func() {
+	loop:
 		for {
 			select {
 			case <-shutdown:
-				break
+				break loop
 			case s := <-sessionsQueue:
 				u := users[util.RandomNumber(len(users))]
 				login.PostData = map[string]string{
@@ -451,10 +458,11 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, ima
 
 	// ログインして、画像を投稿して、投稿単体ページを確認して、コメントを投稿
 	go func() {
+	loop:
 		for {
 			select {
 			case <-shutdown:
-				break
+				break loop
 			case s := <-sessionsQueue:
 				u := users[util.RandomNumber(len(users))]
 				login.PostData = map[string]string{
@@ -549,10 +557,11 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 	// ユーザーを作って、ログインして画像を投稿する
 	// そのユーザーはBAN機能を使って消される
 	go func() {
+	loop:
 		for {
 			select {
 			case <-shutdown:
-				break
+				break loop
 			case s1 := <-sessionsQueue:
 				targetUserAccountName := util.RandomLUNStr(25)
 				deletedUser := map[string]string{
@@ -645,10 +654,11 @@ func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) chan bool {
 	shutdown := make(chan bool)
 
 	go func() {
+	loop:
 		for {
 			select {
 			case <-shutdown:
-				break
+				break loop
 			case s := <-sessionsQueue:
 				faviconCheck.Play(s)
 				appleIconCheck.Play(s)
