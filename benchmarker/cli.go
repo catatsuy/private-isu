@@ -113,7 +113,6 @@ func (cli *CLI) Run(args []string) int {
 	setupWorkerStaticFileCheck(sessionsQueue)
 	setupWorkerToppageNotLogin(sessionsQueue)
 
-	setupWorkerMypageCheck(sessionsQueue, users)
 	setupWorkerPostData(sessionsQueue, users, images)
 	setupWorkerBanUser(sessionsQueue, images, adminUsers)
 
@@ -219,34 +218,44 @@ func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
 }
 
 func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
-	toppageNotLogin := genActionToppageNotLogin()
-	mypageNotLogin := genActionMypageNotLogin()
+	indexAndImagesNotLogin := genActionIndexAndImagesNotLogin()
+	indexNotLogin := genActionIndexNotLogin()
 
 	go func() {
 		for {
 			s := <-sessionsQueue
 			// /にログインせずにアクセスして、画像にリクエストを送る
-			// その後、同じセッションを使い回して/mypageにアクセス
-			// 画像のキャッシュにSet-Cookieを含んでいた場合、/mypageのリダイレクト先でfailする
-			toppageNotLogin.Play(s)
-			mypageNotLogin.Play(s)
+			// その後、同じセッションを使い回して/にアクセス
+			// 画像のキャッシュにSet-Cookieを含んでいた場合、/にアカウント名が含まれる
+			indexAndImagesNotLogin.Play(s)
+			indexNotLogin.Play(s)
 		}
 	}()
 }
 
-// 非ログインで/mypageにアクセスして/にリダイレクトするかチェック
-func genActionMypageNotLogin() *checker.Action {
-	a := checker.NewAction("GET", "/mypage")
+// 非ログインで/にアクセスして、ユーザー名が出ていないことを確認
+func genActionIndexNotLogin() *checker.Action {
+	a := checker.NewAction("GET", "/")
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
-	a.Description = "/mypageは非ログイン時に/にリダイレクトがかかる"
+	a.Description = "非ログインで/にアクセスしてログイン状態になっていないことを確認"
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		accountName := doc.Find(`.isu-account-name`).Text()
+		if accountName == "" {
+			return nil
+		} else {
+			return fmt.Errorf("非ログインユーザーがログインしています")
+		}
+	}
 
 	return a
 }
 
 // TOPページに非ログイン状態でひたすらアクセス
 // 画像にもリクエストを送っている
-func genActionToppageNotLogin() *checker.Action {
+func genActionIndexAndImagesNotLogin() *checker.Action {
 	a := checker.NewAction("GET", "/")
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
@@ -274,39 +283,11 @@ func genActionToppageNotLogin() *checker.Action {
 	return a
 }
 
-// ログインしてmypageをちゃんと見れるか確認
-func setupWorkerMypageCheck(sessionsQueue chan *checker.Session, users []*user) {
-	login := genActionLogin()
-	mypage := genActionMypage()
-
-	go func() {
-		for {
-			u := users[util.RandomNumber(len(users))]
-			login.PostData = map[string]string{
-				"account_name": u.AccountName,
-				"password":     u.Password,
-			}
-			s := <-sessionsQueue
-			login.Play(s)
-			mypage.Play(s)
-		}
-	}()
-}
-
 func genActionLogin() *checker.Action {
 	a := checker.NewAction("POST", "/login")
 	a.ExpectedStatusCode = http.StatusOK
 	a.ExpectedLocation = "/"
 	a.Description = "ログイン"
-
-	return a
-}
-
-func genActionMypage() *checker.Action {
-	a := checker.NewAction("GET", "/mypage")
-	a.ExpectedStatusCode = http.StatusOK
-	a.ExpectedLocation = "/mypage"
-	a.Description = "ログインして、/mypageに"
 
 	return a
 }
@@ -330,23 +311,6 @@ func genActionGetPostPageImg(url string, image *checker.Asset) *checker.Action {
 
 		url, _ := doc.Find(`img`).First().Attr("src")
 		imgReq := checker.NewAssetAction(url, image)
-		imgReq.Play(s)
-
-		return nil
-	}
-
-	return a
-}
-
-func genActionCheckMypage() *checker.Action {
-	a := checker.NewAction("GET", "/mypage")
-	a.ExpectedStatusCode = http.StatusOK
-
-	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-
-		url, _ := doc.Find(`img`).First().Attr("src")
-		imgReq := checker.NewAssetAction(url, &checker.Asset{})
 		imgReq.Play(s)
 
 		return nil
