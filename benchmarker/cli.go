@@ -95,7 +95,7 @@ func (cli *CLI) Run(args []string) int {
 
 	setupInitialize(targetHost, initialize)
 
-	users, adminUsers, images, err := prepareUserdata(userdata)
+	users, adminUsers, sentences, images, err := prepareUserdata(userdata)
 	if err != nil {
 		fmt.Println(err.Error())
 		return ExitCodeError
@@ -113,8 +113,8 @@ func (cli *CLI) Run(args []string) int {
 	setupWorkerStaticFileCheck(sessionsQueue)
 	setupWorkerToppageNotLogin(sessionsQueue)
 
-	setupWorkerPostData(sessionsQueue, users, images)
-	setupWorkerBanUser(sessionsQueue, images, adminUsers)
+	setupWorkerPostData(sessionsQueue, users, sentences, images)
+	setupWorkerBanUser(sessionsQueue, sentences, images, adminUsers)
 
 	<-timeUp
 
@@ -151,21 +151,21 @@ func (cli *CLI) Run(args []string) int {
 	return ExitCodeOK
 }
 
-func prepareUserdata(userdata string) ([]*user, []*user, []*checker.Asset, error) {
+func prepareUserdata(userdata string) ([]*user, []*user, []string, []*checker.Asset, error) {
 	if userdata == "" {
-		return nil, nil, nil, errors.New("userdataディレクトリが指定されていません")
+		return nil, nil, nil, nil, errors.New("userdataディレクトリが指定されていません")
 	}
 	info, err := os.Stat(userdata)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	if !info.IsDir() {
-		return nil, nil, nil, errors.New("userdataがディレクトリではありません")
+		return nil, nil, nil, nil, errors.New("userdataがディレクトリではありません")
 	}
 
 	file, err := os.Open(userdata + "/names.txt")
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	defer file.Close()
 
@@ -178,9 +178,23 @@ func prepareUserdata(userdata string) ([]*user, []*user, []*checker.Asset, error
 	}
 	adminUsers := users[:10]
 
+	sentenceFile, err := os.Open(userdata + "/kaomoji.txt")
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	defer sentenceFile.Close()
+
+	sentences := []string{}
+
+	sScanner := bufio.NewScanner(sentenceFile)
+	for sScanner.Scan() {
+		sentence := sScanner.Text()
+		sentences = append(sentences, sentence)
+	}
+
 	imgs, err := filepath.Glob(userdata + "/img/000*") // 00001.jpg, 00002.png, 00003.gif など
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	images := []*checker.Asset{}
@@ -188,7 +202,7 @@ func prepareUserdata(userdata string) ([]*user, []*user, []*checker.Asset, error
 	for _, img := range imgs {
 		data, err := ioutil.ReadFile(img)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 		images = append(images, &checker.Asset{
 			MD5:  util.GetMD5(data),
@@ -196,7 +210,7 @@ func prepareUserdata(userdata string) ([]*user, []*user, []*checker.Asset, error
 		})
 	}
 
-	return users, adminUsers, images, err
+	return users, adminUsers, sentences, images, err
 }
 
 func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
@@ -356,7 +370,7 @@ func genActionPostComment(url, postID, comment, accountName, csrfToken string) *
 	return a
 }
 
-func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName string) *checker.Action {
+func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName string, sentence string) *checker.Action {
 	re := regexp.MustCompile("/posts/([0-9]+)")
 
 	a := checker.NewAction("GET", "/")
@@ -366,7 +380,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName
 
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
 		postTopImg.PostData = map[string]string{
-			"body":       util.RandomLUNStr(util.RandomNumber(20) + 10),
+			"body":       sentence,
 			"csrf_token": token,
 			"type":       "image/jpeg",
 		}
@@ -388,7 +402,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName
 	return a
 }
 
-func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, images []*checker.Asset) {
+func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, sentences []string, images []*checker.Asset) {
 	login := genActionLogin()
 	postTopImg := genActionPostTopImg()
 
@@ -403,7 +417,8 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, ima
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
 			s := <-sessionsQueue
 			login.Play(s)
-			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName)
+			sentence := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
+			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName, sentence)
 			getIndexAfterPostImg.Play(s)
 		}
 	}()
@@ -475,7 +490,7 @@ func genActionCheckBannedUser(targetUserAccountName string) *checker.Action {
 	return a
 }
 
-func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.Asset, adminUsers []*user) {
+func setupWorkerBanUser(sessionsQueue chan *checker.Session, sentences []string, images []*checker.Asset, adminUsers []*user) {
 	interval := time.Tick(10 * time.Second)
 
 	login := genActionLogin()
@@ -499,7 +514,8 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, images []*checker.A
 			login.PostData = deletedUser
 			login.Play(s1)
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, targetUserAccountName)
+			sentence := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
+			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, targetUserAccountName, sentence)
 			getIndexAfterPostImg.Play(s1)
 			postTopImg.Play(s1)
 
