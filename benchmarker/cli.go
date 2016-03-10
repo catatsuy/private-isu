@@ -370,7 +370,7 @@ func genActionPostComment(url, postID, comment, accountName, csrfToken string) *
 	return a
 }
 
-func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName string, sentence string) *checker.Action {
+func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName string, sentence1 string, sentence2 string) *checker.Action {
 	re := regexp.MustCompile("/posts/([0-9]+)")
 
 	a := checker.NewAction("GET", "/")
@@ -380,7 +380,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName
 
 		token, _ := doc.Find(`input[name="csrf_token"]`).First().Attr("value")
 		postTopImg.PostData = map[string]string{
-			"body":       sentence,
+			"body":       sentence1,
 			"csrf_token": token,
 			"type":       "image/jpeg",
 		}
@@ -393,7 +393,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName
 		getPostPageImg := genActionGetPostPageImg(redirectedURL, postTopImg.Asset)
 		getPostPageImg.Play(s)
 
-		postComment := genActionPostComment(redirectedURL, result[1], util.RandomLUNStr(util.RandomNumber(20)+10), accountName, token)
+		postComment := genActionPostComment(redirectedURL, result[1], sentence2, accountName, token)
 		postComment.Play(s)
 
 		return nil
@@ -417,8 +417,9 @@ func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, sen
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
 			s := <-sessionsQueue
 			login.Play(s)
-			sentence := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
-			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName, sentence)
+			sentence1 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
+			sentence2 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
+			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName, sentence1, sentence2)
 			getIndexAfterPostImg.Play(s)
 		}
 	}()
@@ -514,8 +515,9 @@ func setupWorkerBanUser(sessionsQueue chan *checker.Session, sentences []string,
 			login.PostData = deletedUser
 			login.Play(s1)
 			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			sentence := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
-			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, targetUserAccountName, sentence)
+			sentence1 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
+			sentence2 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
+			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, targetUserAccountName, sentence1, sentence2)
 			getIndexAfterPostImg.Play(s1)
 			postTopImg.Play(s1)
 
