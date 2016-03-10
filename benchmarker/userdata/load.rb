@@ -109,4 +109,4 @@ query = db.prepare('INSERT INTO comments (`id`,`post_id`,`user_id`,`comment`,`cr
 end
 
 puts "mysqldumpを出力して圧縮"
-`mysqldump -u root -h localhost --hex-blob isuconp | bzip2 > dump.sql.bz2`
+`mysqldump -u root -h localhost --hex-blob --add-drop-database --databases isuconp | bzip2 > dump.sql.bz2`
