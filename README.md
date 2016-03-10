@@ -1,16 +1,8 @@
 # private-isu
 
 ```
-mysql -uroot
-CREATE DATABASE isuconp;
-
-cd webapp/sql
-mysql -uroot isuconp < schema.sql
-cd ../..
-
 curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
-bunzip2 dump.sql.bz2
-mysql -uroot isuconp < dump.sql
+bzcat dump.sql.bz2 | mysql -uroot
 
 cd webapp/scripts
 bundle install --path=vendor/bundle
