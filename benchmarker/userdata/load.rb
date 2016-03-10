@@ -35,6 +35,11 @@ db = Mysql2::Client.new(
 )
 db.query_options.merge!(symbolize_keys: true)
 
+
+puts "schema.sqlを読み込む"
+db.query(File.read('../sql/schema.sql'))
+
+
 #CREATE TABLE IF NOT EXISTS users (
   #`id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
   #`account_name` varchar(64) NOT NULL UNIQUE,
