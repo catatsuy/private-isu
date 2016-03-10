@@ -1,4 +1,4 @@
-<div class="isu-post" id="<%= post[:id] %>" data-created-at="<%= post[:created_at] %>">
+<div class="isu-post" id="pid_<%= post[:id] %>" data-created-at="<%= post[:created_at] %>">
   <div class="isu-post-header">
     <a href="/@<%= escape_html(CGI.escape(post[:user][:account_name])) %>" class="isu-post-account-name"><%= escape_html(post[:user][:account_name]) %></a>
     <a href="/posts/<%= post[:id] %>" class="isu-post-permalink">
