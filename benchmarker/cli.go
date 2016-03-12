@@ -113,28 +113,34 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeError
 	}
 
-	timeUp := time.After(BenchmarkTimeout)
-	done := make(chan bool)
+	aCh := make(chan bool, 30)
+	for i := 0; i < 30; i++ {
+		aCh <- true
+	}
+	bCh := make(chan bool, 2)
+	for i := 0; i < 2; i++ {
+		bCh <- true
+	}
 
-	sessionsQueue := make(chan *checker.Session, SessionQueueSize)
+	timeoutCh := time.After(BenchmarkTimeout)
 
-	setupSessionGenrator(sessionsQueue, done)
-
-	setupWorkerStaticFileCheck(sessionsQueue)
-	setupWorkerToppageNotLogin(sessionsQueue)
-	setupWorkerUserpageNotLogin(sessionsQueue, users)
-
-	setupWorkerPostData(sessionsQueue, users, sentences, images)
-	setupWorkerBanUser(sessionsQueue, sentences, images, adminUsers)
-
-	<-timeUp
-
-	quitLock.Lock()
-	quit = true
-	quitLock.Unlock()
-
-	<-done
-	close(sessionsQueue)
+L:
+	for {
+		select {
+		case <-aCh:
+			go func() {
+				checkStaticFiles(checker.NewSession())
+				aCh <- true
+			}()
+		case <-bCh:
+			go func() {
+				quickCheck(users, adminUsers, sentences, images)
+				bCh <- true
+			}()
+		case <-timeoutCh:
+			break L
+		}
+	}
 
 	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
 		score.GetInstance().GetScore(),
