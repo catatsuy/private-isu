@@ -152,7 +152,7 @@ func (cli *CLI) Run(args []string) int {
 	return ExitCodeOK
 }
 
-func prepareUserdata(userdata string) ([]*user, []*user, []string, []*checker.Asset, error) {
+func prepareUserdata(userdata string) ([]user, []user, []string, []*checker.Asset, error) {
 	if userdata == "" {
 		return nil, nil, nil, nil, errors.New("userdataディレクトリが指定されていません")
 	}
@@ -170,12 +170,12 @@ func prepareUserdata(userdata string) ([]*user, []*user, []string, []*checker.As
 	}
 	defer file.Close()
 
-	users := []*user{}
+	users := []user{}
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		name := scanner.Text()
-		users = append(users, &user{AccountName: name, Password: name + name})
+		users = append(users, user{AccountName: name, Password: name + name})
 	}
 	adminUsers := users[:10]
 
@@ -232,13 +232,15 @@ func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
 	}()
 }
 
-func setupWorkerUserpageNotLogin(sessionsQueue chan *checker.Session, users []*user) {
-	go func() {
-		for {
-			s := <-sessionsQueue
+func checkUserpageNotLogin(s *checker.Session, users []user) {
+	userpageNotLogin := genActionUserpageNotLogin(users[util.RandomNumber(len(users))].AccountName)
+	userpageNotLogin.Play(s)
+}
 
-			userpageNotLogin := genActionUserpageNotLogin(users[util.RandomNumber(len(users))].AccountName)
-			userpageNotLogin.Play(s)
+func setupWorkerUserpageNotLogin(sessionsQueue chan *checker.Session, users []user) {
+	go func() {
+		for s := range sessionsQueue {
+			checkUserpageNotLogin(s, users)
 		}
 	}()
 }
@@ -263,18 +265,22 @@ func genActionUserpageNotLogin(accountName string) *checker.Action {
 	return a
 }
 
-func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
+// /にログインせずにアクセスして、画像にリクエストを送る
+// その後、同じセッションを使い回して/にアクセス
+// 画像のキャッシュにSet-Cookieを含んでいた場合、/にアカウント名が含まれる
+func checkToppageNotLogin(s *checker.Session) {
+
 	indexAndImagesNotLogin := genActionIndexAndImagesNotLogin()
 	indexNotLogin := genActionIndexNotLogin()
 
+	indexAndImagesNotLogin.Play(s)
+	indexNotLogin.Play(s)
+}
+
+func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
 	go func() {
-		for {
-			s := <-sessionsQueue
-			// /にログインせずにアクセスして、画像にリクエストを送る
-			// その後、同じセッションを使い回して/にアクセス
-			// 画像のキャッシュにSet-Cookieを含んでいた場合、/にアカウント名が含まれる
-			indexAndImagesNotLogin.Play(s)
-			indexNotLogin.Play(s)
+		for s := range sessionsQueue {
+			checkToppageNotLogin(s)
 		}
 	}()
 }
@@ -434,25 +440,28 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName
 	return a
 }
 
-func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, sentences []string, images []*checker.Asset) {
+func checkPostData(s *checker.Session, users []user, sentences []string, images []*checker.Asset) {
 	login := genActionLogin()
 	postTopImg := genActionPostTopImg()
 
+	u := users[util.RandomNumber(len(users))]
+	login.PostData = map[string]string{
+		"account_name": u.AccountName,
+		"password":     u.Password,
+	}
+	postTopImg.Asset = images[util.RandomNumber(len(images))]
+	login.Play(s)
+	sentence1 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
+	sentence2 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
+	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName, sentence1, sentence2)
+	getIndexAfterPostImg.Play(s)
+}
+
+func setupWorkerPostData(sessionsQueue chan *checker.Session, users []user, sentences []string, images []*checker.Asset) {
 	// ログインして、画像を投稿して、投稿単体ページを確認して、コメントを投稿
 	go func() {
-		for {
-			u := users[util.RandomNumber(len(users))]
-			login.PostData = map[string]string{
-				"account_name": u.AccountName,
-				"password":     u.Password,
-			}
-			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			s := <-sessionsQueue
-			login.Play(s)
-			sentence1 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
-			sentence2 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
-			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName, sentence1, sentence2)
-			getIndexAfterPostImg.Play(s)
+		for s := range sessionsQueue {
+			checkPostData(s, users, sentences, images)
 		}
 	}()
 }
@@ -523,49 +532,53 @@ func genActionCheckBannedUser(targetUserAccountName string) *checker.Action {
 	return a
 }
 
-func setupWorkerBanUser(sessionsQueue chan *checker.Session, sentences []string, images []*checker.Asset, adminUsers []*user) {
-	interval := time.Tick(10 * time.Second)
-
+// ユーザーを作って、ログインして画像を投稿する
+// そのユーザーはBAN機能を使って消される
+func checkBanUser(s1 *checker.Session, s2 *checker.Session, sentences []string, images []*checker.Asset, adminUsers []user) {
 	login := genActionLogin()
 	postRegister := genActionPostRegister()
 	postTopImg := genActionPostTopImg()
 
-	// ユーザーを作って、ログインして画像を投稿する
-	// そのユーザーはBAN機能を使って消される
+	targetUserAccountName := util.RandomLUNStr(25)
+	deletedUser := map[string]string{
+		"account_name": targetUserAccountName,
+		"password":     targetUserAccountName,
+	}
+
+	postRegister.PostData = deletedUser
+	postRegister.Play(s1)
+	login.PostData = deletedUser
+	login.Play(s1)
+	postTopImg.Asset = images[util.RandomNumber(len(images))]
+	sentence1 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
+	sentence2 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
+	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, targetUserAccountName, sentence1, sentence2)
+	getIndexAfterPostImg.Play(s1)
+	postTopImg.Play(s1)
+
+	u := adminUsers[util.RandomNumber(len(adminUsers))]
+	login.PostData = map[string]string{
+		"account_name": u.AccountName,
+		"password":     u.Password,
+	}
+
+	login.Play(s2)
+
+	banUser := genActionBanUser(targetUserAccountName)
+	banUser.Play(s2)
+
+	checkBanned := genActionCheckBannedUser(targetUserAccountName)
+	checkBanned.Play(s2)
+}
+
+func setupWorkerBanUser(sessionsQueue chan *checker.Session, sentences []string, images []*checker.Asset, adminUsers []user) {
+	interval := time.Tick(10 * time.Second)
+
 	go func() {
 		for {
 			s1 := <-sessionsQueue
-
-			targetUserAccountName := util.RandomLUNStr(25)
-			deletedUser := map[string]string{
-				"account_name": targetUserAccountName,
-				"password":     targetUserAccountName,
-			}
-
-			postRegister.PostData = deletedUser
-			postRegister.Play(s1)
-			login.PostData = deletedUser
-			login.Play(s1)
-			postTopImg.Asset = images[util.RandomNumber(len(images))]
-			sentence1 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
-			sentence2 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
-			getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, targetUserAccountName, sentence1, sentence2)
-			getIndexAfterPostImg.Play(s1)
-			postTopImg.Play(s1)
-
-			u := adminUsers[util.RandomNumber(len(adminUsers))]
-			login.PostData = map[string]string{
-				"account_name": u.AccountName,
-				"password":     u.Password,
-			}
 			s2 := <-sessionsQueue
-			login.Play(s2)
-
-			banUser := genActionBanUser(targetUserAccountName)
-			banUser.Play(s2)
-
-			checkBanned := genActionCheckBannedUser(targetUserAccountName)
-			checkBanned.Play(s2)
+			checkBanUser(s1, s2, sentences, images, adminUsers)
 			<-interval
 		}
 	}()
@@ -615,23 +628,26 @@ func genActionCssFileCheck() *checker.AssetAction {
 	return a
 }
 
-func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
-	interval := time.Tick(10 * time.Second)
-
+func checkStaticFiles(s *checker.Session) {
 	faviconCheck := genActionFaviconCheck()
 	appleIconCheck := genActionAppleTouchIconCheck()
 	jsMainFileCheck := genActionJsMainFileCheck()
 	jsJQueryFileCheck := genActionJsJqueryFileCheck()
 	cssFileCheck := genActionCssFileCheck()
 
+	faviconCheck.Play(s)
+	appleIconCheck.Play(s)
+	jsJQueryFileCheck.Play(s)
+	jsMainFileCheck.Play(s)
+	cssFileCheck.Play(s)
+}
+
+func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
+	interval := time.Tick(10 * time.Second)
+
 	go func() {
-		for {
-			s := <-sessionsQueue
-			faviconCheck.Play(s)
-			appleIconCheck.Play(s)
-			jsJQueryFileCheck.Play(s)
-			jsMainFileCheck.Play(s)
-			cssFileCheck.Play(s)
+		for s := range sessionsQueue {
+			checkStaticFiles(s)
 			<-interval
 		}
 	}()
