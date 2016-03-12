@@ -125,7 +125,7 @@ L:
 		select {
 		case <-aCh:
 			go func() {
-				checkStaticFiles(checker.NewSession())
+				simpleCheck()
 				aCh <- true
 			}()
 		case <-bCh:
@@ -625,4 +625,8 @@ func detailedCheck(users []user, adminUsers []user, sentences []string, images [
 	checkUserpageNotLogin(checker.NewSession(), users)
 	checkPostData(checker.NewSession(), users, sentences, images)
 	checkBanUser(checker.NewSession(), checker.NewSession(), sentences, images, adminUsers)
+}
+
+func simpleCheck() {
+	checkStaticFiles(checker.NewSession())
 }
