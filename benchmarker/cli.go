@@ -231,35 +231,9 @@ func prepareUserdata(userdata string) ([]user, []user, []string, []*checker.Asse
 	return users, adminUsers, sentences, images, err
 }
 
-func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
-	// sessionsQueueにsessionを用意しておく
-	// キューとして使って並列度が高くなりすぎないようにするのと、
-	// 時間が来たらcloseする
-	go func() {
-		for {
-			sessionsQueue <- checker.NewSession()
-			quitLock.RLock()
-			if quit {
-				quitLock.RUnlock()
-				done <- true
-				break
-			}
-			quitLock.RUnlock()
-		}
-	}()
-}
-
 func checkUserpageNotLogin(s *checker.Session, users []user) {
 	userpageNotLogin := genActionUserpageNotLogin(users[util.RandomNumber(len(users))].AccountName)
 	userpageNotLogin.Play(s)
-}
-
-func setupWorkerUserpageNotLogin(sessionsQueue chan *checker.Session, users []user) {
-	go func() {
-		for s := range sessionsQueue {
-			checkUserpageNotLogin(s, users)
-		}
-	}()
 }
 
 // 非ログインで/@:account_nameにアクセスして、画像にリクエストを送る
@@ -292,14 +266,6 @@ func checkToppageNotLogin(s *checker.Session) {
 
 	indexAndImagesNotLogin.Play(s)
 	indexNotLogin.Play(s)
-}
-
-func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
-	go func() {
-		for s := range sessionsQueue {
-			checkToppageNotLogin(s)
-		}
-	}()
 }
 
 // 非ログインで/にアクセスして、ユーザー名が出ていないことを確認
@@ -457,6 +423,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName
 	return a
 }
 
+// ログインして、画像を投稿して、投稿単体ページを確認して、コメントを投稿
 func checkPostData(s *checker.Session, users []user, sentences []string, images []*checker.Asset) {
 	login := genActionLogin()
 	postTopImg := genActionPostTopImg()
@@ -472,15 +439,6 @@ func checkPostData(s *checker.Session, users []user, sentences []string, images 
 	sentence2 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
 	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName, sentence1, sentence2)
 	getIndexAfterPostImg.Play(s)
-}
-
-func setupWorkerPostData(sessionsQueue chan *checker.Session, users []user, sentences []string, images []*checker.Asset) {
-	// ログインして、画像を投稿して、投稿単体ページを確認して、コメントを投稿
-	go func() {
-		for s := range sessionsQueue {
-			checkPostData(s, users, sentences, images)
-		}
-	}()
 }
 
 func genActionPostRegister() *checker.Action {
@@ -588,19 +546,6 @@ func checkBanUser(s1 *checker.Session, s2 *checker.Session, sentences []string, 
 	checkBanned.Play(s2)
 }
 
-func setupWorkerBanUser(sessionsQueue chan *checker.Session, sentences []string, images []*checker.Asset, adminUsers []user) {
-	interval := time.Tick(10 * time.Second)
-
-	go func() {
-		for {
-			s1 := <-sessionsQueue
-			s2 := <-sessionsQueue
-			checkBanUser(s1, s2, sentences, images, adminUsers)
-			<-interval
-		}
-	}()
-}
-
 func genActionAppleTouchIconCheck() *checker.Action {
 	a := checker.NewAction("GET", "/apple-touch-icon-precomposed.png")
 	a.ExpectedStatusCode = http.StatusNotFound
@@ -657,17 +602,6 @@ func checkStaticFiles(s *checker.Session) {
 	jsJQueryFileCheck.Play(s)
 	jsMainFileCheck.Play(s)
 	cssFileCheck.Play(s)
-}
-
-func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
-	interval := time.Tick(10 * time.Second)
-
-	go func() {
-		for s := range sessionsQueue {
-			checkStaticFiles(s)
-			<-interval
-		}
-	}()
 }
 
 func setupInitialize(targetHost string, initialize chan bool) {
