@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -27,10 +26,11 @@ const (
 	ExitCodeOK    int = 0
 	ExitCodeError int = 1 + iota
 
-	FailThreshold     = 5
-	InitializeTimeout = time.Duration(10) * time.Second
-	BenchmarkTimeout  = 30 * time.Second
-	SessionQueueSize  = 20
+	FailThreshold          = 5
+	InitializeTimeout      = time.Duration(10) * time.Second
+	BenchmarkTimeout       = 30 * time.Second
+	DetailedCheckQueueSize = 20
+	SimpleCheckQueueSize   = 2
 )
 
 // CLI is the command line object
@@ -45,12 +45,8 @@ type user struct {
 	Password    string
 }
 
-var quit bool
-var quitLock sync.RWMutex
-
 // Run invokes the CLI with the given arguments.
 func (cli *CLI) Run(args []string) int {
-	quit = false
 	var (
 		target   string
 		userdata string
@@ -104,7 +100,7 @@ func (cli *CLI) Run(args []string) int {
 	<-initialize
 
 	// 最初にDOMチェックなどをやってしまい、通らなければさっさと失敗させる
-	quickCheck(users, adminUsers, sentences, images)
+	detailedCheck(users, adminUsers, sentences, images)
 
 	if score.GetInstance().GetFails() > 0 {
 		for _, err := range score.GetFailErrors() {
@@ -113,28 +109,34 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeError
 	}
 
-	timeUp := time.After(BenchmarkTimeout)
-	done := make(chan bool)
+	simpleCheckCh := make(chan bool, SimpleCheckQueueSize)
+	for i := 0; i < SimpleCheckQueueSize; i++ {
+		simpleCheckCh <- true
+	}
+	detailedCheckCh := make(chan bool, DetailedCheckQueueSize)
+	for i := 0; i < DetailedCheckQueueSize; i++ {
+		detailedCheckCh <- true
+	}
 
-	sessionsQueue := make(chan *checker.Session, SessionQueueSize)
+	timeoutCh := time.After(BenchmarkTimeout)
 
-	setupSessionGenrator(sessionsQueue, done)
-
-	setupWorkerStaticFileCheck(sessionsQueue)
-	setupWorkerToppageNotLogin(sessionsQueue)
-	setupWorkerUserpageNotLogin(sessionsQueue, users)
-
-	setupWorkerPostData(sessionsQueue, users, sentences, images)
-	setupWorkerBanUser(sessionsQueue, sentences, images, adminUsers)
-
-	<-timeUp
-
-	quitLock.Lock()
-	quit = true
-	quitLock.Unlock()
-
-	<-done
-	close(sessionsQueue)
+L:
+	for {
+		select {
+		case <-simpleCheckCh:
+			go func() {
+				simpleCheck()
+				simpleCheckCh <- true
+			}()
+		case <-detailedCheckCh:
+			go func() {
+				detailedCheck(users, adminUsers, sentences, images)
+				detailedCheckCh <- true
+			}()
+		case <-timeoutCh:
+			break L
+		}
+	}
 
 	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
 		score.GetInstance().GetScore(),
@@ -224,35 +226,9 @@ func prepareUserdata(userdata string) ([]user, []user, []string, []*checker.Asse
 	return users, adminUsers, sentences, images, err
 }
 
-func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
-	// sessionsQueueにsessionを用意しておく
-	// キューとして使って並列度が高くなりすぎないようにするのと、
-	// 時間が来たらcloseする
-	go func() {
-		for {
-			sessionsQueue <- checker.NewSession()
-			quitLock.RLock()
-			if quit {
-				quitLock.RUnlock()
-				done <- true
-				break
-			}
-			quitLock.RUnlock()
-		}
-	}()
-}
-
 func checkUserpageNotLogin(s *checker.Session, users []user) {
 	userpageNotLogin := genActionUserpageNotLogin(users[util.RandomNumber(len(users))].AccountName)
 	userpageNotLogin.Play(s)
-}
-
-func setupWorkerUserpageNotLogin(sessionsQueue chan *checker.Session, users []user) {
-	go func() {
-		for s := range sessionsQueue {
-			checkUserpageNotLogin(s, users)
-		}
-	}()
 }
 
 // 非ログインで/@:account_nameにアクセスして、画像にリクエストを送る
@@ -285,14 +261,6 @@ func checkToppageNotLogin(s *checker.Session) {
 
 	indexAndImagesNotLogin.Play(s)
 	indexNotLogin.Play(s)
-}
-
-func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
-	go func() {
-		for s := range sessionsQueue {
-			checkToppageNotLogin(s)
-		}
-	}()
 }
 
 // 非ログインで/にアクセスして、ユーザー名が出ていないことを確認
@@ -450,6 +418,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName
 	return a
 }
 
+// ログインして、画像を投稿して、投稿単体ページを確認して、コメントを投稿
 func checkPostData(s *checker.Session, users []user, sentences []string, images []*checker.Asset) {
 	login := genActionLogin()
 	postTopImg := genActionPostTopImg()
@@ -465,15 +434,6 @@ func checkPostData(s *checker.Session, users []user, sentences []string, images 
 	sentence2 := sentences[util.RandomNumber(len(sentences))] + sentences[util.RandomNumber(len(sentences))]
 	getIndexAfterPostImg := genActionGetIndexAfterPostImg(postTopImg, u.AccountName, sentence1, sentence2)
 	getIndexAfterPostImg.Play(s)
-}
-
-func setupWorkerPostData(sessionsQueue chan *checker.Session, users []user, sentences []string, images []*checker.Asset) {
-	// ログインして、画像を投稿して、投稿単体ページを確認して、コメントを投稿
-	go func() {
-		for s := range sessionsQueue {
-			checkPostData(s, users, sentences, images)
-		}
-	}()
 }
 
 func genActionPostRegister() *checker.Action {
@@ -581,19 +541,6 @@ func checkBanUser(s1 *checker.Session, s2 *checker.Session, sentences []string, 
 	checkBanned.Play(s2)
 }
 
-func setupWorkerBanUser(sessionsQueue chan *checker.Session, sentences []string, images []*checker.Asset, adminUsers []user) {
-	interval := time.Tick(10 * time.Second)
-
-	go func() {
-		for {
-			s1 := <-sessionsQueue
-			s2 := <-sessionsQueue
-			checkBanUser(s1, s2, sentences, images, adminUsers)
-			<-interval
-		}
-	}()
-}
-
 func genActionAppleTouchIconCheck() *checker.Action {
 	a := checker.NewAction("GET", "/apple-touch-icon-precomposed.png")
 	a.ExpectedStatusCode = http.StatusNotFound
@@ -652,17 +599,6 @@ func checkStaticFiles(s *checker.Session) {
 	cssFileCheck.Play(s)
 }
 
-func setupWorkerStaticFileCheck(sessionsQueue chan *checker.Session) {
-	interval := time.Tick(10 * time.Second)
-
-	go func() {
-		for s := range sessionsQueue {
-			checkStaticFiles(s)
-			<-interval
-		}
-	}()
-}
-
 func setupInitialize(targetHost string, initialize chan bool) {
 	go func(targetHost string) {
 		client := &http.Client{
@@ -683,10 +619,14 @@ func setupInitialize(targetHost string, initialize chan bool) {
 	}(targetHost)
 }
 
-func quickCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
+func detailedCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
 	checkToppageNotLogin(checker.NewSession())
 	checkStaticFiles(checker.NewSession())
 	checkUserpageNotLogin(checker.NewSession(), users)
 	checkPostData(checker.NewSession(), users, sentences, images)
 	checkBanUser(checker.NewSession(), checker.NewSession(), sentences, images, adminUsers)
+}
+
+func simpleCheck() {
+	checkStaticFiles(checker.NewSession())
 }
