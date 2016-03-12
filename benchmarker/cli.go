@@ -112,6 +112,7 @@ func (cli *CLI) Run(args []string) int {
 
 	setupWorkerStaticFileCheck(sessionsQueue)
 	setupWorkerToppageNotLogin(sessionsQueue)
+	setupWorkerUserpageNotLogin(sessionsQueue, users)
 
 	setupWorkerPostData(sessionsQueue, users, sentences, images)
 	setupWorkerBanUser(sessionsQueue, sentences, images, adminUsers)
@@ -229,6 +230,37 @@ func setupSessionGenrator(sessionsQueue chan *checker.Session, done chan bool) {
 			quitLock.RUnlock()
 		}
 	}()
+}
+
+func setupWorkerUserpageNotLogin(sessionsQueue chan *checker.Session, users []*user) {
+	go func() {
+		for {
+			s := <-sessionsQueue
+
+			userpageNotLogin := genActionUserpageNotLogin(users[util.RandomNumber(len(users))].AccountName)
+			userpageNotLogin.Play(s)
+		}
+	}()
+}
+
+// 非ログインで/@:account_nameにアクセスして、画像にリクエストを送る
+func genActionUserpageNotLogin(accountName string) *checker.Action {
+	a := checker.NewAction("GET", "/@"+accountName)
+	a.ExpectedStatusCode = http.StatusOK
+	a.Description = "非ログインで/@:account_nameにアクセスして、画像にリクエストを送る"
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		doc.Find(`.isu-post`).Each(func(_ int, selection *goquery.Selection) {
+			url, _ := selection.Find(".isu-post-image img").Attr("src")
+			imgReq := checker.NewAssetAction(url, &checker.Asset{})
+			imgReq.Play(s)
+		})
+
+		return nil
+	}
+
+	return a
 }
 
 func setupWorkerToppageNotLogin(sessionsQueue chan *checker.Session) {
