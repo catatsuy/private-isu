@@ -125,7 +125,7 @@ describe('e2etest', () => {
     ;
 
     const [id, commentCount] = await nightmare.evaluate(() => {
-      return [document.querySelector('.isu-post').id, document.querySelector('.isu-post-comment-count b').textContent];
+      return [document.querySelector('.isu-post').id.replace('pid_', ''), document.querySelector('.isu-post-comment-count b').textContent];
     });
 
     const urlAfterComment = await nightmare

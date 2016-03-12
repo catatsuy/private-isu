@@ -2,6 +2,8 @@
 
 require 'mysql2'
 
+rand = Random.new(1)
+
 # app.rb の実装をコピった
 def digest(src)
   `echo -n #{src} | openssl dgst -sha512 | sed 's/^.*= //'`.strip
@@ -32,6 +34,11 @@ db = Mysql2::Client.new(
   reconnect: true,
 )
 db.query_options.merge!(symbolize_keys: true)
+
+
+puts "schema.sqlを読み込む"
+db.query(File.read('../sql/schema.sql'))
+
 
 #CREATE TABLE IF NOT EXISTS users (
   #`id` int NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -72,11 +79,11 @@ puts "posts"
 
 query = db.prepare('INSERT INTO posts (`id`,`user_id`,`mime`,`imgdata`,`body`,`created_at`) VALUES (?,?,?,?,?,?)')
 
-Dir.glob("img/*").shuffle(random: Random.new(1)).each.with_index(1) do |image, i|
-  user_id = (36011 * i) % 1000 + 1 # 36011 は適当に大きな素数
+Dir.glob("img/*").shuffle(random: rand).each.with_index(1) do |image, i|
+  user_id = rand.rand(1..1000)
   mime = image.end_with?('.jpg') ? 'image/jpeg' : image.end_with?('.png') ? 'image/png' : 'image/gif'
   created_at = DateTime.parse('2016-01-02 00:00:00') + (1.to_r / 24 / 60 / 60 * i) # 毎秒1投稿されたことにする
-  body = kaomoji[(26183 * i) % kaomoji.length] # 26183 は適当に大きな素数
+  body = kaomoji[rand.rand(0...kaomoji.length)]
 
   open(image) do |f|
     query.execute(i, user_id, mime, f.read, body, created_at.to_time)
@@ -98,13 +105,13 @@ puts "comments"
 query = db.prepare('INSERT INTO comments (`id`,`post_id`,`user_id`,`comment`,`created_at`) VALUES (?,?,?,?,?)')
 
 1.upto(100_000).each do |i|
-  post_id = (71237 * i) % 10000 + 1 # 71237 は適当に大きな素数
-  user_id = (22229 * i) % 1000 + 1 # 22229 は適当に大きな素数
-  comment = kaomoji[(9323 * i) % kaomoji.length] # 9323 は適当に大きな素数
+  post_id = rand.rand(1..10000)
+  user_id = rand.rand(1..1000)
+  comment = kaomoji[rand.rand(0...kaomoji.length)]
   created_at = DateTime.parse('2016-01-03 00:00:00') + (1.to_r / 24 / 60 / 60 * i) # 毎秒1コメントされたことにする
 
   query.execute(i, post_id, user_id, comment, created_at.to_time)
 end
 
 puts "mysqldumpを出力して圧縮"
-`mysqldump -u root -h localhost --hex-blob --no-create-info isuconp | bzip2 > dump.sql.bz2`
+`mysqldump -u root -h localhost --hex-blob --add-drop-database --databases isuconp | bzip2 > dump.sql.bz2`
