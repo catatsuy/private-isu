@@ -109,13 +109,13 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeError
 	}
 
-	aCh := make(chan bool, SimpleCheckQueueSize)
+	simpleCheckCh := make(chan bool, SimpleCheckQueueSize)
 	for i := 0; i < SimpleCheckQueueSize; i++ {
-		aCh <- true
+		simpleCheckCh <- true
 	}
-	bCh := make(chan bool, DetaileCheckQueueSize)
+	detailedCheckCh := make(chan bool, DetaileCheckQueueSize)
 	for i := 0; i < DetaileCheckQueueSize; i++ {
-		bCh <- true
+		detailedCheckCh <- true
 	}
 
 	timeoutCh := time.After(BenchmarkTimeout)
@@ -123,15 +123,15 @@ func (cli *CLI) Run(args []string) int {
 L:
 	for {
 		select {
-		case <-aCh:
+		case <-simpleCheckCh:
 			go func() {
 				simpleCheck()
-				aCh <- true
+				simpleCheckCh <- true
 			}()
-		case <-bCh:
+		case <-detailedCheckCh:
 			go func() {
 				detailedCheck(users, adminUsers, sentences, images)
-				bCh <- true
+				detailedCheckCh <- true
 			}()
 		case <-timeoutCh:
 			break L
