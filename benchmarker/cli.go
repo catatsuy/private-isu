@@ -152,7 +152,7 @@ func (cli *CLI) Run(args []string) int {
 	return ExitCodeOK
 }
 
-func prepareUserdata(userdata string) ([]*user, []*user, []string, []*checker.Asset, error) {
+func prepareUserdata(userdata string) ([]user, []user, []string, []*checker.Asset, error) {
 	if userdata == "" {
 		return nil, nil, nil, nil, errors.New("userdataディレクトリが指定されていません")
 	}
@@ -170,12 +170,12 @@ func prepareUserdata(userdata string) ([]*user, []*user, []string, []*checker.As
 	}
 	defer file.Close()
 
-	users := []*user{}
+	users := []user{}
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		name := scanner.Text()
-		users = append(users, &user{AccountName: name, Password: name + name})
+		users = append(users, user{AccountName: name, Password: name + name})
 	}
 	adminUsers := users[:10]
 
@@ -434,7 +434,7 @@ func genActionGetIndexAfterPostImg(postTopImg *checker.UploadAction, accountName
 	return a
 }
 
-func setupWorkerPostData(sessionsQueue chan *checker.Session, users []*user, sentences []string, images []*checker.Asset) {
+func setupWorkerPostData(sessionsQueue chan *checker.Session, users []user, sentences []string, images []*checker.Asset) {
 	login := genActionLogin()
 	postTopImg := genActionPostTopImg()
 
@@ -523,7 +523,7 @@ func genActionCheckBannedUser(targetUserAccountName string) *checker.Action {
 	return a
 }
 
-func setupWorkerBanUser(sessionsQueue chan *checker.Session, sentences []string, images []*checker.Asset, adminUsers []*user) {
+func setupWorkerBanUser(sessionsQueue chan *checker.Session, sentences []string, images []*checker.Asset, adminUsers []user) {
 	interval := time.Tick(10 * time.Second)
 
 	login := genActionLogin()
