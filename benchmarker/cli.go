@@ -26,11 +26,11 @@ const (
 	ExitCodeOK    int = 0
 	ExitCodeError int = 1 + iota
 
-	FailThreshold         = 5
-	InitializeTimeout     = time.Duration(10) * time.Second
-	BenchmarkTimeout      = 30 * time.Second
-	DetaileCheckQueueSize = 20
-	SimpleCheckQueueSize  = 2
+	FailThreshold          = 5
+	InitializeTimeout      = time.Duration(10) * time.Second
+	BenchmarkTimeout       = 30 * time.Second
+	DetailedCheckQueueSize = 20
+	SimpleCheckQueueSize   = 2
 )
 
 // CLI is the command line object
@@ -113,8 +113,8 @@ func (cli *CLI) Run(args []string) int {
 	for i := 0; i < SimpleCheckQueueSize; i++ {
 		simpleCheckCh <- true
 	}
-	detailedCheckCh := make(chan bool, DetaileCheckQueueSize)
-	for i := 0; i < DetaileCheckQueueSize; i++ {
+	detailedCheckCh := make(chan bool, DetailedCheckQueueSize)
+	for i := 0; i < DetailedCheckQueueSize; i++ {
 		detailedCheckCh <- true
 	}
 
