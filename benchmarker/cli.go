@@ -13,7 +13,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -46,12 +45,8 @@ type user struct {
 	Password    string
 }
 
-var quit bool
-var quitLock sync.RWMutex
-
 // Run invokes the CLI with the given arguments.
 func (cli *CLI) Run(args []string) int {
-	quit = false
 	var (
 		target   string
 		userdata string
