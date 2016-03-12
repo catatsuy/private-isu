@@ -29,8 +29,8 @@ const (
 	FailThreshold          = 5
 	InitializeTimeout      = time.Duration(10) * time.Second
 	BenchmarkTimeout       = 30 * time.Second
-	DetailedCheckQueueSize = 20
-	SimpleCheckQueueSize   = 2
+	DetailedCheckQueueSize = 2
+	SimpleCheckQueueSize   = 20
 )
 
 // CLI is the command line object
