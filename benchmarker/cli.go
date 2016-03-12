@@ -104,7 +104,7 @@ func (cli *CLI) Run(args []string) int {
 	<-initialize
 
 	// 最初にDOMチェックなどをやってしまい、通らなければさっさと失敗させる
-	quickCheck(users, adminUsers, sentences, images)
+	detailedCheck(users, adminUsers, sentences, images)
 
 	if score.GetInstance().GetFails() > 0 {
 		for _, err := range score.GetFailErrors() {
@@ -134,7 +134,7 @@ L:
 			}()
 		case <-bCh:
 			go func() {
-				quickCheck(users, adminUsers, sentences, images)
+				detailedCheck(users, adminUsers, sentences, images)
 				bCh <- true
 			}()
 		case <-timeoutCh:
@@ -689,7 +689,7 @@ func setupInitialize(targetHost string, initialize chan bool) {
 	}(targetHost)
 }
 
-func quickCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
+func detailedCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
 	checkToppageNotLogin(checker.NewSession())
 	checkStaticFiles(checker.NewSession())
 	checkUserpageNotLogin(checker.NewSession(), users)
