@@ -103,6 +103,16 @@ func (cli *CLI) Run(args []string) int {
 
 	<-initialize
 
+	// 最初にDOMチェックなどをやってしまい、通らなければさっさと失敗させる
+	quickCheck(users, adminUsers, sentences, images)
+
+	if score.GetInstance().GetFails() > 0 {
+		for _, err := range score.GetFailErrors() {
+			fmt.Println(err.Error())
+		}
+		return ExitCodeError
+	}
+
 	timeUp := time.After(BenchmarkTimeout)
 	done := make(chan bool)
 
@@ -671,4 +681,12 @@ func setupInitialize(targetHost string, initialize chan bool) {
 		defer res.Body.Close()
 		initialize <- true
 	}(targetHost)
+}
+
+func quickCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
+	checkToppageNotLogin(checker.NewSession())
+	checkStaticFiles(checker.NewSession())
+	checkUserpageNotLogin(checker.NewSession(), users)
+	checkPostData(checker.NewSession(), users, sentences, images)
+	checkBanUser(checker.NewSession(), checker.NewSession(), sentences, images, adminUsers)
 }
