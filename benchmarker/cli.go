@@ -138,7 +138,7 @@ L:
 			}()
 		case <-nonNormalCheckCh:
 			go func() {
-				nonNormalCheck(users)
+				nonNormalCheck(users, images)
 				<-nInterval
 				nonNormalCheckCh <- true
 			}()
@@ -709,6 +709,29 @@ func checkCannotAccessAdmin(s *checker.Session, users []user) {
 	a.Play(s)
 }
 
+// CSRF Tokenを適当な乱数にする
+func checkCannotPostWrongCSRFToken(s *checker.Session, users []user, images []*checker.Asset) {
+	login := genActionLogin()
+
+	u := users[util.RandomNumber(len(users))]
+	login.PostData = map[string]string{
+		"account_name": u.AccountName,
+		"password":     u.Password,
+	}
+	login.Play(s)
+
+	a := checker.NewUploadAction("POST", "/", "file")
+	a.ExpectedStatusCode = http.StatusForbidden
+	a.Description = "画像を投稿"
+	a.Asset = images[util.RandomNumber(len(images))]
+	a.PostData = map[string]string{
+		"body":       util.RandomLUNStr(25),
+		"csrf_token": util.RandomLUNStr(64),
+		"type":       "image/jpeg",
+	}
+	a.Play(s)
+}
+
 func detailedCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
 	checkToppageNotLogin(checker.NewSession())
 	checkStaticFiles(checker.NewSession())
@@ -748,8 +771,9 @@ func checkPostsMoreAndMore(s *checker.Session) {
 	}
 }
 
-func nonNormalCheck(users []user) {
+func nonNormalCheck(users []user, images []*checker.Asset) {
 	checkCannotLoginNonexistentUser(checker.NewSession())
 	checkCannotLoginWrongPassword(checker.NewSession(), users)
 	checkCannotAccessAdmin(checker.NewSession(), users)
+	checkCannotPostWrongCSRFToken(checker.NewSession(), users, images)
 }
