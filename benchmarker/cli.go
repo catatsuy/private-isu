@@ -30,7 +30,10 @@ const (
 	InitializeTimeout      = time.Duration(10) * time.Second
 	BenchmarkTimeout       = 30 * time.Second
 	DetailedCheckQueueSize = 2
-	SimpleCheckQueueSize   = 20
+	PostsCheckQueueSize    = 2
+	IndexCheckQueueSize    = 20
+
+	PostsPerPage = 20
 )
 
 // CLI is the command line object
@@ -109,24 +112,24 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeError
 	}
 
-	simpleCheckCh := make(chan bool, SimpleCheckQueueSize)
-	for i := 0; i < SimpleCheckQueueSize; i++ {
-		simpleCheckCh <- true
-	}
-	detailedCheckCh := make(chan bool, DetailedCheckQueueSize)
-	for i := 0; i < DetailedCheckQueueSize; i++ {
-		detailedCheckCh <- true
-	}
+	postsCheckCh := makeChanBool(PostsCheckQueueSize)
+	indexCheckCh := makeChanBool(IndexCheckQueueSize)
+	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
 
 	timeoutCh := time.After(BenchmarkTimeout)
 
 L:
 	for {
 		select {
-		case <-simpleCheckCh:
+		case <-postsCheckCh:
 			go func() {
-				simpleCheck()
-				simpleCheckCh <- true
+				checkPostsMoreAndMore(checker.NewSession())
+				postsCheckCh <- true
+			}()
+		case <-indexCheckCh:
+			go func() {
+				checkIndex(checker.NewSession())
+				indexCheckCh <- true
 			}()
 		case <-detailedCheckCh:
 			go func() {
@@ -162,6 +165,14 @@ L:
 	}
 
 	return ExitCodeOK
+}
+
+func makeChanBool(len int) chan bool {
+	ch := make(chan bool, len)
+	for i := 0; i < len; i++ {
+		ch <- true
+	}
+	return ch
 }
 
 func prepareUserdata(userdata string) ([]user, []user, []string, []*checker.Asset, error) {
@@ -263,6 +274,13 @@ func checkToppageNotLogin(s *checker.Session) {
 	indexNotLogin.Play(s)
 }
 
+// インデックスページとAssetと画像にアクセスして負荷かける君
+func checkIndex(s *checker.Session) {
+	indexAndImagesNotLogin := genActionIndexAndImagesNotLogin()
+	indexAndImagesNotLogin.Play(s)
+	checkStaticFiles(s)
+}
+
 // 非ログインで/にアクセスして、ユーザー名が出ていないことを確認
 func genActionIndexNotLogin() *checker.Action {
 	a := checker.NewAction("GET", "/")
@@ -293,21 +311,17 @@ func genActionIndexAndImagesNotLogin() *checker.Action {
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
-		imageRequestCount := 0
-		maxImageRequest := 15
-		doc.Find("img").EachWithBreak(func(_ int, selection *goquery.Selection) bool {
+		imgCnt := doc.Find("img").Each(func(_ int, selection *goquery.Selection) {
 			url, _ := selection.Attr("src")
-			imgReq := checker.NewAssetAction(url, &checker.Asset{})
+			imgReq := checker.NewAction("GET", url)
 			imgReq.Play(s)
-			if imageRequestCount > maxImageRequest {
-				return false
-			} else {
-				imageRequestCount += 1
-				return true
-			}
-		})
+		}).Length()
 
+		if imgCnt < PostsPerPage {
+			return errors.New("1ページに表示される画像の数が足りません")
+		}
 		return nil
+
 	}
 
 	return a
@@ -627,6 +641,33 @@ func detailedCheck(users []user, adminUsers []user, sentences []string, images [
 	checkBanUser(checker.NewSession(), checker.NewSession(), sentences, images, adminUsers)
 }
 
-func simpleCheck() {
-	checkStaticFiles(checker.NewSession())
+func genActionPostsCheck(maxCreatedAt time.Time) *checker.Action {
+	a := checker.NewAction("GET", "/posts?max_created_at="+url.QueryEscape(maxCreatedAt.Format(time.RFC3339)))
+	a.Description = "もっと見るをひたすら辿っていく"
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		imgCnt := doc.Find("img").Each(func(_ int, selection *goquery.Selection) {
+			url, _ := selection.Attr("src")
+			imgReq := checker.NewAction("GET", url)
+			imgReq.Play(s)
+		}).Length()
+
+		if imgCnt < PostsPerPage {
+			return errors.New("1ページに表示される画像の数が足りません")
+		}
+		return nil
+	}
+
+	return a
+}
+
+// ひらすらトップページの「もっと見る」を開いていく君
+func checkPostsMoreAndMore(s *checker.Session) {
+	offset := util.RandomNumber(10) // 10は適当。URLをバラけさせるため
+	for i := 0; i < 10; i++ {       // 10ページ辿る
+		maxCreatedAt := time.Date(2016, time.January, 2, 11, 46, 21-PostsPerPage*i+offset, 0, time.FixedZone("Asia/Tokyo", 9*60*60))
+		postsCheck := genActionPostsCheck(maxCreatedAt)
+		postsCheck.Play(s)
+	}
 }
