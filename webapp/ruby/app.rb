@@ -36,7 +36,7 @@ module Isuconp
           encoding: 'utf8mb4',
           reconnect: true,
         )
-        client.query_options.merge!(symbolize_keys: true)
+        client.query_options.merge!(symbolize_keys: true, database_timezone: :local, application_timezone: :local)
         Thread.current[:isuconp_db] = client
         client
       end
