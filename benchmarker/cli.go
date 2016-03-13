@@ -118,6 +118,8 @@ func (cli *CLI) Run(args []string) int {
 
 	timeoutCh := time.After(BenchmarkTimeout)
 
+	iInterval := time.Tick(10 * time.Second)
+
 L:
 	for {
 		select {
@@ -129,6 +131,7 @@ L:
 		case <-indexCheckCh:
 			go func() {
 				checkIndex(checker.NewSession())
+				<-iInterval
 				indexCheckCh <- true
 			}()
 		case <-detailedCheckCh:
