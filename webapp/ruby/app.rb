@@ -285,7 +285,7 @@ module Isuconp
       end
 
       if params['csrf_token'] != session.id
-        return 'csrf_token error'
+        return 403
       end
 
       if params['file']

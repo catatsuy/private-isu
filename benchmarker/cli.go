@@ -26,12 +26,13 @@ const (
 	ExitCodeOK    int = 0
 	ExitCodeError int = 1 + iota
 
-	FailThreshold          = 5
-	InitializeTimeout      = time.Duration(10) * time.Second
-	BenchmarkTimeout       = 30 * time.Second
-	DetailedCheckQueueSize = 2
-	PostsCheckQueueSize    = 2
-	IndexCheckQueueSize    = 20
+	FailThreshold           = 5
+	InitializeTimeout       = time.Duration(10) * time.Second
+	BenchmarkTimeout        = 30 * time.Second
+	DetailedCheckQueueSize  = 2
+	PostsCheckQueueSize     = 2
+	IndexCheckQueueSize     = 20
+	NonNormalCheckQueueSize = 2
 
 	PostsPerPage = 20
 )
@@ -115,8 +116,12 @@ func (cli *CLI) Run(args []string) int {
 	postsCheckCh := makeChanBool(PostsCheckQueueSize)
 	indexCheckCh := makeChanBool(IndexCheckQueueSize)
 	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
+	nonNormalCheckCh := makeChanBool(NonNormalCheckQueueSize)
 
 	timeoutCh := time.After(BenchmarkTimeout)
+
+	iInterval := time.Tick(10 * time.Second)
+	nInterval := time.Tick(10 * time.Second)
 
 L:
 	for {
@@ -129,7 +134,14 @@ L:
 		case <-indexCheckCh:
 			go func() {
 				checkIndex(checker.NewSession())
+				<-iInterval
 				indexCheckCh <- true
+			}()
+		case <-nonNormalCheckCh:
+			go func() {
+				nonNormalCheck(users, images)
+				<-nInterval
+				nonNormalCheckCh <- true
 			}()
 		case <-detailedCheckCh:
 			go func() {
@@ -633,6 +645,94 @@ func setupInitialize(targetHost string, initialize chan bool) {
 	}(targetHost)
 }
 
+// 適当なユーザー名でログインしようとする
+// ログインできないことをチェック
+func checkCannotLoginNonexistentUser(s *checker.Session) {
+	fakeAccountName := util.RandomLUNStr(util.RandomNumber(15) + 10)
+	fakeUser := map[string]string{
+		"account_name": fakeAccountName,
+		"password":     fakeAccountName,
+	}
+
+	a := checker.NewAction("POST", "/login")
+	a.ExpectedLocation = "/login"
+	a.PostData = fakeUser
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		message := strings.TrimSpace(doc.Find(`#notice-message`).Text())
+		if message != "アカウント名かパスワードが間違っています" {
+			return fmt.Errorf("flashが表示されていません")
+		}
+		return nil
+	}
+
+	a.Play(s)
+}
+
+// 誤ったパスワードでログインできない
+func checkCannotLoginWrongPassword(s *checker.Session, users []user) {
+	fakeUser := map[string]string{
+		"account_name": users[util.RandomNumber(len(users))].AccountName,
+		"password":     util.RandomLUNStr(util.RandomNumber(15) + 10),
+	}
+
+	a := checker.NewAction("POST", "/login")
+	a.ExpectedLocation = "/login"
+	a.PostData = fakeUser
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		message := strings.TrimSpace(doc.Find(`#notice-message`).Text())
+		if message != "アカウント名かパスワードが間違っています" {
+			return fmt.Errorf("flashが表示されていません")
+		}
+		return nil
+	}
+
+	a.Play(s)
+}
+
+// 管理者ユーザーでないなら /admin/banned にアクセスできない
+func checkCannotAccessAdmin(s *checker.Session, users []user) {
+	login := genActionLogin()
+
+	u := users[util.RandomNumber(len(users))]
+	login.PostData = map[string]string{
+		"account_name": u.AccountName,
+		"password":     u.Password,
+	}
+	login.Play(s)
+
+	a := checker.NewAction("GET", "/admin/banned")
+	a.ExpectedStatusCode = http.StatusForbidden
+
+	a.Play(s)
+}
+
+// CSRF Tokenを適当な乱数にする
+func checkCannotPostWrongCSRFToken(s *checker.Session, users []user, images []*checker.Asset) {
+	login := genActionLogin()
+
+	u := users[util.RandomNumber(len(users))]
+	login.PostData = map[string]string{
+		"account_name": u.AccountName,
+		"password":     u.Password,
+	}
+	login.Play(s)
+
+	a := checker.NewUploadAction("POST", "/", "file")
+	a.ExpectedStatusCode = http.StatusForbidden
+	a.Description = "画像を投稿"
+	a.Asset = images[util.RandomNumber(len(images))]
+	a.PostData = map[string]string{
+		"body":       util.RandomLUNStr(25),
+		"csrf_token": util.RandomLUNStr(64),
+		"type":       "image/jpeg",
+	}
+	a.Play(s)
+}
+
 func detailedCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
 	checkToppageNotLogin(checker.NewSession())
 	checkStaticFiles(checker.NewSession())
@@ -670,4 +770,11 @@ func checkPostsMoreAndMore(s *checker.Session) {
 		postsCheck := genActionPostsCheck(maxCreatedAt)
 		postsCheck.Play(s)
 	}
+}
+
+func nonNormalCheck(users []user, images []*checker.Asset) {
+	checkCannotLoginNonexistentUser(checker.NewSession())
+	checkCannotLoginWrongPassword(checker.NewSession(), users)
+	checkCannotAccessAdmin(checker.NewSession(), users)
+	checkCannotPostWrongCSRFToken(checker.NewSession(), users, images)
 }
