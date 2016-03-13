@@ -115,10 +115,12 @@ func (cli *CLI) Run(args []string) int {
 	postsCheckCh := makeChanBool(PostsCheckQueueSize)
 	indexCheckCh := makeChanBool(IndexCheckQueueSize)
 	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
+	nonNormalCheckCh := makeChanBool(2)
 
 	timeoutCh := time.After(BenchmarkTimeout)
 
 	iInterval := time.Tick(10 * time.Second)
+	nInterval := time.Tick(10 * time.Second)
 
 L:
 	for {
@@ -133,6 +135,12 @@ L:
 				checkIndex(checker.NewSession())
 				<-iInterval
 				indexCheckCh <- true
+			}()
+		case <-nonNormalCheckCh:
+			go func() {
+				nonNormalCheck(users)
+				<-nInterval
+				nonNormalCheckCh <- true
 			}()
 		case <-detailedCheckCh:
 			go func() {
@@ -661,6 +669,29 @@ func checkCannotLoginNonexistentUser(s *checker.Session) {
 	a.Play(s)
 }
 
+// 誤ったパスワードでログインできない
+func checkCannotLoginWrongPassword(s *checker.Session, users []user) {
+	fakeUser := map[string]string{
+		"account_name": users[util.RandomNumber(len(users))].AccountName,
+		"password":     util.RandomLUNStr(util.RandomNumber(15) + 10),
+	}
+
+	a := checker.NewAction("POST", "/login")
+	a.ExpectedLocation = "/login"
+	a.PostData = fakeUser
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		message := strings.TrimSpace(doc.Find(`#notice-message`).Text())
+		if message != "アカウント名かパスワードが間違っています" {
+			return fmt.Errorf("flashが表示されていません")
+		}
+		return nil
+	}
+
+	a.Play(s)
+}
+
 func detailedCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
 	checkToppageNotLogin(checker.NewSession())
 	checkStaticFiles(checker.NewSession())
@@ -700,6 +731,7 @@ func checkPostsMoreAndMore(s *checker.Session) {
 	}
 }
 
-func nonNormalCheck() {
+func nonNormalCheck(users []user) {
 	checkCannotLoginNonexistentUser(checker.NewSession())
+	checkCannotLoginWrongPassword(checker.NewSession(), users)
 }
