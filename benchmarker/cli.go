@@ -31,6 +31,7 @@ const (
 	BenchmarkTimeout       = 30 * time.Second
 	DetailedCheckQueueSize = 2
 	PostsCheckQueueSize    = 2
+	IndexCheckQueueSize    = 20
 
 	PostsPerPage = 20
 )
@@ -115,6 +116,10 @@ func (cli *CLI) Run(args []string) int {
 	for i := 0; i < PostsCheckQueueSize; i++ {
 		postsCheckCh <- true
 	}
+	indexCheckCh := make(chan bool, IndexCheckQueueSize)
+	for i := 0; i < IndexCheckQueueSize; i++ {
+		indexCheckCh <- true
+	}
 	detailedCheckCh := make(chan bool, DetailedCheckQueueSize)
 	for i := 0; i < DetailedCheckQueueSize; i++ {
 		detailedCheckCh <- true
@@ -129,6 +134,11 @@ L:
 			go func() {
 				checkPostsMoreAndMore(checker.NewSession())
 				postsCheckCh <- true
+			}()
+		case <-indexCheckCh:
+			go func() {
+				checkIndex(checker.NewSession())
+				indexCheckCh <- true
 			}()
 		case <-detailedCheckCh:
 			go func() {
@@ -265,6 +275,13 @@ func checkToppageNotLogin(s *checker.Session) {
 	indexNotLogin.Play(s)
 }
 
+// インデックスページとAssetと画像にアクセスして負荷かける君
+func checkIndex(s *checker.Session) {
+	indexAndImagesNotLogin := genActionIndexAndImagesNotLogin()
+	indexAndImagesNotLogin.Play(s)
+	checkStaticFiles(s)
+}
+
 // 非ログインで/にアクセスして、ユーザー名が出ていないことを確認
 func genActionIndexNotLogin() *checker.Action {
 	a := checker.NewAction("GET", "/")
@@ -295,21 +312,17 @@ func genActionIndexAndImagesNotLogin() *checker.Action {
 	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
-		imageRequestCount := 0
-		maxImageRequest := 15
-		doc.Find("img").EachWithBreak(func(_ int, selection *goquery.Selection) bool {
+		imgCnt := doc.Find("img").Each(func(_ int, selection *goquery.Selection) {
 			url, _ := selection.Attr("src")
-			imgReq := checker.NewAssetAction(url, &checker.Asset{})
+			imgReq := checker.NewAction("GET", url)
 			imgReq.Play(s)
-			if imageRequestCount > maxImageRequest {
-				return false
-			} else {
-				imageRequestCount += 1
-				return true
-			}
-		})
+		}).Length()
 
+		if imgCnt < PostsPerPage {
+			return errors.New("1ページに表示される画像の数が足りません")
+		}
 		return nil
+
 	}
 
 	return a
