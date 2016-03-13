@@ -636,6 +636,31 @@ func setupInitialize(targetHost string, initialize chan bool) {
 	}(targetHost)
 }
 
+// 適当なユーザー名でログインしようとする
+// ログインできないことをチェック
+func checkCannotLoginNonexistentUser(s *checker.Session) {
+	fakeAccountName := util.RandomLUNStr(util.RandomNumber(15) + 10)
+	fakeUser := map[string]string{
+		"account_name": fakeAccountName,
+		"password":     fakeAccountName,
+	}
+
+	a := checker.NewAction("POST", "/login")
+	a.ExpectedLocation = "/login"
+	a.PostData = fakeUser
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		message := strings.TrimSpace(doc.Find(`#notice-message`).Text())
+		if message != "アカウント名かパスワードが間違っています" {
+			return fmt.Errorf("flashが表示されていません")
+		}
+		return nil
+	}
+
+	a.Play(s)
+}
+
 func detailedCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
 	checkToppageNotLogin(checker.NewSession())
 	checkStaticFiles(checker.NewSession())
@@ -673,4 +698,8 @@ func checkPostsMoreAndMore(s *checker.Session) {
 		postsCheck := genActionPostsCheck(maxCreatedAt)
 		postsCheck.Play(s)
 	}
+}
+
+func nonNormalCheck() {
+	checkCannotLoginNonexistentUser(checker.NewSession())
 }
