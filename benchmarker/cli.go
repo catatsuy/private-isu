@@ -26,12 +26,13 @@ const (
 	ExitCodeOK    int = 0
 	ExitCodeError int = 1 + iota
 
-	FailThreshold          = 5
-	InitializeTimeout      = time.Duration(10) * time.Second
-	BenchmarkTimeout       = 30 * time.Second
-	DetailedCheckQueueSize = 2
-	PostsCheckQueueSize    = 2
-	IndexCheckQueueSize    = 20
+	FailThreshold           = 5
+	InitializeTimeout       = time.Duration(10) * time.Second
+	BenchmarkTimeout        = 30 * time.Second
+	DetailedCheckQueueSize  = 2
+	PostsCheckQueueSize     = 2
+	IndexCheckQueueSize     = 20
+	NonNormalCheckQueueSize = 2
 
 	PostsPerPage = 20
 )
@@ -115,7 +116,7 @@ func (cli *CLI) Run(args []string) int {
 	postsCheckCh := makeChanBool(PostsCheckQueueSize)
 	indexCheckCh := makeChanBool(IndexCheckQueueSize)
 	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
-	nonNormalCheckCh := makeChanBool(2)
+	nonNormalCheckCh := makeChanBool(NonNormalCheckQueueSize)
 
 	timeoutCh := time.After(BenchmarkTimeout)
 
