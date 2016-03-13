@@ -692,6 +692,23 @@ func checkCannotLoginWrongPassword(s *checker.Session, users []user) {
 	a.Play(s)
 }
 
+// 管理者ユーザーでないなら /admin/banned にアクセスできない
+func checkCannotAccessAdmin(s *checker.Session, users []user) {
+	login := genActionLogin()
+
+	u := users[util.RandomNumber(len(users))]
+	login.PostData = map[string]string{
+		"account_name": u.AccountName,
+		"password":     u.Password,
+	}
+	login.Play(s)
+
+	a := checker.NewAction("GET", "/admin/banned")
+	a.ExpectedStatusCode = http.StatusForbidden
+
+	a.Play(s)
+}
+
 func detailedCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
 	checkToppageNotLogin(checker.NewSession())
 	checkStaticFiles(checker.NewSession())
@@ -734,4 +751,5 @@ func checkPostsMoreAndMore(s *checker.Session) {
 func nonNormalCheck(users []user) {
 	checkCannotLoginNonexistentUser(checker.NewSession())
 	checkCannotLoginWrongPassword(checker.NewSession(), users)
+	checkCannotAccessAdmin(checker.NewSession(), users)
 }
