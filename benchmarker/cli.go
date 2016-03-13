@@ -112,18 +112,9 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeError
 	}
 
-	postsCheckCh := make(chan bool, PostsCheckQueueSize)
-	for i := 0; i < PostsCheckQueueSize; i++ {
-		postsCheckCh <- true
-	}
-	indexCheckCh := make(chan bool, IndexCheckQueueSize)
-	for i := 0; i < IndexCheckQueueSize; i++ {
-		indexCheckCh <- true
-	}
-	detailedCheckCh := make(chan bool, DetailedCheckQueueSize)
-	for i := 0; i < DetailedCheckQueueSize; i++ {
-		detailedCheckCh <- true
-	}
+	postsCheckCh := makeChanBool(PostsCheckQueueSize)
+	indexCheckCh := makeChanBool(IndexCheckQueueSize)
+	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
 
 	timeoutCh := time.After(BenchmarkTimeout)
 
@@ -174,6 +165,14 @@ L:
 	}
 
 	return ExitCodeOK
+}
+
+func makeChanBool(len int) chan bool {
+	ch := make(chan bool, len)
+	for i := 0; i < len; i++ {
+		ch <- true
+	}
+	return ch
 }
 
 func prepareUserdata(userdata string) ([]user, []user, []string, []*checker.Asset, error) {
