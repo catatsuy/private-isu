@@ -278,7 +278,6 @@ func genActionUserpageNotLogin(accountName string) *checker.Action {
 // その後、同じセッションを使い回して/にアクセス
 // 画像のキャッシュにSet-Cookieを含んでいた場合、/にアカウント名が含まれる
 func checkToppageNotLogin(s *checker.Session) {
-
 	indexAndImagesNotLogin := genActionIndexAndImagesNotLogin()
 	indexNotLogin := genActionIndexNotLogin()
 
@@ -286,11 +285,14 @@ func checkToppageNotLogin(s *checker.Session) {
 	indexNotLogin.Play(s)
 }
 
-// インデックスページとAssetと画像にアクセスして負荷かける君
+// インデックスページとAssetと画像と投稿単体ページにアクセスして負荷かける君
 func checkIndex(s *checker.Session) {
 	indexAndImagesNotLogin := genActionIndexAndImagesNotLogin()
 	indexAndImagesNotLogin.Play(s)
 	checkStaticFiles(s)
+
+	indexAndPostNotLogin := genActionIndexAndPostsNotLogin()
+	indexAndPostNotLogin.Play(s)
 }
 
 // 非ログインで/にアクセスして、ユーザー名が出ていないことを確認
@@ -334,6 +336,25 @@ func genActionIndexAndImagesNotLogin() *checker.Action {
 		}
 		return nil
 
+	}
+
+	return a
+}
+
+// TOPページに非ログイン状態でアクセスして投稿単体ページにリクエスト
+func genActionIndexAndPostsNotLogin() *checker.Action {
+	a := checker.NewAction("GET", "/")
+	a.ExpectedStatusCode = http.StatusOK
+	a.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		doc.Find(".isu-post-permalink").Each(func(_ int, selection *goquery.Selection) {
+			url, _ := selection.Attr("href")
+			postPageReq := checker.NewAction("GET", url)
+			postPageReq.Play(s)
+		})
+
+		return nil
 	}
 
 	return a
