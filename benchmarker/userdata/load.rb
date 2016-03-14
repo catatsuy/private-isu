@@ -54,7 +54,7 @@ end
 
 puts "users"
 
-query = db.prepare('INSERT INTO users (`id`,`account_name`,`passhash`,`authority`,`created_at`) VALUES (?,?,?,?,?)')
+query = db.prepare('INSERT INTO users (`id`,`account_name`,`passhash`,`authority`,`del_flg`,`created_at`) VALUES (?,?,?,?,?,?)')
 open('names.txt') do |f|
   f.each_line.with_index(1) do |line,i|
     account_name = line.chomp
@@ -63,9 +63,12 @@ open('names.txt') do |f|
     passhash = calculate_passhash(password, account_name)
 
     authority = i < 10 ? 1 : 0
+    del_flg = (i >= 10) && (i % 50 == 0)
     created_at = DateTime.parse('2016-01-01 00:00:00') + (1.to_r / 24 / 60 / 60 * i) # 毎秒1アカウント作られたことにする
 
-    query.execute(i, account_name, passhash, authority, created_at.to_time)
+    query.execute(i, account_name, passhash, authority, del_flg, created_at.to_time)
+
+    p i if i % 20 == 0
   end
 end
 
