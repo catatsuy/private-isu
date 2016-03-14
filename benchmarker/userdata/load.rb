@@ -37,7 +37,10 @@ db.query_options.merge!(symbolize_keys: true)
 
 
 puts "schema.sqlを読み込む"
-db.query(File.read('../sql/schema.sql'))
+File.read('../sql/schema.sql').split(';').each do |sql|
+  puts sql
+  db.query(sql) unless sql.strip == ''
+end
 
 
 #CREATE TABLE IF NOT EXISTS users (
