@@ -104,7 +104,7 @@ func (cli *CLI) Run(args []string) int {
 
 	setupInitialize(targetHost, initialize)
 
-	users, adminUsers, sentences, images, err := prepareUserdata(userdata)
+	users, bannedUsers, adminUsers, sentences, images, err := prepareUserdata(userdata)
 	if err != nil {
 		fmt.Println(err.Error())
 		return ExitCodeError
@@ -113,7 +113,7 @@ func (cli *CLI) Run(args []string) int {
 	<-initialize
 
 	// 最初にDOMチェックなどをやってしまい、通らなければさっさと失敗させる
-	detailedCheck(users, adminUsers, sentences, images)
+	detailedCheck(users, bannedUsers, adminUsers, sentences, images)
 
 	if score.GetInstance().GetFails() > 0 {
 		msg := ""
@@ -165,7 +165,7 @@ L:
 			}()
 		case <-detailedCheckCh:
 			go func() {
-				detailedCheck(users, adminUsers, sentences, images)
+				detailedCheck(users, bannedUsers, adminUsers, sentences, images)
 				detailedCheckCh <- true
 			}()
 		case <-timeoutCh:
@@ -219,36 +219,43 @@ func makeChanBool(len int) chan bool {
 	return ch
 }
 
-func prepareUserdata(userdata string) ([]user, []user, []string, []*checker.Asset, error) {
+func prepareUserdata(userdata string) ([]user, []user, []user, []string, []*checker.Asset, error) {
 	if userdata == "" {
-		return nil, nil, nil, nil, errors.New("userdataディレクトリが指定されていません")
+		return nil, nil, nil, nil, nil, errors.New("userdataディレクトリが指定されていません")
 	}
 	info, err := os.Stat(userdata)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	if !info.IsDir() {
-		return nil, nil, nil, nil, errors.New("userdataがディレクトリではありません")
+		return nil, nil, nil, nil, nil, errors.New("userdataがディレクトリではありません")
 	}
 
 	file, err := os.Open(userdata + "/names.txt")
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	defer file.Close()
 
 	users := []user{}
+	bannedUsers := []user{}
 
 	scanner := bufio.NewScanner(file)
+	i := 1
 	for scanner.Scan() {
 		name := scanner.Text()
-		users = append(users, user{AccountName: name, Password: name + name})
+		if i%50 == 0 { // 50で割れる場合はbanされたユーザー
+			bannedUsers = append(users, user{AccountName: name, Password: name + name})
+		} else {
+			users = append(users, user{AccountName: name, Password: name + name})
+		}
+		i++
 	}
 	adminUsers := users[:10]
 
 	sentenceFile, err := os.Open(userdata + "/kaomoji.txt")
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 	defer sentenceFile.Close()
 
@@ -262,7 +269,7 @@ func prepareUserdata(userdata string) ([]user, []user, []string, []*checker.Asse
 
 	imgs, err := filepath.Glob(userdata + "/img/000*") // 00001.jpg, 00002.png, 00003.gif など
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, nil, nil, err
 	}
 
 	images := []*checker.Asset{}
@@ -270,7 +277,7 @@ func prepareUserdata(userdata string) ([]user, []user, []string, []*checker.Asse
 	for _, img := range imgs {
 		data, err := ioutil.ReadFile(img)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, nil, nil, nil, nil, err
 		}
 		images = append(images, &checker.Asset{
 			MD5:  util.GetMD5(data),
@@ -278,7 +285,7 @@ func prepareUserdata(userdata string) ([]user, []user, []string, []*checker.Asse
 		})
 	}
 
-	return users, adminUsers, sentences, images, err
+	return users, bannedUsers, adminUsers, sentences, images, err
 }
 
 func checkUserpageNotLogin(s *checker.Session, users []user) {
@@ -786,7 +793,7 @@ func checkCannotPostWrongCSRFToken(s *checker.Session, users []user, images []*c
 	a.Play(s)
 }
 
-func detailedCheck(users []user, adminUsers []user, sentences []string, images []*checker.Asset) {
+func detailedCheck(users []user, bannedUsers []user, adminUsers []user, sentences []string, images []*checker.Asset) {
 	checkToppageNotLogin(checker.NewSession())
 	checkStaticFiles(checker.NewSession())
 	checkUserpageNotLogin(checker.NewSession(), users)
