@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -47,6 +48,14 @@ type CLI struct {
 type user struct {
 	AccountName string
 	Password    string
+}
+
+type Output struct {
+	Pass    bool   `json:"pass"`
+	Score   int64  `json:"score"`
+	Suceess int64  `json:"success"`
+	Fail    int64  `json:"fail"`
+	Message string `json:"message"`
 }
 
 // Run invokes the CLI with the given arguments.
@@ -153,30 +162,42 @@ L:
 		}
 	}
 
-	fmt.Printf("score: %d, suceess: %d, fail: %d\n",
-		score.GetInstance().GetScore(),
-		score.GetInstance().GetSucesses(),
-		score.GetInstance().GetFails(),
-	)
+	msg := ""
 
 	if !debug {
 		// 通常は適当にsortしてuniqしたログを出す
 		for _, err := range score.GetFailErrors() {
-			fmt.Println(err.Error())
+			msg += fmt.Sprintln(err.Error())
 		}
 	} else {
 		// debugモードなら生ログを出力
 		for _, err := range score.GetFailRawErrors() {
-			fmt.Println(err.Error())
+			msg += fmt.Sprintln(err.Error())
 		}
 	}
 
+	exit := ExitCodeOK
+	pass := true
+
 	// Failが多い場合はステータスコードを非0にする
 	if score.GetInstance().GetFails() >= FailThreshold {
-		return ExitCodeError
+		exit = ExitCodeError
+		pass = false
 	}
 
-	return ExitCodeOK
+	output := Output{
+		Pass:    pass,
+		Score:   score.GetInstance().GetScore(),
+		Suceess: score.GetInstance().GetSucesses(),
+		Fail:    score.GetInstance().GetFails(),
+		Message: msg,
+	}
+
+	b, _ := json.Marshal(output)
+
+	fmt.Printf("%s\n", string(b))
+
+	return exit
 }
 
 func makeChanBool(len int) chan bool {
