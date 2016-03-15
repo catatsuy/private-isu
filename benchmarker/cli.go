@@ -116,9 +116,20 @@ func (cli *CLI) Run(args []string) int {
 	detailedCheck(users, adminUsers, sentences, images)
 
 	if score.GetInstance().GetFails() > 0 {
+		msg := ""
 		for _, err := range score.GetFailErrors() {
-			fmt.Println(err.Error())
+			msg += fmt.Sprintln(err.Error())
 		}
+		output := Output{
+			Pass:    false,
+			Score:   score.GetInstance().GetScore(),
+			Suceess: score.GetInstance().GetSucesses(),
+			Fail:    score.GetInstance().GetFails(),
+			Message: msg,
+		}
+		b, _ := json.Marshal(output)
+
+		fmt.Println(string(b))
 		return ExitCodeError
 	}
 
@@ -195,7 +206,7 @@ L:
 
 	b, _ := json.Marshal(output)
 
-	fmt.Printf("%s\n", string(b))
+	fmt.Println(string(b))
 
 	return exit
 }
