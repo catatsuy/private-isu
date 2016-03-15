@@ -37,7 +37,10 @@ db.query_options.merge!(symbolize_keys: true)
 
 
 puts "schema.sqlを読み込む"
-db.query(File.read('../sql/schema.sql'))
+File.read('../sql/schema.sql').split(';').each do |sql|
+  puts sql
+  db.query(sql) unless sql.strip == ''
+end
 
 
 #CREATE TABLE IF NOT EXISTS users (
@@ -51,7 +54,7 @@ db.query(File.read('../sql/schema.sql'))
 
 puts "users"
 
-query = db.prepare('INSERT INTO users (`id`,`account_name`,`passhash`,`authority`,`created_at`) VALUES (?,?,?,?,?)')
+query = db.prepare('INSERT INTO users (`id`,`account_name`,`passhash`,`authority`,`del_flg`,`created_at`) VALUES (?,?,?,?,?,?)')
 open('names.txt') do |f|
   f.each_line.with_index(1) do |line,i|
     account_name = line.chomp
@@ -60,9 +63,12 @@ open('names.txt') do |f|
     passhash = calculate_passhash(password, account_name)
 
     authority = i < 10 ? 1 : 0
+    del_flg = (i >= 10) && (i % 50 == 0)
     created_at = DateTime.parse('2016-01-01 00:00:00') + (1.to_r / 24 / 60 / 60 * i) # 毎秒1アカウント作られたことにする
 
-    query.execute(i, account_name, passhash, authority, created_at.to_time)
+    query.execute(i, account_name, passhash, authority, del_flg, created_at.to_time)
+
+    p i if i % 20 == 0
   end
 end
 
