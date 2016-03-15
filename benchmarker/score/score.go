@@ -5,8 +5,8 @@ import "sync"
 type Score struct {
 	sync.RWMutex
 	score    int64
-	sucesses int32
-	fails    int32
+	sucesses int64
+	fails    int64
 }
 
 var instance *Score
@@ -31,14 +31,14 @@ func (s *Score) GetScore() int64 {
 	return score
 }
 
-func (s *Score) GetSucesses() int32 {
+func (s *Score) GetSucesses() int64 {
 	s.RLock()
 	sucesses := s.sucesses
 	s.RUnlock()
 	return sucesses
 }
 
-func (s *Score) GetFails() int32 {
+func (s *Score) GetFails() int64 {
 	s.RLock()
 	fails := s.fails
 	s.RUnlock()
