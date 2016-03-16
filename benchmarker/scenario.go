@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net/http"
 	"net/url"
 	"time"
 
@@ -60,13 +59,6 @@ func loadAssets(s *checker.Session) {
 // / にリクエストしてもっと見るを10ページ辿る
 // 負荷をかけられればいいので
 func indexMoreAndMoreScenario(s *checker.Session) {
-	index := checker.NewAction("GET", "/")
-	index.ExpectedStatusCode = http.StatusOK
-	index.ExpectedLocation = "/"
-	index.Description = "インデックスページ"
-
-	loadAssets(s)
-
 	imageUrls := []string{}
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
@@ -82,19 +74,22 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 		return nil
 	}
 
+	index := checker.NewAction("GET", "/")
+	index.ExpectedLocation = "/"
+	index.Description = "インデックスページ"
 	index.CheckFunc = imagePerPageChecker
 	index.Play(s)
 
+	loadAssets(s)
 	loadImages(s, imageUrls)
 
 	offset := util.RandomNumber(10) // 10は適当。URLをバラけさせるため
 	for i := 0; i < 10; i++ {       // 10ページ辿る
 		maxCreatedAt := time.Date(2016, time.January, 2, 11, 46, 21-PostsPerPage*i+offset, 0, time.FixedZone("Asia/Tokyo", 9*60*60))
 
+		imageUrls = []string{}
 		posts := checker.NewAction("GET", "/posts?max_created_at="+url.QueryEscape(maxCreatedAt.Format(time.RFC3339)))
 		posts.Description = "インデックスページの「もっと見る」"
-
-		imageUrls = []string{}
 		posts.CheckFunc = imagePerPageChecker
 		posts.Play(s)
 
