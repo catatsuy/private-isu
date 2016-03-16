@@ -149,7 +149,7 @@ L:
 			}()
 		case <-indexCheckCh:
 			go func() {
-				checkIndex(checker.NewSession())
+				loadIndexScenario(checker.NewSession())
 				<-iInterval
 				indexCheckCh <- true
 			}()

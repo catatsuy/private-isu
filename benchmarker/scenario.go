@@ -96,3 +96,40 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 		loadImages(s, imageUrls)
 	}
 }
+
+// インデックスページを5回表示するだけ（負荷かける用）
+func loadIndexScenario(s *checker.Session) {
+	imageUrls := []string{}
+	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		imgCnt := doc.Find("img").Each(func(_ int, selection *goquery.Selection) {
+			url, _ := selection.Attr("src")
+			imageUrls = append(imageUrls, url)
+		}).Length()
+
+		if imgCnt < PostsPerPage {
+			return errors.New("1ページに表示される画像の数が足りません")
+		}
+		return nil
+	}
+
+	index := checker.NewAction("GET", "/")
+	index.ExpectedLocation = "/"
+	index.Description = "インデックスページ"
+	index.CheckFunc = imagePerPageChecker
+	index.Play(s)
+
+	loadAssets(s)
+	loadImages(s, imageUrls)
+
+	for i := 0; i < 4; i++ {
+		// あとの4回はDOMをパースしない。トップページをキャッシュして超高速に返されたとき対策
+		index := checker.NewAction("GET", "/")
+		index.ExpectedLocation = "/"
+		index.Description = "インデックスページ"
+
+		loadAssets(s)
+		loadImages(s, imageUrls) // 画像は初回と同じものにリクエスト投げる
+	}
+}
