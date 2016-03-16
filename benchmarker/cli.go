@@ -144,7 +144,7 @@ L:
 		select {
 		case <-postsCheckCh:
 			go func() {
-				checkPostsMoreAndMore(checker.NewSession())
+				indexMoreAndMoreScenario(checker.NewSession())
 				postsCheckCh <- true
 			}()
 		case <-indexCheckCh:
