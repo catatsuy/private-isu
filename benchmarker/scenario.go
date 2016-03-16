@@ -23,6 +23,22 @@ func loadImages(s *checker.Session, imageUrls []string) {
 	}
 }
 
+func extractImages(body io.Reader) ([]string, error) {
+	imageUrls := []string{}
+
+	doc, err := goquery.NewDocumentFromReader(body)
+	if err != nil {
+		return nil, errors.New("ページが正しく読み込めませんでした")
+	}
+
+	doc.Find("img").Each(func(_ int, selection *goquery.Selection) {
+		url, _ := selection.Attr("src")
+		imageUrls = append(imageUrls, url)
+	}).Length()
+
+	return imageUrls, nil
+}
+
 // 普通のページに表示されるべき静的ファイルに一通りアクセス
 func loadAssets(s *checker.Session) {
 	a := checker.NewAssetAction("/favicon.ico", &checker.Asset{})
@@ -59,16 +75,14 @@ func loadAssets(s *checker.Session) {
 // / にリクエストしてもっと見るを10ページ辿る
 // 負荷をかけられればいいので
 func indexMoreAndMoreScenario(s *checker.Session) {
-	imageUrls := []string{}
+	var imageUrls []string
+
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-
-		imgCnt := doc.Find("img").Each(func(_ int, selection *goquery.Selection) {
-			url, _ := selection.Attr("src")
-			imageUrls = append(imageUrls, url)
-		}).Length()
-
-		if imgCnt < PostsPerPage {
+		imageUrls, err := extractImages(body)
+		if err != nil {
+			return err
+		}
+		if len(imageUrls) < PostsPerPage {
 			return errors.New("1ページに表示される画像の数が足りません")
 		}
 		return nil
@@ -99,16 +113,14 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 
 // インデックスページを5回表示するだけ（負荷かける用）
 func loadIndexScenario(s *checker.Session) {
-	imageUrls := []string{}
+	var imageUrls []string
+
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
-		doc, _ := goquery.NewDocumentFromReader(body)
-
-		imgCnt := doc.Find("img").Each(func(_ int, selection *goquery.Selection) {
-			url, _ := selection.Attr("src")
-			imageUrls = append(imageUrls, url)
-		}).Length()
-
-		if imgCnt < PostsPerPage {
+		imageUrls, err := extractImages(body)
+		if err != nil {
+			return err
+		}
+		if len(imageUrls) < PostsPerPage {
 			return errors.New("1ページに表示される画像の数が足りません")
 		}
 		return nil
