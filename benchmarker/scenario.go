@@ -18,7 +18,7 @@ import (
 func loadImages(s *checker.Session, imageUrls []string) {
 	for _, url := range imageUrls {
 		imgReq := checker.NewAssetAction(url, &checker.Asset{})
-		imgReq.Description = "投稿画像"
+		imgReq.Description = "投稿画像を読み込めること"
 		imgReq.Play(s)
 	}
 }
@@ -68,32 +68,32 @@ func extractImagesAndPostLinks(body io.Reader) ([]string, []string, error) {
 func loadAssets(s *checker.Session) {
 	a := checker.NewAssetAction("/favicon.ico", &checker.Asset{})
 	a.ExpectedLocation = "/favicon.ico"
-	a.Description = "favicon.ico"
+	a.Description = "faviconが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("js/jquery-2.2.0.js", &checker.Asset{})
 	a.ExpectedLocation = "js/jquery-2.2.0.js"
-	a.Description = "js/jquery-2.2.0.js"
+	a.Description = "jqueryが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("js/jquery.timeago.js", &checker.Asset{})
 	a.ExpectedLocation = "js/jquery.timeago.js"
-	a.Description = "js/jquery.timeago.js"
+	a.Description = "jquery.timeago.jsが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("js/jquery.timeago.ja.js", &checker.Asset{})
 	a.ExpectedLocation = "js/jquery.timeago.ja.js"
-	a.Description = "js/jquery.timeago.ja.js"
+	a.Description = "jquery.timeago.ja.jsが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("/js/main.js", &checker.Asset{})
 	a.ExpectedLocation = "/js/main.js"
-	a.Description = "js/main.js"
+	a.Description = "main.jsが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("/css/style.css", &checker.Asset{})
 	a.ExpectedLocation = "/css/style.css"
-	a.Description = "/css/style.css"
+	a.Description = "style.cssが読み込めること"
 	a.Play(s)
 }
 
@@ -117,7 +117,7 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 
 	index := checker.NewAction("GET", "/")
 	index.ExpectedLocation = "/"
-	index.Description = "インデックスページ"
+	index.Description = "インデックスページが表示できること"
 	index.CheckFunc = imagePerPageChecker
 	index.Play(s)
 
@@ -130,7 +130,7 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 
 		imageUrls = []string{}
 		posts := checker.NewAction("GET", "/posts?max_created_at="+url.QueryEscape(maxCreatedAt.Format(time.RFC3339)))
-		posts.Description = "インデックスページの「もっと見る」"
+		posts.Description = "インデックスページの「もっと見る」が表示できること"
 		posts.CheckFunc = imagePerPageChecker
 		posts.Play(s)
 
@@ -162,7 +162,7 @@ func loadIndexScenario(s *checker.Session) {
 
 	index := checker.NewAction("GET", "/")
 	index.ExpectedLocation = "/"
-	index.Description = "インデックスページ"
+	index.Description = "インデックスページが表示できること"
 	index.CheckFunc = imagePerPageChecker
 	index.Play(s)
 
@@ -173,7 +173,7 @@ func loadIndexScenario(s *checker.Session) {
 		// あとの4回はDOMをパースしない。トップページをキャッシュして超高速に返されたとき対策
 		index := checker.NewAction("GET", "/")
 		index.ExpectedLocation = "/"
-		index.Description = "インデックスページ"
+		index.Description = "インデックスページが表示できること"
 
 		loadAssets(s)
 		loadImages(s, imageUrls) // 画像は初回と同じものにリクエスト投げる
@@ -208,7 +208,7 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 
 	for _, link := range postLinks {
 		postPage := checker.NewAction("GET", link)
-		postPage.Description = "投稿単体ページ"
+		postPage.Description = "投稿単体ページが表示できること"
 		postPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
 			imageUrls, err = extractImages(body)
 			if err != nil {
@@ -239,7 +239,7 @@ func commentScenario(s *checker.Session, me user, accountName string, sentence s
 
 	login := checker.NewAction("POST", "/login")
 	login.ExpectedLocation = "/"
-	login.Description = "ログインページ"
+	login.Description = "ログインできること"
 	login.PostData = map[string]string{
 		"account_name": me.AccountName,
 		"password":     me.Password,
@@ -247,7 +247,7 @@ func commentScenario(s *checker.Session, me user, accountName string, sentence s
 	login.Play(s)
 
 	userPage := checker.NewAction("GET", "/@"+accountName)
-	userPage.Description = "ユーザーページ"
+	userPage.Description = "ユーザーページが表示できること"
 	userPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
@@ -298,7 +298,7 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 
 	login := checker.NewAction("POST", "/login")
 	login.ExpectedLocation = "/"
-	login.Description = "ログインページ"
+	login.Description = "ログインできること"
 	login.PostData = map[string]string{
 		"account_name": me.AccountName,
 		"password":     me.Password,
@@ -319,7 +319,7 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 	login.Play(s)
 
 	postImage := checker.NewUploadAction("POST", "/", "file")
-	postImage.Description = "画像を投稿してリダイレクトされることを確認"
+	postImage.Description = "画像を投稿してリダイレクトされること"
 	postImage.Asset = image
 
 	postImage.CheckFunc = func(s *checker.Session, body io.Reader) error {
