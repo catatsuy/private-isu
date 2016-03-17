@@ -129,29 +129,33 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeError
 	}
 
-	postsCheckCh := makeChanBool(PostsCheckQueueSize)
-	indexCheckCh := makeChanBool(IndexCheckQueueSize)
+	indexMoreAndMoreScenarioCh := makeChanBool(2)
+	loadIndexScenarioCh := makeChanBool(2)
+	userAndpostPageScenarioCh := makeChanBool(2)
 	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
 	nonNormalCheckCh := makeChanBool(NonNormalCheckQueueSize)
 
 	timeoutCh := time.After(BenchmarkTimeout)
 
-	iInterval := time.Tick(10 * time.Second)
 	nInterval := time.Tick(10 * time.Second)
 
 L:
 	for {
 		select {
-		case <-postsCheckCh:
+		case <-indexMoreAndMoreScenarioCh:
 			go func() {
 				indexMoreAndMoreScenario(checker.NewSession())
-				postsCheckCh <- true
+				indexMoreAndMoreScenarioCh <- true
 			}()
-		case <-indexCheckCh:
+		case <-loadIndexScenarioCh:
 			go func() {
 				loadIndexScenario(checker.NewSession())
-				<-iInterval
-				indexCheckCh <- true
+				loadIndexScenarioCh <- true
+			}()
+		case <-userAndpostPageScenarioCh:
+			go func() {
+				userAndpostPageScenario(checker.NewSession(), users[util.RandomNumber(len(users))].AccountName)
+				userAndpostPageScenarioCh <- true
 			}()
 		case <-nonNormalCheckCh:
 			go func() {

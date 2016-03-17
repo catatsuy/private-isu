@@ -40,6 +40,30 @@ func extractImages(body io.Reader) ([]string, error) {
 	return imageUrls, nil
 }
 
+func extractImagesAndPostLinks(body io.Reader) ([]string, []string, error) {
+	imageUrls := []string{}
+	postLinks := []string{}
+
+	doc, err := goquery.NewDocumentFromReader(body)
+	if err != nil {
+		return nil, nil, errors.New("ページが正しく読み込めませんでした")
+	}
+
+	doc.Find("img.isu-image").Each(func(_ int, selection *goquery.Selection) {
+		if url, ok := selection.Attr("src"); ok {
+			imageUrls = append(imageUrls, url)
+		}
+	}).Length()
+
+	doc.Find("a.isu-post-permalink").Each(func(_ int, selection *goquery.Selection) {
+		if url, ok := selection.Attr("href"); ok {
+			postLinks = append(postLinks, url)
+		}
+	}).Length()
+
+	return imageUrls, postLinks, nil
+}
+
 // 普通のページに表示されるべき静的ファイルに一通りアクセス
 func loadAssets(s *checker.Session) {
 	a := checker.NewAssetAction("/favicon.ico", &checker.Asset{})
@@ -153,6 +177,52 @@ func loadIndexScenario(s *checker.Session) {
 
 		loadAssets(s)
 		loadImages(s, imageUrls) // 画像は初回と同じものにリクエスト投げる
+
+		if time.Now().Sub(start) > 5*time.Second {
+			break
+		}
+	}
+}
+
+// /@:account_name のページにアクセスして投稿ページをいくつか開いていく
+// 5秒たったら問答無用で打ち切る
+func userAndpostPageScenario(s *checker.Session, accountName string) {
+	var imageUrls []string
+	var postLinks []string
+	var err error
+	start := time.Now()
+
+	userPage := checker.NewAction("GET", "/@"+accountName)
+	userPage.Description = "ユーザーページ"
+	userPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		imageUrls, postLinks, err = extractImagesAndPostLinks(body)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	userPage.Play(s)
+
+	loadAssets(s)
+	loadImages(s, imageUrls)
+
+	for _, link := range postLinks {
+		postPage := checker.NewAction("GET", link)
+		postPage.Description = "投稿単体ページ"
+		postPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+			imageUrls, err = extractImages(body)
+			if err != nil {
+				return err
+			}
+			if len(imageUrls) < 1 {
+				return errors.New("投稿単体ページに投稿画像が表示されていません")
+			}
+			return nil
+		}
+		postPage.Play(s)
+
+		loadAssets(s)
+		loadImages(s, imageUrls)
 
 		if time.Now().Sub(start) > 5*time.Second {
 			break
