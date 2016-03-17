@@ -27,8 +27,6 @@ const (
 	InitializeTimeout       = time.Duration(10) * time.Second
 	BenchmarkTimeout        = 30 * time.Second
 	DetailedCheckQueueSize  = 2
-	PostsCheckQueueSize     = 2
-	IndexCheckQueueSize     = 2
 	NonNormalCheckQueueSize = 2
 
 	PostsPerPage = 20
