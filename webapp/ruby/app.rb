@@ -147,6 +147,19 @@ module Isuconp
 
         posts
       end
+
+      def image_url(post)
+        ext = ""
+        if post[:mime] == "image/jpeg"
+          ext = ".jpg"
+        elsif post[:mime] == "image/png"
+          ext = ".png"
+        elsif post[:mime] == "image/gif"
+          ext = ".gif"
+        end
+
+        "/image/#{post[:id]}#{ext}"
+      end
     end
 
     get '/initialize' do
@@ -210,7 +223,7 @@ module Isuconp
     get '/' do
       me = get_session_user()
 
-      results = db.query('SELECT `id`, `user_id`, `body`, `created_at` FROM `posts` ORDER BY `created_at` DESC')
+      results = db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC')
       posts = make_posts(results)
 
       erb :index, layout: :layout, locals: { posts: posts, me: me }
@@ -225,7 +238,7 @@ module Isuconp
         return 404
       end
 
-      results = db.prepare('SELECT `id`, `user_id`, `body`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC').execute(
+      results = db.prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC').execute(
         user[:id]
       )
       posts = make_posts(results)
@@ -254,7 +267,7 @@ module Isuconp
 
     get '/posts' do
       max_created_at = params['max_created_at']
-      results = db.prepare('SELECT `id`, `user_id`, `body`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC').execute(
+      results = db.prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC').execute(
         max_created_at.nil? ? nil : Time.iso8601(max_created_at).localtime
       )
       posts = make_posts(results)
@@ -324,12 +337,18 @@ module Isuconp
       end
     end
 
-    get '/image/:id' do
+    get '/image/:id.:ext' do
       if params[:id].to_i == 0
         return ""
       end
 
       post = db.prepare('SELECT * FROM `posts` WHERE `id` = ?').execute(params[:id].to_i).first
+
+      if (params[:ext] == "jpg" and post[:mime] != "image/jpeg") or
+        (params[:ext] == "png" and post[:mime] != "image/png") or
+        (params[:ext] == "gif" and post[:mime] != "image/gif") then
+        return 404
+      end
 
       headers['Content-Type'] = post[:mime]
       post[:imgdata]
