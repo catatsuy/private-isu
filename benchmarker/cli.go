@@ -158,22 +158,12 @@ L:
 			}()
 		case <-commentScenarioCh:
 			go func() {
-				commentScenario(
-					checker.NewSession(),
-					randomUser(users),
-					randomUser(users).AccountName,
-					randomSentence(sentences),
-				)
+				commentScenario(checker.NewSession(), randomUser(users), randomUser(users).AccountName, randomSentence(sentences))
 				commentScenarioCh <- true
 			}()
 		case <-postImageScenarioCh:
 			go func() {
-				postImageScenario(
-					checker.NewSession(),
-					randomUser(users),
-					randomImage(images),
-					randomSentence(sentences),
-				)
+				postImageScenario(checker.NewSession(), randomUser(users), randomImage(images), randomSentence(sentences))
 				postImageScenarioCh <- true
 			}()
 		case <-nonNormalCheckCh:
