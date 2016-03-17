@@ -76,10 +76,11 @@ func loadAssets(s *checker.Session) {
 // 15秒たったら問答無用で打ち切る
 func indexMoreAndMoreScenario(s *checker.Session) {
 	var imageUrls []string
+	var err error
 	now := time.Now()
 
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
-		imageUrls, err := extractImages(body)
+		imageUrls, err = extractImages(body)
 		if err != nil {
 			return err
 		}
@@ -120,10 +121,11 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 // 15秒たったら問答無用で打ち切る
 func loadIndexScenario(s *checker.Session) {
 	var imageUrls []string
+	var err error
 	now := time.Now()
 
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
-		imageUrls, err := extractImages(body)
+		imageUrls, err = extractImages(body)
 		if err != nil {
 			return err
 		}
