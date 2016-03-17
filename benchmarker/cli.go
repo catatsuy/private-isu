@@ -130,7 +130,7 @@ func (cli *CLI) Run(args []string) int {
 
 	indexMoreAndMoreScenarioCh := makeChanBool(2)
 	loadIndexScenarioCh := makeChanBool(2)
-	userAndpostPageScenarioCh := makeChanBool(2)
+	userAndPostPageScenarioCh := makeChanBool(2)
 	commentScenarioCh := makeChanBool(1)
 	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
 	nonNormalCheckCh := makeChanBool(NonNormalCheckQueueSize)
@@ -152,10 +152,10 @@ L:
 				loadIndexScenario(checker.NewSession())
 				loadIndexScenarioCh <- true
 			}()
-		case <-userAndpostPageScenarioCh:
+		case <-userAndPostPageScenarioCh:
 			go func() {
 				userAndPostPageScenario(checker.NewSession(), users[util.RandomNumber(len(users))].AccountName)
-				userAndpostPageScenarioCh <- true
+				userAndPostPageScenarioCh <- true
 			}()
 		case <-commentScenarioCh:
 			go func() {
