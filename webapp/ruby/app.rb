@@ -344,9 +344,9 @@ module Isuconp
 
       post = db.prepare('SELECT * FROM `posts` WHERE `id` = ?').execute(params[:id].to_i).first
 
-      if (params[:ext] == "jpg" and post[:mime] != "image/jpeg") or
-        (params[:ext] == "png" and post[:mime] != "image/png") or
-        (params[:ext] == "gif" and post[:mime] != "image/gif") then
+      if (params[:ext] == "jpg" && post[:mime] != "image/jpeg") ||
+        (params[:ext] == "png" && post[:mime] != "image/png") ||
+        (params[:ext] == "gif" && post[:mime] != "image/gif")
         return 404
       end
 
