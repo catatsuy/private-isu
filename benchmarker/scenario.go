@@ -186,7 +186,7 @@ func loadIndexScenario(s *checker.Session) {
 
 // /@:account_name のページにアクセスして投稿ページをいくつか開いていく
 // WaitAfterTimeout秒たったら問答無用で打ち切る
-func userAndpostPageScenario(s *checker.Session, accountName string) {
+func userAndPostPageScenario(s *checker.Session, accountName string) {
 	var imageUrls []string
 	var postLinks []string
 	var err error

@@ -153,7 +153,7 @@ L:
 			}()
 		case <-userAndpostPageScenarioCh:
 			go func() {
-				userAndpostPageScenario(checker.NewSession(), users[util.RandomNumber(len(users))].AccountName)
+				userAndPostPageScenario(checker.NewSession(), users[util.RandomNumber(len(users))].AccountName)
 				userAndpostPageScenarioCh <- true
 			}()
 		case <-nonNormalCheckCh:
