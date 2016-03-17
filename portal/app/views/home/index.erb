@@ -1,0 +1,15 @@
+<%= javascript_include_tag '//www.google.com/jsapi', 'chartkick' %>
+
+<h1>Portal</h1>
+
+<div>
+  <p>Waiting: <%= @job_stats[:waiting] %></p>
+  <p>Running: <%= @job_stats[:running] %></p>
+  <p>Finished: <%= @job_stats[:finished] %></p>
+</div>
+
+<%= line_chart @chart_data %>
+
+<div>
+  <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
+</div>
