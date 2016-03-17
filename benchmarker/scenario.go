@@ -72,10 +72,11 @@ func loadAssets(s *checker.Session) {
 	a.Play(s)
 }
 
-// / にリクエストしてもっと見るを10ページ辿る
-// 負荷をかけられればいいので
+// インデックスにリクエストして「もっと見る」を最大10ページ辿る
+// 15秒たったら問答無用で打ち切る
 func indexMoreAndMoreScenario(s *checker.Session) {
 	var imageUrls []string
+	now := time.Now()
 
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
 		imageUrls, err := extractImages(body)
@@ -108,12 +109,18 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 		posts.Play(s)
 
 		loadImages(s, imageUrls)
+
+		if time.Now().Sub(now) > 15*time.Second {
+			break
+		}
 	}
 }
 
 // インデックスページを5回表示するだけ（負荷かける用）
+// 15秒たったら問答無用で打ち切る
 func loadIndexScenario(s *checker.Session) {
 	var imageUrls []string
+	now := time.Now()
 
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
 		imageUrls, err := extractImages(body)
@@ -143,5 +150,9 @@ func loadIndexScenario(s *checker.Session) {
 
 		loadAssets(s)
 		loadImages(s, imageUrls) // 画像は初回と同じものにリクエスト投げる
+
+		if time.Now().Sub(now) > 15*time.Second {
+			break
+		}
 	}
 }
