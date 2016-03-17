@@ -27,9 +27,8 @@ const (
 	InitializeTimeout       = time.Duration(10) * time.Second
 	BenchmarkTimeout        = 30 * time.Second
 	DetailedCheckQueueSize  = 2
-	PostsCheckQueueSize     = 2
-	IndexCheckQueueSize     = 20
 	NonNormalCheckQueueSize = 2
+	WaitAfterTimeout        = 5
 
 	PostsPerPage = 20
 )
@@ -129,29 +128,33 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeError
 	}
 
-	postsCheckCh := makeChanBool(PostsCheckQueueSize)
-	indexCheckCh := makeChanBool(IndexCheckQueueSize)
+	indexMoreAndMoreScenarioCh := makeChanBool(2)
+	loadIndexScenarioCh := makeChanBool(2)
+	userAndpostPageScenarioCh := makeChanBool(2)
 	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
 	nonNormalCheckCh := makeChanBool(NonNormalCheckQueueSize)
 
 	timeoutCh := time.After(BenchmarkTimeout)
 
-	iInterval := time.Tick(10 * time.Second)
 	nInterval := time.Tick(10 * time.Second)
 
 L:
 	for {
 		select {
-		case <-postsCheckCh:
+		case <-indexMoreAndMoreScenarioCh:
 			go func() {
-				checkPostsMoreAndMore(checker.NewSession())
-				postsCheckCh <- true
+				indexMoreAndMoreScenario(checker.NewSession())
+				indexMoreAndMoreScenarioCh <- true
 			}()
-		case <-indexCheckCh:
+		case <-loadIndexScenarioCh:
 			go func() {
-				checkIndex(checker.NewSession())
-				<-iInterval
-				indexCheckCh <- true
+				loadIndexScenario(checker.NewSession())
+				loadIndexScenarioCh <- true
+			}()
+		case <-userAndpostPageScenarioCh:
+			go func() {
+				userAndpostPageScenario(checker.NewSession(), users[util.RandomNumber(len(users))].AccountName)
+				userAndpostPageScenarioCh <- true
 			}()
 		case <-nonNormalCheckCh:
 			go func() {
@@ -170,6 +173,7 @@ L:
 	}
 
 	msgs := []string{}
+	time.Sleep(WaitAfterTimeout)
 
 	if !debug {
 		// 通常は適当にsortしてuniqしたログを出す
