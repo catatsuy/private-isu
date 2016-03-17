@@ -229,3 +229,61 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 		}
 	}
 }
+
+// ログインして /@:account_name のページにアクセスして一番上の投稿にコメントする
+// 簡略化のために画像や静的ファイルへのアクセスはスキップする
+func commentScenario(s *checker.Session, me user, accountName string, sentence string) {
+	var csrfToken string
+	var postID string
+	var ok bool
+
+	login := checker.NewAction("POST", "/login")
+	login.ExpectedLocation = "/"
+	login.Description = "ログインページ"
+	login.PostData = map[string]string{
+		"account_name": me.AccountName,
+		"password":     me.Password,
+	}
+	login.Play(s)
+
+	userPage := checker.NewAction("GET", "/@"+accountName)
+	userPage.Description = "ユーザーページ"
+	userPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, err := goquery.NewDocumentFromReader(body)
+		if err != nil {
+			return errors.New("ページが正しく読み込めませんでした")
+		}
+
+		sel := doc.Find(`div.isu-post`).First()
+
+		if sel.Length() == 0 {
+			return nil // 1枚も投稿が無いユーザー
+		}
+
+		csrfToken, ok = sel.Find(`input[name="csrf_token"]`).First().Attr("value")
+		if !ok {
+			return errors.New("CSRFトークンが取得できません")
+		}
+
+		postID, ok = sel.Find(`input[name="post_id"]`).First().Attr("value")
+		if !ok {
+			return errors.New("post_idが取得できません")
+		}
+
+		return nil
+	}
+	userPage.Play(s)
+
+	if postID == "" {
+		return
+	}
+
+	comment := checker.NewAction("POST", "/comment")
+	comment.ExpectedLocation = "/posts/" + postID
+	comment.PostData = map[string]string{
+		"post_id":    postID,
+		"comment":    sentence,
+		"csrf_token": csrfToken,
+	}
+	comment.Play(s)
+}
