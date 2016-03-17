@@ -287,3 +287,61 @@ func commentScenario(s *checker.Session, me user, accountName string, sentence s
 	}
 	comment.Play(s)
 }
+
+// ログインして画像を投稿する
+// 簡略化のために画像や静的ファイルへのアクセスはスキップする
+func postImageScenario(s *checker.Session, me user, image *checker.Asset, sentence string) {
+	var csrfToken string
+	var imageUrls []string
+	var ok bool
+	var err error
+
+	login := checker.NewAction("POST", "/login")
+	login.ExpectedLocation = "/"
+	login.Description = "ログインページ"
+	login.PostData = map[string]string{
+		"account_name": me.AccountName,
+		"password":     me.Password,
+	}
+	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, err := goquery.NewDocumentFromReader(body)
+		if err != nil {
+			return errors.New("ページが正しく読み込めませんでした")
+		}
+
+		csrfToken, ok = doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+		if !ok {
+			return errors.New("CSRFトークンが取得できません")
+		}
+
+		return nil
+	}
+	login.Play(s)
+
+	postImage := checker.NewUploadAction("POST", "/", "file")
+	postImage.Description = "画像を投稿してリダイレクトされることを確認"
+	postImage.Asset = image
+
+	postImage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		imageUrls, err = extractImages(body)
+		if err != nil {
+			return err
+		}
+		if len(imageUrls) < 1 {
+			return errors.New("投稿した画像が表示されていません")
+		}
+		return nil
+	}
+
+	_, err = postImage.PlayWithURL(s)
+	if err != nil {
+		return // TODO: どういうエラーハンドリングが適切か考える
+	}
+
+	if len(imageUrls) < 1 {
+		return // このケースは上のCheckFuncの中で既にエラーにしてある
+	}
+
+	getImage := checker.NewAssetAction(imageUrls[0], image)
+	getImage.Description = "投稿した画像と一致することを確認"
+}

@@ -132,6 +132,7 @@ func (cli *CLI) Run(args []string) int {
 	loadIndexScenarioCh := makeChanBool(2)
 	userAndPostPageScenarioCh := makeChanBool(2)
 	commentScenarioCh := makeChanBool(1)
+	postImageScenarioCh := makeChanBool(1)
 	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
 	nonNormalCheckCh := makeChanBool(NonNormalCheckQueueSize)
 
@@ -166,6 +167,16 @@ L:
 					sentences[util.RandomNumber(len(sentences))],
 				)
 				commentScenarioCh <- true
+			}()
+		case <-postImageScenarioCh:
+			go func() {
+				postImageScenario(
+					checker.NewSession(),
+					users[util.RandomNumber(len(users))],
+					images[util.RandomNumber(len(images))],
+					sentences[util.RandomNumber(len(sentences))],
+				)
+				postImageScenarioCh <- true
 			}()
 		case <-nonNormalCheckCh:
 			go func() {
