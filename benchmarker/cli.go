@@ -47,11 +47,11 @@ type user struct {
 }
 
 type Output struct {
-	Pass    bool   `json:"pass"`
-	Score   int64  `json:"score"`
-	Suceess int64  `json:"success"`
-	Fail    int64  `json:"fail"`
-	Message string `json:"message"`
+	Pass     bool     `json:"pass"`
+	Score    int64    `json:"score"`
+	Suceess  int64    `json:"success"`
+	Fail     int64    `json:"fail"`
+	Messages []string `json:"messages"`
 }
 
 // Run invokes the CLI with the given arguments.
@@ -112,16 +112,16 @@ func (cli *CLI) Run(args []string) int {
 	detailedCheck(users, bannedUsers, adminUsers, sentences, images)
 
 	if score.GetInstance().GetFails() > 0 {
-		msg := ""
+		msgs := []string{}
 		for _, err := range score.GetFailErrors() {
-			msg += fmt.Sprintln(err.Error())
+			msgs = append(msgs, fmt.Sprint(err.Error()))
 		}
 		output := Output{
-			Pass:    false,
-			Score:   score.GetInstance().GetScore(),
-			Suceess: score.GetInstance().GetSucesses(),
-			Fail:    score.GetInstance().GetFails(),
-			Message: msg,
+			Pass:     false,
+			Score:    score.GetInstance().GetScore(),
+			Suceess:  score.GetInstance().GetSucesses(),
+			Fail:     score.GetInstance().GetFails(),
+			Messages: msgs,
 		}
 		b, _ := json.Marshal(output)
 
@@ -169,17 +169,17 @@ L:
 		}
 	}
 
-	msg := ""
+	msgs := []string{}
 
 	if !debug {
 		// 通常は適当にsortしてuniqしたログを出す
 		for _, err := range score.GetFailErrors() {
-			msg += fmt.Sprintln(err.Error())
+			msgs = append(msgs, fmt.Sprint(err.Error()))
 		}
 	} else {
 		// debugモードなら生ログを出力
 		for _, err := range score.GetFailRawErrors() {
-			msg += fmt.Sprintln(err.Error())
+			msgs = append(msgs, fmt.Sprint(err.Error()))
 		}
 	}
 
@@ -193,11 +193,11 @@ L:
 	}
 
 	output := Output{
-		Pass:    pass,
-		Score:   score.GetInstance().GetScore(),
-		Suceess: score.GetInstance().GetSucesses(),
-		Fail:    score.GetInstance().GetFails(),
-		Message: msg,
+		Pass:     pass,
+		Score:    score.GetInstance().GetScore(),
+		Suceess:  score.GetInstance().GetSucesses(),
+		Fail:     score.GetInstance().GetFails(),
+		Messages: msgs,
 	}
 
 	b, _ := json.Marshal(output)
