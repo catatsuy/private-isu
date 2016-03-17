@@ -31,7 +31,7 @@ func extractImages(body io.Reader) ([]string, error) {
 		return nil, errors.New("ページが正しく読み込めませんでした")
 	}
 
-	doc.Find("img").Each(func(_ int, selection *goquery.Selection) {
+	doc.Find("img.isu-image").Each(func(_ int, selection *goquery.Selection) {
 		url, _ := selection.Attr("src")
 		imageUrls = append(imageUrls, url)
 	}).Length()
