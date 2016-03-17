@@ -77,7 +77,7 @@ func loadAssets(s *checker.Session) {
 func indexMoreAndMoreScenario(s *checker.Session) {
 	var imageUrls []string
 	var err error
-	now := time.Now()
+	start := time.Now()
 
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
 		imageUrls, err = extractImages(body)
@@ -111,7 +111,7 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 
 		loadImages(s, imageUrls)
 
-		if time.Now().Sub(now) > 15*time.Second {
+		if time.Now().Sub(start) > 15*time.Second {
 			break
 		}
 	}
@@ -122,7 +122,7 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 func loadIndexScenario(s *checker.Session) {
 	var imageUrls []string
 	var err error
-	now := time.Now()
+	start := time.Now()
 
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
 		imageUrls, err = extractImages(body)
@@ -153,7 +153,7 @@ func loadIndexScenario(s *checker.Session) {
 		loadAssets(s)
 		loadImages(s, imageUrls) // 画像は初回と同じものにリクエスト投げる
 
-		if time.Now().Sub(now) > 15*time.Second {
+		if time.Now().Sub(start) > 15*time.Second {
 			break
 		}
 	}
