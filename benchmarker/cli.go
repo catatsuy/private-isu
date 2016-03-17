@@ -138,8 +138,6 @@ func (cli *CLI) Run(args []string) int {
 
 	timeoutCh := time.After(BenchmarkTimeout)
 
-	nInterval := time.Tick(10 * time.Second)
-
 L:
 	for {
 		select {
@@ -180,8 +178,11 @@ L:
 			}()
 		case <-nonNormalCheckCh:
 			go func() {
-				nonNormalCheck(users, images)
-				<-nInterval
+				cannotLoginNonexistentUserScenario(checker.NewSession())
+				cannotLoginWrongPasswordScenario(checker.NewSession(), users[util.RandomNumber(len(users))])
+				cannotAccessAdminScenario(checker.NewSession(), users[util.RandomNumber(len(users))])
+				cannotPostWrongCSRFTokenScenario(checker.NewSession(), users[util.RandomNumber(len(users))], images[util.RandomNumber(len(images))])
+				<-time.After(3 * time.Second)
 				nonNormalCheckCh <- true
 			}()
 		case <-detailedCheckCh:

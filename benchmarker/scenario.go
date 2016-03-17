@@ -8,6 +8,10 @@ import (
 
 	"errors"
 
+	"strings"
+
+	"net/http"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/catatsuy/private-isu/benchmarker/checker"
 	"github.com/catatsuy/private-isu/benchmarker/util"
@@ -344,4 +348,95 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 
 	getImage := checker.NewAssetAction(imageUrls[0], image)
 	getImage.Description = "投稿した画像と一致することを確認"
+}
+
+// 適当なユーザー名でログインしようとする
+// ログインできないことをチェック
+func cannotLoginNonexistentUserScenario(s *checker.Session) {
+	fakeAccountName := util.RandomLUNStr(util.RandomNumber(15) + 10)
+	fakeUser := map[string]string{
+		"account_name": fakeAccountName,
+		"password":     fakeAccountName,
+	}
+
+	login := checker.NewAction("POST", "/login")
+	login.Description = "存在しないユーザー名でログインできないこと"
+	login.ExpectedLocation = "/login"
+	login.PostData = fakeUser
+	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		message := strings.TrimSpace(doc.Find(`#notice-message`).Text())
+		if message != "アカウント名かパスワードが間違っています" {
+			return errors.New("ログインエラーメッセージが表示されていません")
+		}
+		return nil
+	}
+
+	login.Play(s)
+}
+
+// 誤ったパスワードでログインできない
+func cannotLoginWrongPasswordScenario(s *checker.Session, me user) {
+	fakeUser := map[string]string{
+		"account_name": me.AccountName,
+		"password":     util.RandomLUNStr(util.RandomNumber(15) + 10),
+	}
+
+	login := checker.NewAction("POST", "/login")
+	login.Description = "間違ったパスワードでログインできないこと"
+	login.ExpectedLocation = "/login"
+	login.PostData = fakeUser
+	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, _ := goquery.NewDocumentFromReader(body)
+
+		message := strings.TrimSpace(doc.Find(`#notice-message`).Text())
+		if message != "アカウント名かパスワードが間違っています" {
+			return errors.New("ログインエラーメッセージが表示されていません")
+		}
+		return nil
+	}
+
+	login.Play(s)
+}
+
+// 管理者ユーザーでないなら /admin/banned にアクセスできない
+func cannotAccessAdminScenario(s *checker.Session, me user) {
+	login := checker.NewAction("POST", "/login")
+	login.ExpectedLocation = "/"
+	login.Description = "Adminユーザーでログインできること"
+
+	login.PostData = map[string]string{
+		"account_name": me.AccountName,
+		"password":     me.Password,
+	}
+	login.Play(s)
+
+	a := checker.NewAction("GET", "/admin/banned")
+	a.ExpectedStatusCode = http.StatusForbidden
+
+	a.Play(s)
+}
+
+// 間違ったCSRF Tokenで画像を投稿できない
+func cannotPostWrongCSRFTokenScenario(s *checker.Session, me user, image *checker.Asset) {
+	login := checker.NewAction("POST", "/login")
+	login.ExpectedLocation = "/"
+	login.Description = "正しくログインできること"
+
+	login.PostData = map[string]string{
+		"account_name": me.AccountName,
+		"password":     me.Password,
+	}
+	login.Play(s)
+
+	postImage := checker.NewUploadAction("POST", "/", "file")
+	postImage.ExpectedStatusCode = http.StatusForbidden
+	postImage.Description = "間違ったCSRFトークンでは画像を投稿できないこと"
+	postImage.Asset = image
+	postImage.PostData = map[string]string{
+		"body":       util.RandomLUNStr(25),
+		"csrf_token": util.RandomLUNStr(64),
+	}
+	postImage.Play(s)
 }
