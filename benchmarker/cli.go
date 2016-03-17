@@ -177,7 +177,7 @@ L:
 			}()
 		case <-detailedCheckCh:
 			go func() {
-				detailedCheck(users, bannedUsers, adminUsers, sentences, images)
+				loginScenario(checker.NewSession(), randomUser(users))
 				detailedCheckCh <- true
 			}()
 		case <-timeoutCh:

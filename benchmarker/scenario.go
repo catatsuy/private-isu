@@ -426,3 +426,61 @@ func cannotPostWrongCSRFTokenScenario(s *checker.Session, me user, image *checke
 	}
 	postImage.Play(s)
 }
+
+// ログインすると右上にアカウント名が出て、ログインしないとアカウント名が出ない
+// 画像のキャッシュにSet-Cookieを含んでいた場合、/にアカウント名が含まれる
+func loginScenario(s *checker.Session, me user) {
+	var imageUrls []string
+
+	login := checker.NewAction("POST", "/login")
+	login.ExpectedLocation = "/"
+	login.Description = "ログインするとユーザー名が表示されること"
+	login.PostData = map[string]string{
+		"account_name": me.AccountName,
+		"password":     me.Password,
+	}
+	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, err := goquery.NewDocumentFromReader(body)
+		if err != nil {
+			return nil, errors.New("ページが正しく読み込めませんでした")
+		}
+
+		imageUrls = extractImages(doc)
+
+		name := doc.Find(`.isu-account-name`).Text()
+		if name == "" {
+			return errors.New("ユーザー名が表示されていません")
+		} else if name != me.AccountName {
+			return errors.New("表示されているユーザー名が正しくありません")
+		}
+		return nil
+	}
+	login.Play(s)
+
+	// TODO: ここまででfailであればこれ以降は進めない
+
+	loadAssets(s)
+	loadImages(s, imageUrls) // この画像へのアクセスでSet-Cookieされてたら失敗する
+
+	logout := checker.NewAction("GET", "/logout")
+	logout.ExpectedLocation = "/"
+	logout.Description = "ログアウトするとユーザー名が表示されないこと"
+	logout.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, err := goquery.NewDocumentFromReader(body)
+		if err != nil {
+			return nil, errors.New("ページが正しく読み込めませんでした")
+		}
+
+		imageUrls = extractImages(doc)
+
+		name := doc.Find(`.isu-account-name`).Text()
+		if name != "" {
+			return errors.New("ログアウトしてもユーザー名が表示されています")
+		}
+		return nil
+	}
+	logout.Play(s)
+
+	loadAssets(s)
+	loadImages(s, imageUrls)
+}
