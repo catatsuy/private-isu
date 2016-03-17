@@ -28,6 +28,7 @@ const (
 	BenchmarkTimeout        = 30 * time.Second
 	DetailedCheckQueueSize  = 2
 	NonNormalCheckQueueSize = 2
+	WaitAfterTimeout        = 5
 
 	PostsPerPage = 20
 )
@@ -172,6 +173,7 @@ L:
 	}
 
 	msgs := []string{}
+	time.Sleep(WaitAfterTimeout)
 
 	if !debug {
 		// 通常は適当にsortしてuniqしたログを出す
