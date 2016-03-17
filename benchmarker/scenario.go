@@ -27,13 +27,8 @@ func loadImages(s *checker.Session, imageUrls []string) {
 	}
 }
 
-func extractImages(body io.Reader) ([]string, error) {
+func extractImages(doc *goquery.Document) []string {
 	imageUrls := []string{}
-
-	doc, err := goquery.NewDocumentFromReader(body)
-	if err != nil {
-		return nil, errors.New("ページが正しく読み込めませんでした")
-	}
 
 	doc.Find("img.isu-image").Each(func(_ int, selection *goquery.Selection) {
 		if url, ok := selection.Attr("src"); ok {
@@ -41,23 +36,11 @@ func extractImages(body io.Reader) ([]string, error) {
 		}
 	}).Length()
 
-	return imageUrls, nil
+	return imageUrls
 }
 
-func extractImagesAndPostLinks(body io.Reader) ([]string, []string, error) {
-	imageUrls := []string{}
+func extractPostLinks(doc *goquery.Document) []string {
 	postLinks := []string{}
-
-	doc, err := goquery.NewDocumentFromReader(body)
-	if err != nil {
-		return nil, nil, errors.New("ページが正しく読み込めませんでした")
-	}
-
-	doc.Find("img.isu-image").Each(func(_ int, selection *goquery.Selection) {
-		if url, ok := selection.Attr("src"); ok {
-			imageUrls = append(imageUrls, url)
-		}
-	}).Length()
 
 	doc.Find("a.isu-post-permalink").Each(func(_ int, selection *goquery.Selection) {
 		if url, ok := selection.Attr("href"); ok {
@@ -65,7 +48,7 @@ func extractImagesAndPostLinks(body io.Reader) ([]string, []string, error) {
 		}
 	}).Length()
 
-	return imageUrls, postLinks, nil
+	return postLinks
 }
 
 // 普通のページに表示されるべき静的ファイルに一通りアクセス
@@ -105,14 +88,14 @@ func loadAssets(s *checker.Session) {
 // WaitAfterTimeout秒たったら問答無用で打ち切る
 func indexMoreAndMoreScenario(s *checker.Session) {
 	var imageUrls []string
-	var err error
 	start := time.Now()
 
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
-		imageUrls, err = extractImages(body)
+		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
-			return err
+			return errors.New("ページが正しく読み込めませんでした")
 		}
+		imageUrls = extractImages(doc)
 		if len(imageUrls) < PostsPerPage {
 			return errors.New("1ページに表示される画像の数が足りません")
 		}
@@ -150,14 +133,14 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 // WaitAfterTimeout秒たったら問答無用で打ち切る
 func loadIndexScenario(s *checker.Session) {
 	var imageUrls []string
-	var err error
 	start := time.Now()
 
 	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
-		imageUrls, err = extractImages(body)
+		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
-			return err
+			return errors.New("ページが正しく読み込めませんでした")
 		}
+		imageUrls = extractImages(doc)
 		if len(imageUrls) < PostsPerPage {
 			return errors.New("1ページに表示される画像の数が足りません")
 		}
@@ -193,16 +176,17 @@ func loadIndexScenario(s *checker.Session) {
 func userAndPostPageScenario(s *checker.Session, accountName string) {
 	var imageUrls []string
 	var postLinks []string
-	var err error
 	start := time.Now()
 
 	userPage := checker.NewAction("GET", "/@"+accountName)
 	userPage.Description = "ユーザーページ"
 	userPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
-		imageUrls, postLinks, err = extractImagesAndPostLinks(body)
+		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
-			return err
+			return errors.New("ページが正しく読み込めませんでした")
 		}
+		imageUrls = extractImages(doc)
+		postLinks = extractPostLinks(doc)
 		return nil
 	}
 	userPage.Play(s)
@@ -214,10 +198,11 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 		postPage := checker.NewAction("GET", link)
 		postPage.Description = "投稿単体ページが表示できること"
 		postPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
-			imageUrls, err = extractImages(body)
+			doc, err := goquery.NewDocumentFromReader(body)
 			if err != nil {
-				return err
+				return errors.New("ページが正しく読み込めませんでした")
 			}
+			imageUrls = extractImages(doc)
 			if len(imageUrls) < 1 {
 				return errors.New("投稿単体ページに投稿画像が表示されていません")
 			}
@@ -327,10 +312,11 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 	postImage.Asset = image
 
 	postImage.CheckFunc = func(s *checker.Session, body io.Reader) error {
-		imageUrls, err = extractImages(body)
+		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
-			return err
+			return errors.New("ページが正しく読み込めませんでした")
 		}
+		imageUrls = extractImages(doc)
 		if len(imageUrls) < 1 {
 			return errors.New("投稿した画像が表示されていません")
 		}
