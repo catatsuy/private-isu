@@ -153,16 +153,16 @@ L:
 			}()
 		case <-userAndPostPageScenarioCh:
 			go func() {
-				userAndPostPageScenario(checker.NewSession(), users[util.RandomNumber(len(users))].AccountName)
+				userAndPostPageScenario(checker.NewSession(), randomUser(users).AccountName)
 				userAndPostPageScenarioCh <- true
 			}()
 		case <-commentScenarioCh:
 			go func() {
 				commentScenario(
 					checker.NewSession(),
-					users[util.RandomNumber(len(users))],
-					users[util.RandomNumber(len(users))].AccountName,
-					sentences[util.RandomNumber(len(sentences))],
+					randomUser(users),
+					randomUser(users).AccountName,
+					randomSentence(sentences),
 				)
 				commentScenarioCh <- true
 			}()
@@ -170,18 +170,18 @@ L:
 			go func() {
 				postImageScenario(
 					checker.NewSession(),
-					users[util.RandomNumber(len(users))],
-					images[util.RandomNumber(len(images))],
-					sentences[util.RandomNumber(len(sentences))],
+					randomUser(users),
+					randomImage(images),
+					randomSentence(sentences),
 				)
 				postImageScenarioCh <- true
 			}()
 		case <-nonNormalCheckCh:
 			go func() {
 				cannotLoginNonexistentUserScenario(checker.NewSession())
-				cannotLoginWrongPasswordScenario(checker.NewSession(), users[util.RandomNumber(len(users))])
-				cannotAccessAdminScenario(checker.NewSession(), users[util.RandomNumber(len(users))])
-				cannotPostWrongCSRFTokenScenario(checker.NewSession(), users[util.RandomNumber(len(users))], images[util.RandomNumber(len(images))])
+				cannotLoginWrongPasswordScenario(checker.NewSession(), randomUser(users))
+				cannotAccessAdminScenario(checker.NewSession(), randomUser(users))
+				cannotPostWrongCSRFTokenScenario(checker.NewSession(), randomUser(users), randomImage(images))
 				<-time.After(3 * time.Second)
 				nonNormalCheckCh <- true
 			}()
@@ -240,6 +240,18 @@ func makeChanBool(len int) chan bool {
 		ch <- true
 	}
 	return ch
+}
+
+func randomUser(users []user) user {
+	return users[util.RandomNumber(len(users))]
+}
+
+func randomImage(images []*checker.Asset) *checker.Asset {
+	return images[util.RandomNumber(len(images))]
+}
+
+func randomSentence(sentences []string) string {
+	return sentences[util.RandomNumber(len(sentences))]
 }
 
 func checkUserpageNotLogin(s *checker.Session, users []user) {
