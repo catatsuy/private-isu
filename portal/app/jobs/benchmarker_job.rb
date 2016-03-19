@@ -18,7 +18,7 @@ class BenchmarkerJob < ActiveJob::Base
     args = ['-t', job.team.app_host, '-u', "#{path}/userdata"].join(' ')
 
     Timeout.timeout(timeout) do
-      process = IO.popen(command, args)
+      process = IO.popen("#{command} #{args}")
       pid = process.pid
       while line = process.gets
         buf << line
