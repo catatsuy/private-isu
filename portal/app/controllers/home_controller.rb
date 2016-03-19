@@ -2,7 +2,8 @@ class HomeController < ApplicationController
   before_action :authenticate_user!
 
   def index
-    @chart_data = []
+    # Fetch stats current - 60min (5 * 12)
+    @chart_data = Score.stats(time: Time.new, slice: 5, limit: 12)
     @job = Job.new
     jobs_stats = Job.group(:status).count
     @job_stats = {
