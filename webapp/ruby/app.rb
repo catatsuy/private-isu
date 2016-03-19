@@ -298,7 +298,7 @@ module Isuconp
       end
 
       if params['csrf_token'] != session.id
-        return 403
+        return 422
       end
 
       if params['file']
@@ -362,7 +362,7 @@ module Isuconp
       end
 
       if params["csrf_token"] != session.id
-        return "csrf_token error"
+        return 422
       end
 
       unless /[0-9]+/.match(params['post_id'])
@@ -408,7 +408,7 @@ module Isuconp
       end
 
       if params['csrf_token'] != session.id
-        return 403
+        return 422
       end
 
       query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?'
