@@ -27,6 +27,16 @@ type Action struct {
 	CheckFunc func(w *Session, body io.Reader) error
 }
 
+const (
+	suceessGetScore    = 1
+	suceessPostScore   = 2
+	suceessUploadScore = 5
+
+	failErrorScore     = 10
+	failExceptionScore = 20
+	failDelayPostScore = 100
+)
+
 type Asset struct {
 	Path string
 	MD5  string
@@ -96,7 +106,7 @@ func (a *Action) Play(s *Session) error {
 		}
 	}
 
-	s.Success(1)
+	s.Success(suceessGetScore)
 
 	return nil
 }
@@ -175,7 +185,7 @@ func (a *AssetAction) Play(s *Session) error {
 			))
 	}
 
-	s.Success(1)
+	s.Success(suceessGetScore)
 
 	return nil
 }
@@ -242,7 +252,7 @@ func (a *UploadAction) Play(s *Session) error {
 		}
 	}
 
-	s.Success(1)
+	s.Success(suceessGetScore)
 
 	return nil
 }
@@ -293,7 +303,7 @@ func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
 		}
 	}
 
-	s.Success(1)
+	s.Success(suceessGetScore)
 
 	return res.Request.URL.Path, nil
 }
