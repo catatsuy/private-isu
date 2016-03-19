@@ -91,7 +91,7 @@ func (cli *CLI) Run(args []string) int {
 
 	targetHost, terr := checker.SetTargetHost(target)
 	if terr != nil {
-		fmt.Println(terr.Error())
+		outputNeedToContactUs(terr.Error())
 		return ExitCodeError
 	}
 
@@ -101,11 +101,17 @@ func (cli *CLI) Run(args []string) int {
 
 	users, bannedUsers, adminUsers, sentences, images, err := prepareUserdata(userdata)
 	if err != nil {
-		fmt.Println(err.Error())
+		outputNeedToContactUs(err.Error())
 		return ExitCodeError
 	}
 
-	<-initialize
+	initReq := <-initialize
+
+	if !initReq {
+		fmt.Println(outputResultJson(false, []string{"初期化リクエストに失敗しました"}))
+
+		return ExitCodeError
+	}
 
 	// 最初にDOMチェックなどをやってしまい、通らなければさっさと失敗させる
 	detailedCheck(users, bannedUsers, adminUsers, sentences, images)
@@ -209,6 +215,11 @@ func outputResultJson(pass bool, messages []string) string {
 	b, _ := json.Marshal(output)
 
 	return string(b)
+}
+
+// 主催者に連絡して欲しいエラー
+func outputNeedToContactUs(message string) {
+	outputResultJson(false, []string{"！！！主催者に連絡してください！！！", message})
 }
 
 func makeChanBool(len int) chan bool {
