@@ -8,7 +8,7 @@ set :repo_url, 'git@github.com:catatsuy/private-isu.git'
 set :repo_tree, 'portal'
 
 set :user, 'isucon'
-set :branch, 'feature_portal'
+set :branch, 'master'
 
 set :default_env, { path: "/home/isucon/.rbenv/bin:/home/isucon/.rbenv/shims:$PATH" }
 set :bundle_jobs, 8
