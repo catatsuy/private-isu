@@ -57,6 +57,9 @@ GEM
     capistrano-rails (1.1.6)
       capistrano (~> 3.1)
       capistrano-bundler (~> 1.1)
+    capistrano-thin (1.2.0)
+      capistrano (~> 3.0)
+      thin (~> 1.6)
     chartkick (1.4.2)
     coffee-rails (4.1.1)
       coffee-script (>= 2.2.0)
@@ -98,6 +101,7 @@ GEM
     mini_portile2 (2.0.0)
     minitest (5.8.4)
     multi_json (1.11.2)
+    mysql2 (0.4.3)
     net-scp (1.2.1)
       net-ssh (>= 2.6.5)
     net-ssh (3.0.2)
@@ -188,11 +192,13 @@ DEPENDENCIES
   bootstrap-sass (~> 3.3.6)
   byebug
   capistrano-rails
+  capistrano-thin (~> 1.2.0)
   chartkick
   coffee-rails (~> 4.1.0)
   devise
   jbuilder (~> 2.0)
   jquery-rails
+  mysql2
   rails (= 4.2.5)
   sass-rails (~> 5.0)
   sidekiq
