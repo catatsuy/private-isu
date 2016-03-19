@@ -28,6 +28,10 @@ func (s *Score) GetScore() int64 {
 	s.RLock()
 	score := s.score
 	s.RUnlock()
+
+	if score <= 0 {
+		return 0
+	}
 	return score
 }
 
