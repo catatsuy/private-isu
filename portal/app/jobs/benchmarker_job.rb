@@ -35,7 +35,9 @@ class BenchmarkerJob < ActiveJob::Base
     Process.kill('SIGINT', pid) if pid
     process.close if process
   ensure
-    job.status = 'Finished'
-    job.save
+    if job
+      job.status = 'Finished'
+      job.save
+    end
   end
 end
