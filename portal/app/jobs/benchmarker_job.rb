@@ -17,6 +17,7 @@ class BenchmarkerJob < ActiveJob::Base
     path = File.dirname(Rails.application.config.x.benchmarker.command)
     args = ['-t', job.team.app_host, '-u', "#{path}/userdata"].join(' ')
 
+    logger.info "Command: #{command} #{args}"
     Timeout.timeout(timeout) do
       process = IO.popen("#{command} #{args}")
       pid = process.pid
@@ -24,6 +25,7 @@ class BenchmarkerJob < ActiveJob::Base
         buf << line
       end
     end
+    logger.info "Result Buffer: #{buf}"
     result = JSON.parse(buf)
 
     job.team.scores << Score.create(
@@ -34,6 +36,8 @@ class BenchmarkerJob < ActiveJob::Base
   rescue Timeout::Error => e
     Process.kill('SIGINT', pid) if pid
     process.close if process
+  rescue => e
+    logger.info "Unexpected error: #{e.to_s}"
   ensure
     if job
       job.status = 'Finished'
