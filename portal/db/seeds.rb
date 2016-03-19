@@ -7,10 +7,11 @@
 #   Mayor.create(name: 'Emanuel', city: cities.first)
 
 User.create([
-    { name: 'ほげほげ', password: 'hogehoge', email: 'foo@bar.com'},
+    { name: 'foo', password: 'hogehoge', email: 'foo@foobar.local'},
+    { name: 'bar', password: 'hogehoge', email: 'bar@foobar.local'}
 ])
 Team.create([
-  name: 'あんこうさんチーム',
-  users: User.all
+  { name: 'あんこうチーム', users: [User.find(1)] },
+  { name: 'カメさんチーム', users: [User.find(2)] }
 ])
-Job.create(team: Team.first)
+
