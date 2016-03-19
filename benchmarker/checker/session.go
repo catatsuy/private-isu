@@ -43,7 +43,7 @@ func NewSession() *Session {
 	w.Client = &http.Client{
 		Transport: w.Transport,
 		Jar:       jar,
-		Timeout:   time.Duration(5) * time.Second,
+		Timeout:   time.Duration(3) * time.Second,
 	}
 
 	return w
