@@ -1,0 +1,21 @@
+---
+- name: git clone private-isu
+  git: repo=https://github.com/catatsuy/private-isu.git
+       dest={{ gopath }}/src/github.com/catatsuy/private-isu
+       version=master
+       accept_hostkey=yes
+
+- name: go get
+  shell: "go get ./..."
+  args:
+    chdir: "{{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker"
+    creates: "{{ gopath }}/src/github.com/PuerkitoBio/goquery"
+  environment:
+    GOPATH: "{{ gopath }}"
+
+- name: go install
+  shell: "go install ."
+  args:
+    chdir: "{{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker"
+  environment:
+    GOPATH: "{{ gopath }}"

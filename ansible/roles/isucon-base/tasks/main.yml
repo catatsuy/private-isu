@@ -1,0 +1,4 @@
+---
+- include: git.yml
+- include: user.yml
+- include: ruby.yml

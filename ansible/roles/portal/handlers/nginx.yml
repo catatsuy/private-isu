@@ -1,0 +1,6 @@
+---
+- name: reload nginx
+  shell: /usr/sbin/nginx -t && /etc/init.d/nginx reload
+
+- name: restart nginx
+  shell: /usr/sbin/nginx -t && /etc/init.d/nginx restart

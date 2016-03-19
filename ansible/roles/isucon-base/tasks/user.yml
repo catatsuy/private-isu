@@ -1,0 +1,3 @@
+---
+- name: create isucon user
+  user: name=isucon createhome=yes

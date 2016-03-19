@@ -1,0 +1,15 @@
+---
+- hosts: portal
+  become: yes
+  become_user: root
+  become_method: sudo
+  roles:
+    - isucon-base
+    - portal
+- hosts: bench
+  become: yes
+  become_user: root
+  become_method: sudo
+  roles:
+    - isucon-base
+    - bench
