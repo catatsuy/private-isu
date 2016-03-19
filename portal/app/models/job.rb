@@ -8,7 +8,7 @@ class Job < ActiveRecord::Base
   end
 
   private
-  def timeout
+  def self.timeout
     Rails.application.config.x.benchmarker.timeout || DEFAULT_TIMEOUT
   end
 end
