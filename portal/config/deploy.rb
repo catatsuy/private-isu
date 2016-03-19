@@ -13,7 +13,7 @@ set :branch, 'feature_portal'
 set :default_env, { path: "/home/isucon/.rbenv/bin:/home/isucon/.rbenv/shims:$PATH" }
 set :bundle_jobs, 8
 
-set :puma_conf, "#{current_path}/puma.rb"
+set :puma_conf, "#{current_path}/config/puma.rb"
 set :puma_init_active_record, true
 
 set :sidekiq_role, :batch
