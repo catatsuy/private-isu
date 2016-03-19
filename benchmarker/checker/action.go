@@ -108,6 +108,10 @@ func (a *Action) Play(s *Session) error {
 
 	s.Success(suceessGetScore)
 
+	if a.Method == "POST" {
+		s.Success(suceessPostScore)
+	}
+
 	return nil
 }
 
@@ -252,6 +256,7 @@ func (a *UploadAction) Play(s *Session) error {
 		}
 	}
 
+	s.Success(suceessUploadScore)
 	s.Success(suceessGetScore)
 
 	return nil
@@ -303,6 +308,7 @@ func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
 		}
 	}
 
+	s.Success(suceessUploadScore)
 	s.Success(suceessGetScore)
 
 	return res.Request.URL.Path, nil
