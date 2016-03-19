@@ -25,7 +25,7 @@
   apt: name=unzip state=latest
 
 - name: download images
-  get_url: url=https://github.com/catatsuy/private-isu/releases/download/img/img.zip dest=/opt/img.zip checksum=md5:4e66b924aa095030a9d152ab5f2015de
+  get_url: url=https://github.com/catatsuy/private-isu/releases/download/img/img.zip dest={{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker/userdata/img.zip checksum=md5:4e66b924aa095030a9d152ab5f2015de
 
 - name: unarchive images
-  unarchive: src=/opt/img.zip dest=/opt copy=no
+  unarchive: src={{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker/userdata/img.zip dest={{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker/userdata copy=no
