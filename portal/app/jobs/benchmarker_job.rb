@@ -14,8 +14,10 @@ class BenchmarkerJob < ActiveJob::Base
 
     timeout = Rails.application.config.x.benchmarker.timeout || DEFAULT_TIMEOUT
     command = Rails.application.config.x.benchmarker.command
+    userdata = Rails.application.config.x.benchmarker.userdata
+
     path = File.dirname(Rails.application.config.x.benchmarker.command)
-    args = ['-t', job.team.app_host, '-u', "#{path}/userdata"].join(' ')
+    args = ['-t', job.team.app_host, '-u', userdata].join(' ')
 
     logger.info "Command: #{command} #{args}"
     Timeout.timeout(timeout) do
