@@ -173,8 +173,8 @@ func (s *Session) Success(point int64) {
 	score.GetInstance().SetScore(point)
 }
 
-func (s *Session) Fail(req *http.Request, err error) error {
-	score.GetInstance().SetFails()
+func (s *Session) Fail(point int64, req *http.Request, err error) error {
+	score.GetInstance().SetFails(point)
 	if req != nil {
 		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
 	}

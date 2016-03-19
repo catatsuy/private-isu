@@ -50,7 +50,7 @@ func (a *Action) Play(s *Session) error {
 	req, err := s.NewRequest(a.Method, a.Path, buf)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(1, req, err)
 	}
 
 	for key, val := range a.Headers {
@@ -64,18 +64,19 @@ func (a *Action) Play(s *Session) error {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(1, req, err)
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		s.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		s.Fail(1, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
 	if a.ExpectedLocation != "" {
 		if a.ExpectedLocation != res.Request.URL.Path {
 			return s.Fail(
+				1,
 				res.Request,
 				fmt.Errorf(
 					"Expected location is miss match %s, got: %s",
@@ -88,6 +89,7 @@ func (a *Action) Play(s *Session) error {
 		err := a.CheckFunc(s, res.Body)
 		if err != nil {
 			return s.Fail(
+				1,
 				res.Request,
 				err,
 			)
@@ -125,7 +127,7 @@ func (a *AssetAction) Play(s *Session) error {
 	req, err := s.NewRequest(a.Method, a.Path, buf)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(1, req, err)
 	}
 
 	for key, val := range a.Headers {
@@ -140,7 +142,7 @@ func (a *AssetAction) Play(s *Session) error {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(1, req, err)
 	}
 
 	// 2回ioutil.ReadAllを呼ぶとおかしくなる
@@ -165,6 +167,7 @@ func (a *AssetAction) Play(s *Session) error {
 
 	if !success {
 		return s.Fail(
+			1,
 			res.Request,
 			fmt.Errorf(
 				"Expected location is miss match %s, got: %s",
@@ -197,7 +200,7 @@ func (a *UploadAction) Play(s *Session) error {
 	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset.Path)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(1, req, err)
 	}
 
 	for key, val := range a.Headers {
@@ -207,18 +210,19 @@ func (a *UploadAction) Play(s *Session) error {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(1, req, err)
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		s.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		s.Fail(1, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
 	if a.ExpectedLocation != "" {
 		if a.ExpectedLocation != res.Request.URL.Path {
 			return s.Fail(
+				1,
 				res.Request,
 				fmt.Errorf(
 					"Expected location is miss match %s, got: %s",
@@ -231,6 +235,7 @@ func (a *UploadAction) Play(s *Session) error {
 		err := a.CheckFunc(s, res.Body)
 		if err != nil {
 			return s.Fail(
+				1,
 				res.Request,
 				err,
 			)
@@ -246,7 +251,7 @@ func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
 	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset.Path)
 
 	if err != nil {
-		return "", s.Fail(req, err)
+		return "", s.Fail(1, req, err)
 	}
 
 	for key, val := range a.Headers {
@@ -256,18 +261,19 @@ func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return "", s.Fail(req, err)
+		return "", s.Fail(1, req, err)
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		s.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		s.Fail(1, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
 	if a.ExpectedLocation != "" {
 		if a.ExpectedLocation != res.Request.URL.Path {
 			return "", s.Fail(
+				1,
 				res.Request,
 				fmt.Errorf(
 					"Expected location is miss match %s, got: %s",
@@ -280,6 +286,7 @@ func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
 		err := a.CheckFunc(s, res.Body)
 		if err != nil {
 			return "", s.Fail(
+				1,
 				res.Request,
 				err,
 			)

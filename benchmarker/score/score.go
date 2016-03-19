@@ -49,15 +49,16 @@ func (s *Score) GetFails() int64 {
 	return fails
 }
 
-func (s *Score) SetScore(score int64) {
+func (s *Score) SetScore(point int64) {
 	s.Lock()
-	s.score += int64(score)
+	s.score += point
 	s.sucesses += 1
 	s.Unlock()
 }
 
-func (s *Score) SetFails() {
+func (s *Score) SetFails(point int64) {
 	s.Lock()
+	s.score -= point
 	s.fails += 1
 	s.Unlock()
 }
