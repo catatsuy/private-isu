@@ -4,11 +4,6 @@
 curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
 bzcat dump.sql.bz2 | mysql -uroot
 
-cd webapp/scripts
-bundle install --path=vendor/bundle
-bundle exec ruby create_user.rb
-cd ../..
-
 cd webapp/ruby
 bundle install --path=vendor/bundle
 bundle exec foreman start
