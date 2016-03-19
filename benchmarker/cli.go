@@ -115,16 +115,7 @@ func (cli *CLI) Run(args []string) int {
 		for _, err := range score.GetFailErrors() {
 			msgs = append(msgs, fmt.Sprint(err.Error()))
 		}
-		output := Output{
-			Pass:     false,
-			Score:    score.GetInstance().GetScore(),
-			Suceess:  score.GetInstance().GetSucesses(),
-			Fail:     score.GetInstance().GetFails(),
-			Messages: msgs,
-		}
-		b, _ := json.Marshal(output)
-
-		fmt.Println(string(b))
+		fmt.Println(outputResultJson(false, msgs))
 		return ExitCodeError
 	}
 
@@ -185,8 +176,9 @@ L:
 		}
 	}
 
-	msgs := []string{}
 	time.Sleep(WaitAfterTimeout)
+
+	msgs := []string{}
 
 	if !debug {
 		// 通常は適当にsortしてuniqしたログを出す
@@ -200,28 +192,23 @@ L:
 		}
 	}
 
-	exit := ExitCodeOK
-	pass := true
+	fmt.Println(outputResultJson(true, msgs))
 
-	// Failが多い場合はステータスコードを非0にする
-	if score.GetInstance().GetFails() >= FailThreshold {
-		exit = ExitCodeError
-		pass = false
-	}
+	return ExitCodeOK
+}
 
+func outputResultJson(pass bool, messages []string) string {
 	output := Output{
 		Pass:     pass,
 		Score:    score.GetInstance().GetScore(),
 		Suceess:  score.GetInstance().GetSucesses(),
 		Fail:     score.GetInstance().GetFails(),
-		Messages: msgs,
+		Messages: messages,
 	}
 
 	b, _ := json.Marshal(output)
 
-	fmt.Println(string(b))
-
-	return exit
+	return string(b)
 }
 
 func makeChanBool(len int) chan bool {
