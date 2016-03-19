@@ -4,6 +4,8 @@ class HomeController < ApplicationController
   def index
     # Fetch stats current - 60min (5 * 12)
     @chart_data = Score.stats(time: Time.new, slice: 5, limit: 12)
+    @ordered_score = Score.ordered_stats(time: Time.new)
+
     @job = Job.new
     jobs_stats = Job.group(:status).count
     @job_stats = {

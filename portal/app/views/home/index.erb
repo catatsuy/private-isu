@@ -8,7 +8,13 @@
   <p>Finished: <%= @job_stats[:finished] %></p>
 </div>
 
-<%= line_chart @chart_data %>
+<div>
+  <%= line_chart @chart_data %>
+</div>
+
+<div>
+  <%= bar_chart @ordered_score %>
+</div>
 
 <div>
   <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
