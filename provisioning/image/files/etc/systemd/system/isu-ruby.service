@@ -1,0 +1,18 @@
+[Unit]
+Description=isu-ruby
+After=syslog.target
+
+[Service]
+WorkingDirectory=/home/isucon/private_isu/webapp/ruby
+EnvironmentFile=/home/isucon/env.sh
+Environment=RACK_ENV=production
+PIDFile=/home/isucon/private_isu/webapp/ruby/unicorn.pid
+
+User=isucon
+Group=isucon
+ExecStart=/home/isucon/.local/ruby/bin/bundle exec unicorn -c unicorn_config.rb
+ExecStop=/bin/kill -s QUIT $MAINPID
+ExecReload=/bin/kill -s USR2 $MAINPID
+
+[Install]
+WantedBy=multi-user.target

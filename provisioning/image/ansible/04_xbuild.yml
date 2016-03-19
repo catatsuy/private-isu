@@ -1,0 +1,31 @@
+---
+- hosts: guests:extras
+#- hosts: extras
+  become: yes
+  become_user: isucon
+  gather_facts: no
+  tasks:
+    - git:
+        repo=https://github.com/tagomoris/xbuild.git
+        dest=/home/isucon/.xbuild
+        update=yes
+    # ruby
+    - command: /home/isucon/.xbuild/ruby-install 2.3.0 /home/isucon/.local/ruby
+      args:
+        creates: /home/isucon/.local/ruby/bin/ruby
+    - command: /.local/ruby/bin/gem install bundler
+      args:
+        creates: /home/isucon/.local/ruby/bin/bundle
+    # node
+    - command: /home/isucon/.xbuild/node-install v4.4.0 /home/isucon/.local/node
+      args:
+        creates: /home/isucon/.local/node/bin/node
+    # php
+#    - command: /home/isucon/.xbuild/php-install 7.0.4 /home/isucon/.local/php -- --with-pear --with-openssl --with-pdo-pgsql
+#      args:
+#        creates: /home/isucon/.local/php/bin/php
+#    - copy: src=../files/php.ini dest=/home/isucon/.local/php/etc/php.ini owner=isucon mode=644
+    # golang
+    - command: /home/isucon/.xbuild/go-install 1.6 /home/isucon/.local/go
+      args:
+        creates: /home/isucon/.local/go/bin/go

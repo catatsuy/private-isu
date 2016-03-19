@@ -1,0 +1,10 @@
+- hosts: guests:extras
+#- hosts: extras
+  become: yes
+  become_user: isucon
+  gather_facts: no
+  tasks:
+    - name: create mysqldump
+      get_url: url=https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2 dest=/home/isucon/backup/mysqldump.sql.bz2 sha256sum=d473269f4ae8846ca97c05b4893d0e3fe78358ec1ca1a87a470a4957d2f43b7f force=1
+    - name: create database
+      shell: bzcat /home/isucon/backup/mysqldump.sql.bz2 | mysql -u root
