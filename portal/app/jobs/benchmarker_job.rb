@@ -15,7 +15,7 @@ class BenchmarkerJob < ActiveJob::Base
     timeout = Rails.application.config.x.benchmarker.timeout || DEFAULT_TIMEOUT
     command = Rails.application.config.x.benchmarker.command
     path = File.dirname(Rails.application.config.x.benchmarker.command)
-    args = ['-t', job.team.app_host, '-u', "#{path}/userdata"]
+    args = ['-t', job.team.app_host, '-u', "#{path}/userdata"].join(' ')
 
     Timeout.timeout(timeout) do
       process = IO.popen(command, args)
@@ -29,7 +29,7 @@ class BenchmarkerJob < ActiveJob::Base
     job.team.scores << Score.create(
       pass: result['pass'],
       score: result['score'],
-      message: result['message']
+      message: result['message'].join(' ')
     )
   rescue Timeout::Error => e
     Process.kill('SIGINT', pid) if pid
