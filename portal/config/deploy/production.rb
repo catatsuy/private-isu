@@ -1,6 +1,6 @@
 # role :db,  %w{deploy@example.com}
-role :web, %w{shanai-isucon-portal shanai-isucon-bench}, user: fetch(:user)
-role :app, %w{shanai-isucon-portal shanai-isucon-bench}, user: fetch(:user)
+role :web, %w{shanai-isucon-portal}, user: fetch(:user)
+role :app, %w{shanai-isucon-portal}, user: fetch(:user)
 role :batch, %w{shanai-isucon-bench}, user: fetch(:user)
 
 # set :ssh_options, {
