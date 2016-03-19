@@ -4,6 +4,10 @@ class BenchmarkerJob < ActiveJob::Base
   DEFAULT_TIMEOUT = 60
 
   def perform(job_id:)
+    buf = ''
+    pid = nil
+    process = nil
+
     job = Job.find(job_id)
     job.status = 'Running'
     job.save
@@ -14,13 +18,19 @@ class BenchmarkerJob < ActiveJob::Base
     Timeout.timeout(timeout) do
       process = IO.popen(command)
       pid = process.pid
-      buf = ''
       while line = process.gets
         buf << line
       end
     end
+    result = JSON.parse(buf)
+
+    job.team.scores << Score.create(
+      pass: result['pass'],
+      score: result['score'],
+      message: result['message']
+    )
   rescue Timeout::Error => e
-    Process.kill('SIGINT', pid)
+    Process.kill('SIGINT', pid) if pid
     process.close if process
   ensure
     job.status = 'Finished'
