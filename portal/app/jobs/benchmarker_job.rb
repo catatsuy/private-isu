@@ -33,7 +33,7 @@ class BenchmarkerJob < ActiveJob::Base
     job.team.scores << Score.create(
       pass: result['pass'],
       score: result['score'],
-      message: result['message'].join(' ')
+      message: result['messages'].join(' ')
     )
   rescue Timeout::Error => e
     Process.kill('SIGINT', pid) if pid
