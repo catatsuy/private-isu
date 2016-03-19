@@ -310,6 +310,11 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 	postImage := checker.NewUploadAction("POST", "/", "file")
 	postImage.Description = "画像を投稿してリダイレクトされること"
 	postImage.Asset = image
+	postImage.PostData = map[string]string{
+		"body":       sentence,
+		"csrf_token": csrfToken,
+		"type":       "image/jpeg", // TODO: pngやgifもあるのでどうにかする
+	}
 
 	postImage.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
