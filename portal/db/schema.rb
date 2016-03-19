@@ -21,7 +21,9 @@ ActiveRecord::Schema.define(version: 20160319030401) do
   end
 
   create_table "scores", force: :cascade do |t|
+    t.boolean  "pass"
     t.integer  "score"
+    t.text     "message"
     t.integer  "team_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
