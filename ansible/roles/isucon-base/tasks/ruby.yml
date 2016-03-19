@@ -14,7 +14,7 @@
   become_user: "{{ rbenv_user }}"
   lineinfile: >
     dest="~/.profile"
-    line="export PATH=$HOME/.rbenv/bin:$PATH"
+    line="export PATH=$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
 
 - name: Eval rbenv init in ~/.profile
   become: yes
@@ -71,3 +71,9 @@
   shell: ". ~/.profile && rbenv global {{ rbenv_ruby_version }}"
   when: rbenv_check_default|failed
 
+- name: install bundler
+  become: yes
+  become_user: "{{ rbenv_user }}"
+  shell: ". ~/.profile && gem install bundler"
+  args:
+    creates: "/home/{{ rbenv_user }}/.rbenv/shims/bundle"

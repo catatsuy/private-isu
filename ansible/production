@@ -6,3 +6,7 @@ shanai-isucon-portal
 
 [bench]
 shanai-isucon-bench
+
+[admin:children]
+portal
+bench

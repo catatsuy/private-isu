@@ -17,5 +17,15 @@
   shell: "go install ."
   args:
     chdir: "{{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker"
+    creates: "{{ gopath }}/bin/benchmarker"
   environment:
     GOPATH: "{{ gopath }}"
+
+- name: install unzip command
+  apt: name=unzip state=latest
+
+- name: download images
+  get_url: url=https://github.com/catatsuy/private-isu/releases/download/img/img.zip dest=/opt/img.zip checksum=md5:4e66b924aa095030a9d152ab5f2015de
+
+- name: unarchive images
+  unarchive: src=/opt/img.zip dest=/opt copy=no

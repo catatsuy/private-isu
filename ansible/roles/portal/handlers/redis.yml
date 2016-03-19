@@ -1,0 +1,7 @@
+---
+- name: reload redis
+  shell: /etc/init.d/redis-server reload
+
+- name: restart redis
+  shell: /etc/init.d/redis-server restart
+

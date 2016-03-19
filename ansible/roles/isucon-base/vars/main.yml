@@ -1,3 +1,8 @@
 ---
 rbenv_user: isucon
 rbenv_ruby_version: 2.3.0
+key_github_users:
+  - st-cyrill
+  - catatsuy
+  - edvakf
+  - walf443

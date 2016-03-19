@@ -1,4 +1,4 @@
-upstream ggallery {
+upstream isucon {
     server 127.0.0.1:8080;
 }
 
@@ -8,5 +8,7 @@ server {
 
     include /etc/nginx/proxy_params;
 
-    proxy_pass http://ggallery;
+    location / {
+        proxy_pass http://isucon;
+    }
 }
