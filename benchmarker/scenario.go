@@ -442,7 +442,7 @@ func loginScenario(s *checker.Session, me user) {
 	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
-			return nil, errors.New("ページが正しく読み込めませんでした")
+			return errors.New("ページが正しく読み込めませんでした")
 		}
 
 		imageUrls = extractImages(doc)
@@ -468,7 +468,7 @@ func loginScenario(s *checker.Session, me user) {
 	logout.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
-			return nil, errors.New("ページが正しく読み込めませんでした")
+			return errors.New("ページが正しく読み込めませんでした")
 		}
 
 		imageUrls = extractImages(doc)
