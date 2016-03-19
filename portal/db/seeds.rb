@@ -11,7 +11,7 @@ User.create([
     { name: 'bar', password: 'hogehoge', email: 'bar@foobar.local'}
 ])
 Team.create([
-  { name: 'あんこうチーム', users: [User.find(1)] },
-  { name: 'カメさんチーム', users: [User.find(2)] }
+  { name: 'あんこうチーム', users: [User.find(1)], app_host: 'localhost:8080' },
+  { name: 'カメさんチーム', users: [User.find(2)], app_host: 'localhost:8080' }
 ])
 

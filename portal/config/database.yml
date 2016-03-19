@@ -9,6 +9,8 @@ default: &default
   encoding: utf8mb4
   username: <%= ENV['DB_USER'] %>
   password: <%= ENV['DB_PASS'] %>
+  host: <%= ENV['DB_HOST'] %>
+  port: <%= ENV['DB_PORT'] %>
   pool: 5
   timeout: 5000
 
@@ -26,5 +28,4 @@ test:
 production:
   <<: *default
   database: isucon_portal_production
-  socket: /var/run/mysqld/mysqld.sock
 

@@ -24,7 +24,7 @@ module Isucon6WorkerQueue
     config.active_record.raise_in_transactional_callbacks = true
 
     # benchmaker
-    config.x.benchmarker.command = 'sleep 5'
+    config.x.benchmarker.command = '/opt/go/bin/benchmarker'
     config.x.benchmarker.timeout = 60
   end
 end

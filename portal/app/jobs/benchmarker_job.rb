@@ -14,9 +14,11 @@ class BenchmarkerJob < ActiveJob::Base
 
     timeout = Rails.application.config.x.benchmarker.timeout || DEFAULT_TIMEOUT
     command = Rails.application.config.x.benchmarker.command
+    path = File.dirname(Rails.application.config.x.benchmarker.command)
+    args = ['-t', job.team.app_host, '-u', "#{path}/userdata"]
 
     Timeout.timeout(timeout) do
-      process = IO.popen(command)
+      process = IO.popen(command, args)
       pid = process.pid
       while line = process.gets
         buf << line
