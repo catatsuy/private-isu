@@ -662,7 +662,7 @@ func setupInitialize(targetHost string, initialize chan bool) {
 // 適当なユーザー名でログインしようとする
 // ログインできないことをチェック
 func checkCannotLoginNonexistentUser(s *checker.Session) {
-	fakeAccountName := util.RandomLUNStr(util.RandomNumber(15) + 10)
+	fakeAccountName := util.RandomLUNStr(util.RandomNumberRange(10, 24))
 	fakeUser := map[string]string{
 		"account_name": fakeAccountName,
 		"password":     fakeAccountName,
@@ -688,7 +688,7 @@ func checkCannotLoginNonexistentUser(s *checker.Session) {
 func checkCannotLoginWrongPassword(s *checker.Session, users []user) {
 	fakeUser := map[string]string{
 		"account_name": users[util.RandomNumber(len(users))].AccountName,
-		"password":     util.RandomLUNStr(util.RandomNumber(15) + 10),
+		"password":     util.RandomLUNStr(util.RandomNumberRange(10, 24)),
 	}
 
 	a := checker.NewAction("POST", "/login")

@@ -31,6 +31,10 @@ func RandomNumber(max int) int {
 	return random.Int() % max
 }
 
+func RandomNumberRange(min, max int) int {
+	return random.Int()%(max-min+1) + min
+}
+
 func RandomLUNStr(n int) string {
 	return randomStr(n, lunRunes)
 }
