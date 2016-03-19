@@ -27,6 +27,16 @@ type Action struct {
 	CheckFunc func(w *Session, body io.Reader) error
 }
 
+const (
+	suceessGetScore    = 1
+	suceessPostScore   = 2
+	suceessUploadScore = 5
+
+	failErrorScore     = 10
+	failExceptionScore = 20
+	failDelayPostScore = 100
+)
+
 type Asset struct {
 	Path string
 	MD5  string
@@ -50,7 +60,7 @@ func (a *Action) Play(s *Session) error {
 	req, err := s.NewRequest(a.Method, a.Path, buf)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(failExceptionScore, req, err)
 	}
 
 	for key, val := range a.Headers {
@@ -64,18 +74,19 @@ func (a *Action) Play(s *Session) error {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(failExceptionScore, req, err)
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		s.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
 	if a.ExpectedLocation != "" {
 		if a.ExpectedLocation != res.Request.URL.Path {
 			return s.Fail(
+				failErrorScore,
 				res.Request,
 				fmt.Errorf(
 					"Expected location is miss match %s, got: %s",
@@ -88,13 +99,18 @@ func (a *Action) Play(s *Session) error {
 		err := a.CheckFunc(s, res.Body)
 		if err != nil {
 			return s.Fail(
+				failErrorScore,
 				res.Request,
 				err,
 			)
 		}
 	}
 
-	s.Success(1)
+	s.Success(suceessGetScore)
+
+	if a.Method == "POST" {
+		s.Success(suceessPostScore)
+	}
 
 	return nil
 }
@@ -125,7 +141,7 @@ func (a *AssetAction) Play(s *Session) error {
 	req, err := s.NewRequest(a.Method, a.Path, buf)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(failExceptionScore, req, err)
 	}
 
 	for key, val := range a.Headers {
@@ -140,7 +156,7 @@ func (a *AssetAction) Play(s *Session) error {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(failExceptionScore, req, err)
 	}
 
 	// 2回ioutil.ReadAllを呼ぶとおかしくなる
@@ -165,6 +181,7 @@ func (a *AssetAction) Play(s *Session) error {
 
 	if !success {
 		return s.Fail(
+			failErrorScore,
 			res.Request,
 			fmt.Errorf(
 				"Expected location is miss match %s, got: %s",
@@ -172,7 +189,7 @@ func (a *AssetAction) Play(s *Session) error {
 			))
 	}
 
-	s.Success(1)
+	s.Success(suceessGetScore)
 
 	return nil
 }
@@ -197,7 +214,7 @@ func (a *UploadAction) Play(s *Session) error {
 	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset.Path)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(failExceptionScore, req, err)
 	}
 
 	for key, val := range a.Headers {
@@ -207,18 +224,19 @@ func (a *UploadAction) Play(s *Session) error {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return s.Fail(req, err)
+		return s.Fail(failExceptionScore, req, err)
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		s.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
 	if a.ExpectedLocation != "" {
 		if a.ExpectedLocation != res.Request.URL.Path {
 			return s.Fail(
+				failErrorScore,
 				res.Request,
 				fmt.Errorf(
 					"Expected location is miss match %s, got: %s",
@@ -231,13 +249,15 @@ func (a *UploadAction) Play(s *Session) error {
 		err := a.CheckFunc(s, res.Body)
 		if err != nil {
 			return s.Fail(
+				failErrorScore,
 				res.Request,
 				err,
 			)
 		}
 	}
 
-	s.Success(1)
+	s.Success(suceessUploadScore)
+	s.Success(suceessGetScore)
 
 	return nil
 }
@@ -246,7 +266,7 @@ func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
 	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset.Path)
 
 	if err != nil {
-		return "", s.Fail(req, err)
+		return "", s.Fail(failExceptionScore, req, err)
 	}
 
 	for key, val := range a.Headers {
@@ -256,18 +276,19 @@ func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return "", s.Fail(req, err)
+		return "", s.Fail(failExceptionScore, req, err)
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		s.Fail(res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
 	if a.ExpectedLocation != "" {
 		if a.ExpectedLocation != res.Request.URL.Path {
 			return "", s.Fail(
+				failErrorScore,
 				res.Request,
 				fmt.Errorf(
 					"Expected location is miss match %s, got: %s",
@@ -280,13 +301,15 @@ func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
 		err := a.CheckFunc(s, res.Body)
 		if err != nil {
 			return "", s.Fail(
+				failErrorScore,
 				res.Request,
 				err,
 			)
 		}
 	}
 
-	s.Success(1)
+	s.Success(suceessUploadScore)
+	s.Success(suceessGetScore)
 
 	return res.Request.URL.Path, nil
 }
