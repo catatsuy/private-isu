@@ -57,6 +57,9 @@ GEM
     capistrano-rails (1.1.6)
       capistrano (~> 3.1)
       capistrano-bundler (~> 1.1)
+    capistrano-sidekiq (0.5.4)
+      capistrano
+      sidekiq (>= 3.4)
     capistrano3-puma (1.2.1)
       capistrano (~> 3.0)
       puma (>= 2.6)
@@ -187,6 +190,7 @@ DEPENDENCIES
   bootstrap-sass (~> 3.3.6)
   byebug
   capistrano-rails
+  capistrano-sidekiq
   capistrano3-puma
   chartkick
   coffee-rails (~> 4.1.0)

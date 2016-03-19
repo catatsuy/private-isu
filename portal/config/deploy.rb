@@ -16,6 +16,8 @@ set :bundle_jobs, 8
 set :puma_conf, "#{current_path}/puma.rb"
 set :puma_init_active_record, true
 
+set :sidekiq_role, :batch
+
 # Default branch is :master
 # ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
 

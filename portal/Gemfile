@@ -32,6 +32,7 @@ end
 group :development do
   gem 'web-console', '~> 2.0'
   gem 'spring'
+  gem 'capistrano-sidekiq'
   gem 'capistrano-rails'
   gem 'capistrano3-puma'
 end
