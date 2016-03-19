@@ -58,6 +58,4 @@ namespace :deploy do
       # end
     end
   end
-
-  after 'deploy:publishing', 'puma:restart'
 end
