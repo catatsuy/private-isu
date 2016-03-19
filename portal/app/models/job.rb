@@ -1,7 +1,14 @@
 class Job < ActiveRecord::Base
+  DEFAULT_TIMEOUT = 60.seconds
+
   belongs_to :team
 
   def self.time_wait?(team:)
-    where(team: team).where('created_at > ?', Time.current - 60.second).count > 0
+    where(team: team).where('created_at > ?', Time.current - timeout).count > 0
+  end
+
+  private
+  def timeout
+    Rails.application.config.x.benchmarker.timeout || DEFAULT_TIMEOUT
   end
 end
