@@ -1,12 +1,12 @@
 #!/usr/bin/env ruby
 
 require 'mysql2'
+require 'digest'
 
 rand = Random.new(1)
 
-# app.rb の実装をコピった
 def digest(src)
-  `echo -n #{src} | openssl dgst -sha512 | sed 's/^.*= //'`.strip
+  Digest::SHA512.hexdigest(src)
 end
 
 def calculate_salt(account_name)
@@ -63,7 +63,7 @@ open('names.txt') do |f|
     passhash = calculate_passhash(password, account_name)
 
     authority = i < 10 ? 1 : 0
-    del_flg = (i >= 10) && (i % 50 == 0)
+    del_flg = ((i >= 10) && (i % 50 == 0)) ? 1 : 0
     created_at = DateTime.parse('2016-01-01 00:00:00') + (1.to_r / 24 / 60 / 60 * i) # 毎秒1アカウント作られたことにする
 
     query.execute(i, account_name, passhash, authority, del_flg, created_at.to_time)
