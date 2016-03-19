@@ -17,5 +17,9 @@
 </div>
 
 <div>
-  <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
+  <% if Job.time_wait?(team: current_user.team) %>
+    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
+  <% else %>
+    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block disabled' %>
+  <% end %>
 </div>
