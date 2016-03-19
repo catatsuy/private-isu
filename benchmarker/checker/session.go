@@ -176,7 +176,7 @@ func (s *Session) Success(point int64) {
 func (s *Session) Fail(point int64, req *http.Request, err error) error {
 	score.GetInstance().SetFails(point)
 	if req != nil {
-		err = fmt.Errorf("%s\tmethod:%s\turi:%s", err, req.Method, req.URL.Path)
+		err = fmt.Errorf("%s method:%s uri:%s", err, req.Method, req.URL.Path)
 	}
 
 	score.GetFailErrorsInstance().Append(err)
