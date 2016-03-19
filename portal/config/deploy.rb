@@ -14,6 +14,7 @@ set :default_env, { path: "/home/isucon/.rbenv/bin:/home/isucon/.rbenv/shims:$PA
 set :bundle_jobs, 8
 
 set :puma_init_active_record, true
+set :puma_bind, 'tcp://127.0.0.1:8080'
 set :sidekiq_role, :batch
 
 # Default branch is :master
