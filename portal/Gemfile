@@ -18,7 +18,7 @@ gem 'devise'
 gem 'bcrypt', '~> 3.1.7'
 
 # webserver
-gem 'thin'
+gem 'puma'
 
 group :production do
   gem 'mysql2'
@@ -33,6 +33,6 @@ group :development do
   gem 'web-console', '~> 2.0'
   gem 'spring'
   gem 'capistrano-rails'
-  gem 'capistrano-thin', '~> 1.2.0'
+  gem 'capistrano3-puma'
 end
 
