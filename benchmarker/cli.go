@@ -130,13 +130,13 @@ func (cli *CLI) Run(args []string) int {
 
 	indexMoreAndMoreScenarioCh := makeChanBool(2)
 	loadIndexScenarioCh := makeChanBool(2)
-	userAndpostPageScenarioCh := makeChanBool(2)
+	userAndPostPageScenarioCh := makeChanBool(2)
+	commentScenarioCh := makeChanBool(1)
+	postImageScenarioCh := makeChanBool(1)
 	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
 	nonNormalCheckCh := makeChanBool(NonNormalCheckQueueSize)
 
 	timeoutCh := time.After(BenchmarkTimeout)
-
-	nInterval := time.Tick(10 * time.Second)
 
 L:
 	for {
@@ -151,20 +151,33 @@ L:
 				loadIndexScenario(checker.NewSession())
 				loadIndexScenarioCh <- true
 			}()
-		case <-userAndpostPageScenarioCh:
+		case <-userAndPostPageScenarioCh:
 			go func() {
-				userAndPostPageScenario(checker.NewSession(), users[util.RandomNumber(len(users))].AccountName)
-				userAndpostPageScenarioCh <- true
+				userAndPostPageScenario(checker.NewSession(), randomUser(users).AccountName)
+				userAndPostPageScenarioCh <- true
+			}()
+		case <-commentScenarioCh:
+			go func() {
+				commentScenario(checker.NewSession(), randomUser(users), randomUser(users).AccountName, randomSentence(sentences))
+				commentScenarioCh <- true
+			}()
+		case <-postImageScenarioCh:
+			go func() {
+				postImageScenario(checker.NewSession(), randomUser(users), randomImage(images), randomSentence(sentences))
+				postImageScenarioCh <- true
 			}()
 		case <-nonNormalCheckCh:
 			go func() {
-				nonNormalCheck(users, images)
-				<-nInterval
+				cannotLoginNonexistentUserScenario(checker.NewSession())
+				cannotLoginWrongPasswordScenario(checker.NewSession(), randomUser(users))
+				cannotAccessAdminScenario(checker.NewSession(), randomUser(users))
+				cannotPostWrongCSRFTokenScenario(checker.NewSession(), randomUser(users), randomImage(images))
+				<-time.After(3 * time.Second)
 				nonNormalCheckCh <- true
 			}()
 		case <-detailedCheckCh:
 			go func() {
-				detailedCheck(users, bannedUsers, adminUsers, sentences, images)
+				loginScenario(checker.NewSession(), randomUser(users))
 				detailedCheckCh <- true
 			}()
 		case <-timeoutCh:
@@ -217,6 +230,18 @@ func makeChanBool(len int) chan bool {
 		ch <- true
 	}
 	return ch
+}
+
+func randomUser(users []user) user {
+	return users[util.RandomNumber(len(users))]
+}
+
+func randomImage(images []*checker.Asset) *checker.Asset {
+	return images[util.RandomNumber(len(images))]
+}
+
+func randomSentence(sentences []string) string {
+	return sentences[util.RandomNumber(len(sentences))]
 }
 
 func checkUserpageNotLogin(s *checker.Session, users []user) {
