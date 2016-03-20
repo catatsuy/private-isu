@@ -529,7 +529,6 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 	postImage.PostData = map[string]string{
 		"body":       util.RandomLUNStr(15),
 		"csrf_token": csrfToken,
-		"type":       "image/jpeg", // TODO: pngやgifもあるのでどうにかする
 	}
 	postImage.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)

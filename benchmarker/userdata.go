@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/catatsuy/private-isu/benchmarker/checker"
 	"github.com/catatsuy/private-isu/benchmarker/util"
@@ -71,9 +72,22 @@ func prepareUserdata(userdata string) ([]user, []user, []user, []string, []*chec
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}
+
+		imgType := ""
+		if strings.HasSuffix(img, "jpg") {
+			imgType = "image/jpeg"
+		} else if strings.HasSuffix(img, "png") {
+			imgType = "image/png"
+		} else if strings.HasSuffix(img, "gif") {
+			imgType = "image/gif"
+		} else {
+			// TODO: 警告した方が良い？
+		}
+
 		images = append(images, &checker.Asset{
 			MD5:  util.GetMD5(data),
 			Path: img,
+			Type: imgType,
 		})
 	}
 
