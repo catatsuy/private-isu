@@ -182,13 +182,23 @@ describe('e2etest', () => {
   });
 
   it('新規登録、ログアウト、ログインできる', async () => {
-    const urlAfterLogin = await nightmare
+    const urlAfterRegister = await nightmare
     .goto(`${baseurl}/register`)
     .wait(mediumWait)
     .type('input[name=account_name]', 'catatsuy')
     .type('input[name=password]', 'catatsuy')
     .click('input[type=submit]')
     .wait(longWait)
+    .url()
+    ;
+    expect(urlAfterRegister).to.equal(`${baseurl}/`);
+
+    const name1 = await nightmare.evaluate(() => {
+      return document.querySelector('.isu-account-name a').textContent;
+    });
+    expect('catatsuyさん').to.equal(name1);
+
+    const urlAfterLogin = await nightmare
     .goto(`${baseurl}/logout`)
     .wait(shortWait)
     .goto(`${baseurl}/login`)
@@ -200,9 +210,9 @@ describe('e2etest', () => {
     ;
     expect(urlAfterLogin).to.equal(`${baseurl}/`);
 
-    const name = await nightmare.evaluate(() => {
+    const name2 = await nightmare.evaluate(() => {
       return document.querySelector('.isu-account-name a').textContent;
     });
-    expect('catatsuyさん').to.equal(name);
+    expect('catatsuyさん').to.equal(name2);
   });
 });
