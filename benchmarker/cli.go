@@ -99,7 +99,7 @@ func (cli *CLI) Run(args []string) int {
 
 	setupInitialize(targetHost, initialize)
 
-	users, bannedUsers, adminUsers, sentences, images, err := prepareUserdata(userdata)
+	users, _, adminUsers, sentences, images, err := prepareUserdata(userdata)
 	if err != nil {
 		outputNeedToContactUs(err.Error())
 		return ExitCodeError
@@ -114,7 +114,14 @@ func (cli *CLI) Run(args []string) int {
 	}
 
 	// 最初にDOMチェックなどをやってしまい、通らなければさっさと失敗させる
-	detailedCheck(users, bannedUsers, adminUsers, sentences, images)
+	commentScenario(checker.NewSession(), randomUser(users), randomUser(users).AccountName, randomSentence(sentences))
+	postImageScenario(checker.NewSession(), randomUser(users), randomImage(images), randomSentence(sentences))
+	cannotLoginNonexistentUserScenario(checker.NewSession())
+	cannotLoginWrongPasswordScenario(checker.NewSession(), randomUser(users))
+	cannotAccessAdminScenario(checker.NewSession(), randomUser(users))
+	cannotPostWrongCSRFTokenScenario(checker.NewSession(), randomUser(users), randomImage(images))
+	loginScenario(checker.NewSession(), randomUser(users))
+	banScenario(checker.NewSession(), checker.NewSession(), randomUser(users), randomUser(adminUsers), randomImage(images), randomSentence(sentences))
 
 	if score.GetInstance().GetFails() > 0 {
 		msgs := []string{}
