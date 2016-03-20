@@ -81,7 +81,7 @@ func (a *Action) Play(s *Session) error {
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		return s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
 	if a.ExpectedLocation != "" {
@@ -232,7 +232,7 @@ func (a *UploadAction) Play(s *Session) error {
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		return s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
 	if a.ExpectedLocation != "" {
@@ -284,7 +284,7 @@ func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		return "", s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
 	if a.ExpectedLocation != "" {
