@@ -19,12 +19,10 @@ const (
 	ExitCodeOK    int = 0
 	ExitCodeError int = 1 + iota
 
-	FailThreshold           = 5
-	InitializeTimeout       = time.Duration(10) * time.Second
-	BenchmarkTimeout        = 30 * time.Second
-	DetailedCheckQueueSize  = 2
-	NonNormalCheckQueueSize = 2
-	WaitAfterTimeout        = 5
+	FailThreshold     = 5
+	InitializeTimeout = time.Duration(10) * time.Second
+	BenchmarkTimeout  = 30 * time.Second
+	WaitAfterTimeout  = 5
 
 	PostsPerPage = 20
 )
@@ -135,7 +133,6 @@ func (cli *CLI) Run(args []string) int {
 	postImageScenarioCh := makeChanBool(1)
 	loginScenarioCh := makeChanBool(1)
 	banScenarioCh := makeChanBool(1)
-	nonNormalCheckCh := makeChanBool(NonNormalCheckQueueSize)
 
 	timeoutCh := time.After(BenchmarkTimeout)
 
@@ -165,25 +162,20 @@ L:
 		case <-postImageScenarioCh:
 			go func() {
 				postImageScenario(checker.NewSession(), randomUser(users), randomImage(images), randomSentence(sentences))
-				postImageScenarioCh <- true
-			}()
-		case <-nonNormalCheckCh:
-			go func() {
-				cannotLoginNonexistentUserScenario(checker.NewSession())
-				cannotLoginWrongPasswordScenario(checker.NewSession(), randomUser(users))
-				cannotAccessAdminScenario(checker.NewSession(), randomUser(users))
 				cannotPostWrongCSRFTokenScenario(checker.NewSession(), randomUser(users), randomImage(images))
-				<-time.After(3 * time.Second)
-				nonNormalCheckCh <- true
+				postImageScenarioCh <- true
 			}()
 		case <-loginScenarioCh:
 			go func() {
 				loginScenario(checker.NewSession(), randomUser(users))
+				cannotLoginNonexistentUserScenario(checker.NewSession())
+				cannotLoginWrongPasswordScenario(checker.NewSession(), randomUser(users))
 				loginScenarioCh <- true
 			}()
 		case <-banScenarioCh:
 			go func() {
 				banScenario(checker.NewSession(), checker.NewSession(), randomUser(users), randomUser(adminUsers), randomImage(images), randomSentence(sentences))
+				cannotAccessAdminScenario(checker.NewSession(), randomUser(users))
 				banScenarioCh <- true
 			}()
 		case <-timeoutCh:
