@@ -98,7 +98,7 @@ func escapeQuotes(s string) string {
 	return strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(s)
 }
 
-func (s *Session) NewFileUploadRequest(uri string, params map[string]string, paramName, path string) (*http.Request, error) {
+func (s *Session) NewFileUploadRequest(uri string, params map[string]string, paramName string, asset *Asset) (*http.Request, error) {
 	parsedURL, err := url.Parse(uri)
 
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *Session) NewFileUploadRequest(uri string, params map[string]string, par
 		parsedURL.Host = targetHost
 	}
 
-	file, err := os.Open(path)
+	file, err := os.Open(asset.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +126,8 @@ func (s *Session) NewFileUploadRequest(uri string, params map[string]string, par
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
-			escapeQuotes(paramName), escapeQuotes(filepath.Base(path))))
-	h.Set("Content-Type", params["type"])
+			escapeQuotes(paramName), escapeQuotes(filepath.Base(asset.Path))))
+	h.Set("Content-Type", asset.Type)
 	part, err := writer.CreatePart(h)
 
 	if err != nil {

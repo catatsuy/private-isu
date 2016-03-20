@@ -40,6 +40,7 @@ const (
 type Asset struct {
 	Path string
 	MD5  string
+	Type string
 }
 
 func NewAction(method, path string) *Action {
@@ -212,7 +213,7 @@ func NewUploadAction(method, path, uploadParamname string) *UploadAction {
 }
 
 func (a *UploadAction) Play(s *Session) error {
-	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset.Path)
+	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset)
 
 	if err != nil {
 		return s.Fail(failExceptionScore, req, err)
@@ -264,7 +265,7 @@ func (a *UploadAction) Play(s *Session) error {
 }
 
 func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
-	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset.Path)
+	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset)
 
 	if err != nil {
 		return "", s.Fail(failExceptionScore, req, err)
