@@ -309,7 +309,6 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 	postImage.PostData = map[string]string{
 		"body":       sentence,
 		"csrf_token": csrfToken,
-		"type":       "image/jpeg", // TODO: pngやgifもあるのでどうにかする
 	}
 	postImage.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
