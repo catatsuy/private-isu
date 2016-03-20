@@ -422,7 +422,7 @@ func cannotPostWrongCSRFTokenScenario(s *checker.Session, me user, image *checke
 	login.Play(s)
 
 	postImage := checker.NewUploadAction("POST", "/", "file")
-	postImage.ExpectedStatusCode = http.StatusForbidden
+	postImage.ExpectedStatusCode = 422
 	postImage.Description = "間違ったCSRFトークンでは画像を投稿できないこと"
 	postImage.Asset = image
 	postImage.PostData = map[string]string{
