@@ -1,16 +1,12 @@
 package main
 
 import (
-	"net/url"
-	"time"
-
-	"io"
-
 	"errors"
-
-	"strings"
-
+	"io"
 	"net/http"
+	"net/url"
+	"strings"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/catatsuy/private-isu/benchmarker/checker"
