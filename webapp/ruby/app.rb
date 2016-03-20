@@ -63,29 +63,6 @@ module Isuconp
         end
       end
 
-      def register_user(account_name:, password:)
-        validated = validate_user(
-          account_name: account_name,
-          password: password
-        )
-        if !validated
-          return false
-        end
-
-        user = db.prepare('SELECT 1 FROM users WHERE `account_name` = ?').execute(account_name).first
-        if user
-          return false
-        end
-
-        query = 'INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)'
-        db.prepare(query).execute(
-          account_name,
-          calculate_passhash(password, account_name)
-        )
-
-        return true
-      end
-
       def validate_user(account_name:, password:)
         unless /\A[0-9a-zA-Z_]{3,}\z/.match(account_name)
           return false
@@ -203,16 +180,36 @@ module Isuconp
         redirect '/', 302
       end
 
-      result = register_user(
-        account_name: params['account_name'],
-        password: params['password']
+      account_name = params['account_name']
+      password = params['password']
+
+      validated = validate_user(
+        account_name: account_name,
+        password: password
       )
-      if result
-        redirect '/', 302
-      else
+      if !validated
+        flash[:notice] = 'このアカウント名は許可されていません'
+        redirect '/register', 302
+        return
+      end
+
+      user = db.prepare('SELECT 1 FROM users WHERE `account_name` = ?').execute(account_name).first
+      if user
         flash[:notice] = 'アカウント名がすでに使われています'
         redirect '/register', 302
+        return
       end
+
+      query = 'INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)'
+      db.prepare(query).execute(
+        account_name,
+        calculate_passhash(password, account_name)
+      )
+
+      session[:user] = {
+        id: db.last_id
+      }
+      redirect '/', 302
     end
 
     get '/logout' do
