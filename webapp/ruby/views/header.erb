@@ -6,7 +6,7 @@
     <% if me.nil? %>
     <div><a href="/login">ログイン</a></div>
     <% else %>
-    <div class="isu-account-name"><a href="/@<%=  escape_html CGI.escape(me[:account_name]) %>"><%=  escape_html me[:account_name] %>さん</a></div>
+    <div><a href="/@<%=  escape_html CGI.escape(me[:account_name]) %>"><span class="isu-account-name"><%=  escape_html me[:account_name] %></span>さん</a></div>
     <% if me[:authority] == 1 %>
     <div><a href="/admin/banned">管理者用ページ</a></div>
     <% end %>

@@ -194,9 +194,9 @@ describe('e2etest', () => {
     expect(urlAfterRegister).to.equal(`${baseurl}/`);
 
     const name1 = await nightmare.evaluate(() => {
-      return document.querySelector('.isu-account-name a').textContent;
+      return document.querySelector('.isu-account-name').textContent;
     });
-    expect('catatsuyさん').to.equal(name1);
+    expect('catatsuy').to.equal(name1);
 
     const urlAfterLogin = await nightmare
     .goto(`${baseurl}/logout`)
@@ -211,8 +211,8 @@ describe('e2etest', () => {
     expect(urlAfterLogin).to.equal(`${baseurl}/`);
 
     const name2 = await nightmare.evaluate(() => {
-      return document.querySelector('.isu-account-name a').textContent;
+      return document.querySelector('.isu-account-name').textContent;
     });
-    expect('catatsuyさん').to.equal(name2);
+    expect('catatsuy').to.equal(name2);
   });
 });
