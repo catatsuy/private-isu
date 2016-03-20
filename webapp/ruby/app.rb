@@ -95,7 +95,7 @@ module Isuconp
       end
 
       def digest(src)
-        `echo -n #{src} | openssl dgst -sha512 | sed 's/^.*= //'`.strip # opensslのバージョンによっては (stdin)= というのがつくので取る
+        `printf "%s" #{src} | openssl dgst -sha512 | sed 's/^.*= //'`.strip # opensslのバージョンによっては (stdin)= というのがつくので取る
       end
 
       def calculate_salt(account_name)
