@@ -130,7 +130,8 @@ func (cli *CLI) Run(args []string) int {
 	userAndPostPageScenarioCh := makeChanBool(2)
 	commentScenarioCh := makeChanBool(1)
 	postImageScenarioCh := makeChanBool(1)
-	detailedCheckCh := makeChanBool(DetailedCheckQueueSize)
+	loginScenarioCh := makeChanBool(1)
+	banScenarioCh := makeChanBool(1)
 	nonNormalCheckCh := makeChanBool(NonNormalCheckQueueSize)
 
 	timeoutCh := time.After(BenchmarkTimeout)
@@ -172,10 +173,15 @@ L:
 				<-time.After(3 * time.Second)
 				nonNormalCheckCh <- true
 			}()
-		case <-detailedCheckCh:
+		case <-loginScenarioCh:
 			go func() {
 				loginScenario(checker.NewSession(), randomUser(users))
-				detailedCheckCh <- true
+				loginScenarioCh <- true
+			}()
+		case <-banScenarioCh:
+			go func() {
+				banScenario(checker.NewSession(), checker.NewSession(), randomUser(users), randomUser(adminUsers), randomImage(images), randomSentence(sentences))
+				banScenarioCh <- true
 			}()
 		case <-timeoutCh:
 			break L

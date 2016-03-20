@@ -315,7 +315,6 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 		"csrf_token": csrfToken,
 		"type":       "image/jpeg", // TODO: pngやgifもあるのでどうにかする
 	}
-
 	postImage.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
@@ -489,4 +488,145 @@ func loginScenario(s *checker.Session, me user) {
 
 	loadAssets(s)
 	loadImages(s, imageUrls)
+}
+
+// 新規登録→画像投稿→banされる
+func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Asset, sentence string) {
+	var csrfToken string
+	var imageUrls []string
+	var userID string
+	var ok bool
+	var err error
+	accountName := util.RandomLUNStr(25)
+	password := util.RandomLUNStr(25)
+
+	register := checker.NewAction("POST", "/register")
+	register.ExpectedLocation = "/"
+	register.Description = "新規登録できること"
+	register.PostData = map[string]string{
+		"account_name": accountName,
+		"password":     password,
+	}
+	register.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, err := goquery.NewDocumentFromReader(body)
+		if err != nil {
+			return errors.New("ページが正しく読み込めませんでした")
+		}
+		name := doc.Find(`.isu-account-name`).Text()
+		if name == "" {
+			return errors.New("ユーザー名が表示されていません")
+		} else if name != accountName {
+			return errors.New("表示されているユーザー名が正しくありません")
+		}
+		csrfToken, ok = doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+		if !ok {
+			return errors.New("CSRFトークンが取得できません")
+		}
+
+		return nil
+	}
+	register.Play(s1)
+
+	postImage := checker.NewUploadAction("POST", "/", "file")
+	postImage.Description = "画像を投稿してリダイレクトされること"
+	postImage.Asset = image
+	postImage.PostData = map[string]string{
+		"body":       util.RandomLUNStr(15),
+		"csrf_token": csrfToken,
+		"type":       "image/jpeg", // TODO: pngやgifもあるのでどうにかする
+	}
+	postImage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, err := goquery.NewDocumentFromReader(body)
+		if err != nil {
+			return errors.New("ページが正しく読み込めませんでした")
+		}
+		imageUrls = extractImages(doc)
+		if len(imageUrls) < 1 {
+			return errors.New("投稿した画像が表示されていません")
+		}
+		return nil
+	}
+
+	_, err = postImage.PlayWithURL(s1)
+	if err != nil {
+		return // TODO: どういうエラーハンドリングが適切か考える
+	}
+
+	if len(imageUrls) < 1 {
+		return // このケースは上のCheckFuncの中で既にエラーにしてある
+	}
+
+	imageUrl := imageUrls[0]
+
+	getImage := checker.NewAssetAction(imageUrl, image)
+	getImage.Description = "投稿した画像と一致することを確認"
+	getImage.Play(s1)
+
+	login := checker.NewAction("POST", "/login")
+	login.ExpectedLocation = "/"
+	login.Description = "管理ユーザーでログインできること"
+	login.PostData = map[string]string{
+		"account_name": admin.AccountName,
+		"password":     admin.Password,
+	}
+	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, err := goquery.NewDocumentFromReader(body)
+		if err != nil {
+			return errors.New("ページが正しく読み込めませんでした")
+		}
+		imageUrls = extractImages(doc)
+		for _, url := range imageUrls {
+			if url == imageUrl {
+				return nil // 投稿した画像が正しく表示されている
+			}
+		}
+		return errors.New("投稿した画像が表示されていません")
+	}
+	login.Play(s2)
+
+	banPage := checker.NewAction("GET", "/admin/banned")
+	banPage.Description = "管理ユーザーが管理ページにアクセスできること"
+	banPage.ExpectedLocation = "/admin/banned"
+	banPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, err := goquery.NewDocumentFromReader(body)
+		if err != nil {
+			return errors.New("ページが正しく読み込めませんでした")
+		}
+		csrfToken, ok = doc.Find(`input[name="csrf_token"]`).First().Attr("value")
+		if !ok {
+			return errors.New("CSRFトークンが取得できません")
+		}
+		userID, ok = doc.Find(`input[data-account-name="` + accountName + `"]`).First().Attr("value")
+		if !ok {
+			return errors.New("新規登録されたユーザーが管理ページに表示されていません")
+		}
+		return nil
+	}
+	banPage.Play(s2)
+
+	ban := checker.NewAction("POST", "/admin/banned")
+	ban.Description = "ユーザーの禁止ができること"
+	ban.ExpectedLocation = "/admin/banned"
+	ban.PostData = map[string]string{
+		"uid[]":      userID,
+		"csrf_token": csrfToken,
+	}
+	ban.Play(s2)
+
+	index := checker.NewAction("GET", "/")
+	index.Description = "トップページに禁止ユーザーの画像が表示されていないこと"
+	index.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		doc, err := goquery.NewDocumentFromReader(body)
+		if err != nil {
+			return errors.New("ページが正しく読み込めませんでした")
+		}
+		imageUrls = extractImages(doc)
+		for _, url := range imageUrls {
+			if url == imageUrl {
+				return errors.New("禁止ユーザーの画像が表示されています")
+			}
+		}
+		return nil
+	}
+	index.Play(s2)
 }
