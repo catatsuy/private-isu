@@ -338,7 +338,8 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 	}
 
 	getImage := checker.NewAssetAction(imageUrls[0], image)
-	getImage.Description = "投稿した画像と一致することを確認"
+	getImage.Description = "投稿した画像と一致すること"
+	getImage.Play(s)
 }
 
 // 適当なユーザー名でログインしようとする
