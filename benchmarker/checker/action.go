@@ -204,8 +204,9 @@ func NewUploadAction(method, path, uploadParamname string) *UploadAction {
 	return &UploadAction{
 		UploadParamName: uploadParamname,
 		Action: &Action{
-			Method: method,
-			Path:   path,
+			Method:             method,
+			Path:               path,
+			ExpectedStatusCode: http.StatusOK,
 		},
 	}
 }
