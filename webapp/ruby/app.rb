@@ -46,6 +46,8 @@ module Isuconp
         sql << 'DELETE FROM users WHERE id > 1000'
         sql << 'DELETE FROM posts WHERE id > 10000'
         sql << 'DELETE FROM comments WHERE id > 100000'
+        sql << 'UPDATE users SET del_flg = 0'
+        sql << 'UPDATE users SET del_flg = 1 WHERE id % 50 = 0'
         sql.each do |s|
           db.prepare(s).execute
         end
