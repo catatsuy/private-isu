@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 
 	"github.com/catatsuy/private-isu/benchmarker/cache"
 	"github.com/catatsuy/private-isu/benchmarker/util"
@@ -85,7 +86,7 @@ func (a *Action) Play(s *Session) error {
 	}
 
 	if a.ExpectedLocation != "" {
-		if a.ExpectedLocation != res.Request.URL.Path {
+		if !regexp.MustCompile(a.ExpectedLocation).MatchString(res.Request.URL.Path) {
 			return s.Fail(
 				failErrorScore,
 				res.Request,
@@ -236,7 +237,7 @@ func (a *UploadAction) Play(s *Session) error {
 	}
 
 	if a.ExpectedLocation != "" {
-		if a.ExpectedLocation != res.Request.URL.Path {
+		if !regexp.MustCompile(a.ExpectedLocation).MatchString(res.Request.URL.Path) {
 			return s.Fail(
 				failErrorScore,
 				res.Request,
@@ -262,56 +263,4 @@ func (a *UploadAction) Play(s *Session) error {
 	s.Success(suceessGetScore)
 
 	return nil
-}
-
-func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
-	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset)
-
-	if err != nil {
-		return "", s.Fail(failExceptionScore, req, err)
-	}
-
-	for key, val := range a.Headers {
-		req.Header.Add(key, val)
-	}
-
-	res, err := s.SendRequest(req)
-
-	if err != nil {
-		return "", s.Fail(failExceptionScore, req, err)
-	}
-
-	defer res.Body.Close()
-
-	if res.StatusCode != a.ExpectedStatusCode {
-		return "", s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
-	}
-
-	if a.ExpectedLocation != "" {
-		if a.ExpectedLocation != res.Request.URL.Path {
-			return "", s.Fail(
-				failErrorScore,
-				res.Request,
-				fmt.Errorf(
-					"Expected location is miss match %s, got: %s",
-					a.ExpectedLocation, res.Request.URL.Path,
-				))
-		}
-	}
-
-	if a.CheckFunc != nil {
-		err := a.CheckFunc(s, res.Body)
-		if err != nil {
-			return "", s.Fail(
-				failErrorScore,
-				res.Request,
-				err,
-			)
-		}
-	}
-
-	s.Success(suceessUploadScore)
-	s.Success(suceessGetScore)
-
-	return res.Request.URL.Path, nil
 }
