@@ -1,6 +1,7 @@
 package score
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 )
@@ -39,6 +40,22 @@ func GetFailErrors() []error {
 
 func GetFailRawErrors() []error {
 	return GetFailErrorsInstance().errs
+}
+
+func GetFailErrorsStringSlice() []string {
+	msgs := []string{}
+	for _, err := range GetFailErrors() {
+		msgs = append(msgs, fmt.Sprint(err.Error()))
+	}
+	return msgs
+}
+
+func GetFailRawErrorsStringSlice() []string {
+	msgs := []string{}
+	for _, err := range GetFailRawErrors() {
+		msgs = append(msgs, fmt.Sprint(err.Error()))
+	}
+	return msgs
 }
 
 func (fes failErrors) Len() int {
