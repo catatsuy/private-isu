@@ -118,11 +118,7 @@ func (cli *CLI) Run(args []string) int {
 	banScenario(checker.NewSession(), checker.NewSession(), randomUser(users), randomUser(adminUsers), randomImage(images), randomSentence(sentences))
 
 	if score.GetInstance().GetFails() > 0 {
-		msgs := []string{}
-		for _, err := range score.GetFailErrors() {
-			msgs = append(msgs, fmt.Sprint(err.Error()))
-		}
-		fmt.Println(outputResultJson(false, msgs))
+		fmt.Println(outputResultJson(false, score.GetFailErrorsStringSlice()))
 		return ExitCodeError
 	}
 
@@ -188,15 +184,9 @@ L:
 	msgs := []string{}
 
 	if !debug {
-		// 通常は適当にsortしてuniqしたログを出す
-		for _, err := range score.GetFailErrors() {
-			msgs = append(msgs, fmt.Sprint(err.Error()))
-		}
+		msgs = score.GetFailErrorsStringSlice()
 	} else {
-		// debugモードなら生ログを出力
-		for _, err := range score.GetFailRawErrors() {
-			msgs = append(msgs, fmt.Sprint(err.Error()))
-		}
+		msgs = score.GetFailRawErrorsStringSlice()
 	}
 
 	fmt.Println(outputResultJson(true, msgs))
