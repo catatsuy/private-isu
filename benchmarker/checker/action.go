@@ -66,7 +66,7 @@ func (a *Action) Play(s *Session) error {
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (運営に連絡してください)"))
+		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
 	}
 
 	for key, val := range a.Headers {
@@ -152,7 +152,7 @@ func (a *AssetAction) Play(s *Session) error {
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (運営に連絡してください)"))
+		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
 	}
 
 	for key, val := range a.Headers {
@@ -229,7 +229,7 @@ func (a *UploadAction) Play(s *Session) error {
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (運営に連絡してください)"))
+		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
 	}
 
 	for key, val := range a.Headers {
