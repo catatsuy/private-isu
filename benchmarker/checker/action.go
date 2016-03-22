@@ -2,10 +2,14 @@ package checker
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"regexp"
 
 	"github.com/catatsuy/private-isu/benchmarker/cache"
 	"github.com/catatsuy/private-isu/benchmarker/util"
@@ -61,7 +65,8 @@ func (a *Action) Play(s *Session) error {
 	req, err := s.NewRequest(a.Method, a.Path, buf)
 
 	if err != nil {
-		return s.Fail(failExceptionScore, req, err)
+		fmt.Fprintln(os.Stderr, err)
+		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
 	}
 
 	for key, val := range a.Headers {
@@ -75,7 +80,11 @@ func (a *Action) Play(s *Session) error {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return s.Fail(failExceptionScore, req, err)
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			return s.Fail(failExceptionScore, req, errors.New("リクエストがタイムアウトしました"))
+		}
+		fmt.Fprintln(os.Stderr, err)
+		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました"))
 	}
 
 	defer res.Body.Close()
@@ -85,12 +94,12 @@ func (a *Action) Play(s *Session) error {
 	}
 
 	if a.ExpectedLocation != "" {
-		if a.ExpectedLocation != res.Request.URL.Path {
+		if !regexp.MustCompile(a.ExpectedLocation).MatchString(res.Request.URL.Path) {
 			return s.Fail(
 				failErrorScore,
 				res.Request,
 				fmt.Errorf(
-					"Expected location is miss match %s, got: %s",
+					"リダイレクト先URLが正しくありません: expected '%s', got '%s'",
 					a.ExpectedLocation, res.Request.URL.Path,
 				))
 		}
@@ -142,7 +151,8 @@ func (a *AssetAction) Play(s *Session) error {
 	req, err := s.NewRequest(a.Method, a.Path, buf)
 
 	if err != nil {
-		return s.Fail(failExceptionScore, req, err)
+		fmt.Fprintln(os.Stderr, err)
+		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
 	}
 
 	for key, val := range a.Headers {
@@ -157,7 +167,11 @@ func (a *AssetAction) Play(s *Session) error {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return s.Fail(failExceptionScore, req, err)
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			return s.Fail(failExceptionScore, req, errors.New("リクエストがタイムアウトしました"))
+		}
+		fmt.Fprintln(os.Stderr, err)
+		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました"))
 	}
 
 	// 2回ioutil.ReadAllを呼ぶとおかしくなる
@@ -184,10 +198,8 @@ func (a *AssetAction) Play(s *Session) error {
 		return s.Fail(
 			failErrorScore,
 			res.Request,
-			fmt.Errorf(
-				"Expected location is miss match %s, got: %s",
-				a.ExpectedLocation, res.Request.URL.Path,
-			))
+			fmt.Errorf("静的ファイルが正しくありません"),
+		)
 	}
 
 	s.Success(suceessGetScore)
@@ -216,7 +228,8 @@ func (a *UploadAction) Play(s *Session) error {
 	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset)
 
 	if err != nil {
-		return s.Fail(failExceptionScore, req, err)
+		fmt.Fprintln(os.Stderr, err)
+		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
 	}
 
 	for key, val := range a.Headers {
@@ -226,22 +239,30 @@ func (a *UploadAction) Play(s *Session) error {
 	res, err := s.SendRequest(req)
 
 	if err != nil {
-		return s.Fail(failExceptionScore, req, err)
+		if err, ok := err.(net.Error); ok && err.Timeout() {
+			return s.Fail(failExceptionScore, req, errors.New("リクエストがタイムアウトしました"))
+		}
+		fmt.Fprintln(os.Stderr, err)
+		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました"))
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		return s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		return s.Fail(
+			failErrorScore,
+			res.Request,
+			fmt.Errorf("ステータスコードが正しくありません: expected %d, got %d", a.ExpectedStatusCode, res.StatusCode),
+		)
 	}
 
 	if a.ExpectedLocation != "" {
-		if a.ExpectedLocation != res.Request.URL.Path {
+		if !regexp.MustCompile(a.ExpectedLocation).MatchString(res.Request.URL.Path) {
 			return s.Fail(
 				failErrorScore,
 				res.Request,
 				fmt.Errorf(
-					"Expected location is miss match %s, got: %s",
+					"リダイレクト先URLが正しくありません: expected '%s', got '%s'",
 					a.ExpectedLocation, res.Request.URL.Path,
 				))
 		}
@@ -262,56 +283,4 @@ func (a *UploadAction) Play(s *Session) error {
 	s.Success(suceessGetScore)
 
 	return nil
-}
-
-func (a *UploadAction) PlayWithURL(s *Session) (string, error) {
-	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset)
-
-	if err != nil {
-		return "", s.Fail(failExceptionScore, req, err)
-	}
-
-	for key, val := range a.Headers {
-		req.Header.Add(key, val)
-	}
-
-	res, err := s.SendRequest(req)
-
-	if err != nil {
-		return "", s.Fail(failExceptionScore, req, err)
-	}
-
-	defer res.Body.Close()
-
-	if res.StatusCode != a.ExpectedStatusCode {
-		return "", s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
-	}
-
-	if a.ExpectedLocation != "" {
-		if a.ExpectedLocation != res.Request.URL.Path {
-			return "", s.Fail(
-				failErrorScore,
-				res.Request,
-				fmt.Errorf(
-					"Expected location is miss match %s, got: %s",
-					a.ExpectedLocation, res.Request.URL.Path,
-				))
-		}
-	}
-
-	if a.CheckFunc != nil {
-		err := a.CheckFunc(s, res.Body)
-		if err != nil {
-			return "", s.Fail(
-				failErrorScore,
-				res.Request,
-				err,
-			)
-		}
-	}
-
-	s.Success(suceessUploadScore)
-	s.Success(suceessGetScore)
-
-	return res.Request.URL.Path, nil
 }

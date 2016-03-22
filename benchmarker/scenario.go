@@ -50,32 +50,26 @@ func extractPostLinks(doc *goquery.Document) []string {
 // 普通のページに表示されるべき静的ファイルに一通りアクセス
 func loadAssets(s *checker.Session) {
 	a := checker.NewAssetAction("/favicon.ico", &checker.Asset{})
-	a.ExpectedLocation = "/favicon.ico"
 	a.Description = "faviconが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("js/jquery-2.2.0.js", &checker.Asset{})
-	a.ExpectedLocation = "js/jquery-2.2.0.js"
 	a.Description = "jqueryが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("js/jquery.timeago.js", &checker.Asset{})
-	a.ExpectedLocation = "js/jquery.timeago.js"
 	a.Description = "jquery.timeago.jsが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("js/jquery.timeago.ja.js", &checker.Asset{})
-	a.ExpectedLocation = "js/jquery.timeago.ja.js"
 	a.Description = "jquery.timeago.ja.jsが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("/js/main.js", &checker.Asset{})
-	a.ExpectedLocation = "/js/main.js"
 	a.Description = "main.jsが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("/css/style.css", &checker.Asset{})
-	a.ExpectedLocation = "/css/style.css"
 	a.Description = "style.cssが読み込めること"
 	a.Play(s)
 }
@@ -99,10 +93,13 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 	}
 
 	index := checker.NewAction("GET", "/")
-	index.ExpectedLocation = "/"
+	index.ExpectedLocation = `^/$`
 	index.Description = "インデックスページが表示できること"
 	index.CheckFunc = imagePerPageChecker
-	index.Play(s)
+	err := index.Play(s)
+	if err != nil {
+		return
+	}
 
 	loadAssets(s)
 	loadImages(s, imageUrls)
@@ -115,7 +112,10 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 		posts := checker.NewAction("GET", "/posts?max_created_at="+url.QueryEscape(maxCreatedAt.Format(time.RFC3339)))
 		posts.Description = "インデックスページの「もっと見る」が表示できること"
 		posts.CheckFunc = imagePerPageChecker
-		posts.Play(s)
+		err := posts.Play(s)
+		if err != nil {
+			return
+		}
 
 		loadImages(s, imageUrls)
 
@@ -144,10 +144,13 @@ func loadIndexScenario(s *checker.Session) {
 	}
 
 	index := checker.NewAction("GET", "/")
-	index.ExpectedLocation = "/"
+	index.ExpectedLocation = `^/$`
 	index.Description = "インデックスページが表示できること"
 	index.CheckFunc = imagePerPageChecker
-	index.Play(s)
+	err := index.Play(s)
+	if err != nil {
+		return
+	}
 
 	loadAssets(s)
 	loadImages(s, imageUrls)
@@ -155,8 +158,12 @@ func loadIndexScenario(s *checker.Session) {
 	for i := 0; i < 4; i++ {
 		// あとの4回はDOMをパースしない。トップページをキャッシュして超高速に返されたとき対策
 		index := checker.NewAction("GET", "/")
-		index.ExpectedLocation = "/"
+		index.ExpectedLocation = `^/$`
 		index.Description = "インデックスページが表示できること"
+		err := index.Play(s)
+		if err != nil {
+			return
+		}
 
 		loadAssets(s)
 		loadImages(s, imageUrls) // 画像は初回と同じものにリクエスト投げる
@@ -185,7 +192,10 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 		postLinks = extractPostLinks(doc)
 		return nil
 	}
-	userPage.Play(s)
+	err := userPage.Play(s)
+	if err != nil {
+		return
+	}
 
 	loadAssets(s)
 	loadImages(s, imageUrls)
@@ -204,7 +214,10 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 			}
 			return nil
 		}
-		postPage.Play(s)
+		err := postPage.Play(s)
+		if err != nil {
+			return
+		}
 
 		loadAssets(s)
 		loadImages(s, imageUrls)
@@ -223,13 +236,16 @@ func commentScenario(s *checker.Session, me user, accountName string, sentence s
 	var ok bool
 
 	login := checker.NewAction("POST", "/login")
-	login.ExpectedLocation = "/"
+	login.ExpectedLocation = `^/$`
 	login.Description = "ログインできること"
 	login.PostData = map[string]string{
 		"account_name": me.AccountName,
 		"password":     me.Password,
 	}
-	login.Play(s)
+	err := login.Play(s)
+	if err != nil {
+		return
+	}
 
 	userPage := checker.NewAction("GET", "/@"+accountName)
 	userPage.Description = "ユーザーページが表示できること"
@@ -257,14 +273,17 @@ func commentScenario(s *checker.Session, me user, accountName string, sentence s
 
 		return nil
 	}
-	userPage.Play(s)
+	err = userPage.Play(s)
+	if err != nil {
+		return
+	}
 
 	if postID == "" {
 		return
 	}
 
 	comment := checker.NewAction("POST", "/comment")
-	comment.ExpectedLocation = "/posts/" + postID
+	comment.ExpectedLocation = "^/posts/" + postID + "$"
 	comment.PostData = map[string]string{
 		"post_id":    postID,
 		"comment":    sentence,
@@ -279,10 +298,9 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 	var csrfToken string
 	var imageUrls []string
 	var ok bool
-	var err error
 
 	login := checker.NewAction("POST", "/login")
-	login.ExpectedLocation = "/"
+	login.ExpectedLocation = `^/$`
 	login.Description = "ログインできること"
 	login.PostData = map[string]string{
 		"account_name": me.AccountName,
@@ -301,10 +319,14 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 
 		return nil
 	}
-	login.Play(s)
+	err := login.Play(s)
+	if err != nil {
+		return
+	}
 
 	postImage := checker.NewUploadAction("POST", "/", "file")
 	postImage.Description = "画像を投稿してリダイレクトされること"
+	postImage.ExpectedLocation = `^/posts/\d+$`
 	postImage.Asset = image
 	postImage.PostData = map[string]string{
 		"body":       sentence,
@@ -320,11 +342,6 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 			return errors.New("投稿した画像が表示されていません")
 		}
 		return nil
-	}
-
-	_, err = postImage.PlayWithURL(s)
-	if err != nil {
-		return // TODO: どういうエラーハンドリングが適切か考える
 	}
 
 	if len(imageUrls) < 1 {
@@ -347,7 +364,7 @@ func cannotLoginNonexistentUserScenario(s *checker.Session) {
 
 	login := checker.NewAction("POST", "/login")
 	login.Description = "存在しないユーザー名でログインできないこと"
-	login.ExpectedLocation = "/login"
+	login.ExpectedLocation = `^/login$`
 	login.PostData = fakeUser
 	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
@@ -371,7 +388,7 @@ func cannotLoginWrongPasswordScenario(s *checker.Session, me user) {
 
 	login := checker.NewAction("POST", "/login")
 	login.Description = "間違ったパスワードでログインできないこと"
-	login.ExpectedLocation = "/login"
+	login.ExpectedLocation = `^/login$`
 	login.PostData = fakeUser
 	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
@@ -389,32 +406,38 @@ func cannotLoginWrongPasswordScenario(s *checker.Session, me user) {
 // 管理者ユーザーでないなら /admin/banned にアクセスできない
 func cannotAccessAdminScenario(s *checker.Session, me user) {
 	login := checker.NewAction("POST", "/login")
-	login.ExpectedLocation = "/"
+	login.ExpectedLocation = `^/$`
 	login.Description = "Adminユーザーでログインできること"
 
 	login.PostData = map[string]string{
 		"account_name": me.AccountName,
 		"password":     me.Password,
 	}
-	login.Play(s)
+	err := login.Play(s)
+	if err != nil {
+		return
+	}
 
-	a := checker.NewAction("GET", "/admin/banned")
-	a.ExpectedStatusCode = http.StatusForbidden
+	adminPage := checker.NewAction("GET", "/admin/banned")
+	adminPage.ExpectedStatusCode = http.StatusForbidden
 
-	a.Play(s)
+	adminPage.Play(s)
 }
 
 // 間違ったCSRF Tokenで画像を投稿できない
 func cannotPostWrongCSRFTokenScenario(s *checker.Session, me user, image *checker.Asset) {
 	login := checker.NewAction("POST", "/login")
-	login.ExpectedLocation = "/"
+	login.ExpectedLocation = `^/$`
 	login.Description = "正しくログインできること"
 
 	login.PostData = map[string]string{
 		"account_name": me.AccountName,
 		"password":     me.Password,
 	}
-	login.Play(s)
+	err := login.Play(s)
+	if err != nil {
+		return
+	}
 
 	postImage := checker.NewUploadAction("POST", "/", "file")
 	postImage.ExpectedStatusCode = 422
@@ -433,7 +456,7 @@ func loginScenario(s *checker.Session, me user) {
 	var imageUrls []string
 
 	login := checker.NewAction("POST", "/login")
-	login.ExpectedLocation = "/"
+	login.ExpectedLocation = `^/$`
 	login.Description = "ログインするとユーザー名が表示されること"
 	login.PostData = map[string]string{
 		"account_name": me.AccountName,
@@ -455,15 +478,16 @@ func loginScenario(s *checker.Session, me user) {
 		}
 		return nil
 	}
-	login.Play(s)
-
-	// TODO: ここまででfailであればこれ以降は進めない
+	err := login.Play(s)
+	if err != nil {
+		return
+	}
 
 	loadAssets(s)
 	loadImages(s, imageUrls) // この画像へのアクセスでSet-Cookieされてたら失敗する
 
 	logout := checker.NewAction("GET", "/logout")
-	logout.ExpectedLocation = "/"
+	logout.ExpectedLocation = `^/$`
 	logout.Description = "ログアウトするとユーザー名が表示されないこと"
 	logout.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
@@ -479,7 +503,10 @@ func loginScenario(s *checker.Session, me user) {
 		}
 		return nil
 	}
-	logout.Play(s)
+	err = logout.Play(s)
+	if err != nil {
+		return
+	}
 
 	loadAssets(s)
 	loadImages(s, imageUrls)
@@ -491,12 +518,11 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 	var imageUrls []string
 	var userID string
 	var ok bool
-	var err error
 	accountName := util.RandomLUNStr(25)
 	password := util.RandomLUNStr(25)
 
 	register := checker.NewAction("POST", "/register")
-	register.ExpectedLocation = "/"
+	register.ExpectedLocation = `^/$`
 	register.Description = "新規登録できること"
 	register.PostData = map[string]string{
 		"account_name": accountName,
@@ -520,10 +546,14 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 
 		return nil
 	}
-	register.Play(s1)
+	err := register.Play(s1)
+	if err != nil {
+		return
+	}
 
 	postImage := checker.NewUploadAction("POST", "/", "file")
 	postImage.Description = "画像を投稿してリダイレクトされること"
+	postImage.ExpectedLocation = `^/posts/\d+$`
 	postImage.Asset = image
 	postImage.PostData = map[string]string{
 		"body":       util.RandomLUNStr(15),
@@ -541,11 +571,6 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		return nil
 	}
 
-	_, err = postImage.PlayWithURL(s1)
-	if err != nil {
-		return // TODO: どういうエラーハンドリングが適切か考える
-	}
-
 	if len(imageUrls) < 1 {
 		return // このケースは上のCheckFuncの中で既にエラーにしてある
 	}
@@ -554,10 +579,13 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 
 	getImage := checker.NewAssetAction(imageUrl, image)
 	getImage.Description = "投稿した画像と一致することを確認"
-	getImage.Play(s1)
+	err = getImage.Play(s1)
+	if err != nil {
+		return
+	}
 
 	login := checker.NewAction("POST", "/login")
-	login.ExpectedLocation = "/"
+	login.ExpectedLocation = `^/$`
 	login.Description = "管理ユーザーでログインできること"
 	login.PostData = map[string]string{
 		"account_name": admin.AccountName,
@@ -576,11 +604,14 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		}
 		return errors.New("投稿した画像が表示されていません")
 	}
-	login.Play(s2)
+	err = login.Play(s2)
+	if err != nil {
+		return
+	}
 
 	banPage := checker.NewAction("GET", "/admin/banned")
 	banPage.Description = "管理ユーザーが管理ページにアクセスできること"
-	banPage.ExpectedLocation = "/admin/banned"
+	banPage.ExpectedLocation = `^/admin/banned$`
 	banPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
@@ -596,16 +627,22 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		}
 		return nil
 	}
-	banPage.Play(s2)
+	err = banPage.Play(s2)
+	if err != nil {
+		return
+	}
 
 	ban := checker.NewAction("POST", "/admin/banned")
 	ban.Description = "ユーザーの禁止ができること"
-	ban.ExpectedLocation = "/admin/banned"
+	ban.ExpectedLocation = `^/admin/banned$`
 	ban.PostData = map[string]string{
 		"uid[]":      userID,
 		"csrf_token": csrfToken,
 	}
-	ban.Play(s2)
+	err = ban.Play(s2)
+	if err != nil {
+		return
+	}
 
 	index := checker.NewAction("GET", "/")
 	index.Description = "トップページに禁止ユーザーの画像が表示されていないこと"
