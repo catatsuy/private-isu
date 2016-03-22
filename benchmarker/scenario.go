@@ -80,7 +80,7 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 	var imageUrls []string
 	start := time.Now()
 
-	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
+	imagePerPageChecker := func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -131,7 +131,7 @@ func loadIndexScenario(s *checker.Session) {
 	var imageUrls []string
 	start := time.Now()
 
-	imagePerPageChecker := func(s *checker.Session, body io.Reader) error {
+	imagePerPageChecker := func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -183,7 +183,7 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 
 	userPage := checker.NewAction("GET", "/@"+accountName)
 	userPage.Description = "ユーザーページ"
-	userPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	userPage.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -203,7 +203,7 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 	for _, link := range postLinks {
 		postPage := checker.NewAction("GET", link)
 		postPage.Description = "投稿単体ページが表示できること"
-		postPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+		postPage.CheckFunc = func(body io.Reader) error {
 			doc, err := goquery.NewDocumentFromReader(body)
 			if err != nil {
 				return errors.New("ページが正しく読み込めませんでした")
@@ -249,7 +249,7 @@ func commentScenario(s *checker.Session, me user, accountName string, sentence s
 
 	userPage := checker.NewAction("GET", "/@"+accountName)
 	userPage.Description = "ユーザーページが表示できること"
-	userPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	userPage.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -306,7 +306,7 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 		"account_name": me.AccountName,
 		"password":     me.Password,
 	}
-	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	login.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -332,7 +332,7 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 		"body":       sentence,
 		"csrf_token": csrfToken,
 	}
-	postImage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	postImage.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -366,7 +366,7 @@ func cannotLoginNonexistentUserScenario(s *checker.Session) {
 	login.Description = "存在しないユーザー名でログインできないこと"
 	login.ExpectedLocation = `^/login$`
 	login.PostData = fakeUser
-	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	login.CheckFunc = func(body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		message := strings.TrimSpace(doc.Find(`#notice-message`).Text())
@@ -390,7 +390,7 @@ func cannotLoginWrongPasswordScenario(s *checker.Session, me user) {
 	login.Description = "間違ったパスワードでログインできないこと"
 	login.ExpectedLocation = `^/login$`
 	login.PostData = fakeUser
-	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	login.CheckFunc = func(body io.Reader) error {
 		doc, _ := goquery.NewDocumentFromReader(body)
 
 		message := strings.TrimSpace(doc.Find(`#notice-message`).Text())
@@ -462,7 +462,7 @@ func loginScenario(s *checker.Session, me user) {
 		"account_name": me.AccountName,
 		"password":     me.Password,
 	}
-	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	login.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -489,7 +489,7 @@ func loginScenario(s *checker.Session, me user) {
 	logout := checker.NewAction("GET", "/logout")
 	logout.ExpectedLocation = `^/$`
 	logout.Description = "ログアウトするとユーザー名が表示されないこと"
-	logout.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	logout.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -528,7 +528,7 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		"account_name": accountName,
 		"password":     password,
 	}
-	register.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	register.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -559,7 +559,7 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		"body":       util.RandomLUNStr(15),
 		"csrf_token": csrfToken,
 	}
-	postImage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	postImage.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -591,7 +591,7 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		"account_name": admin.AccountName,
 		"password":     admin.Password,
 	}
-	login.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	login.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -612,7 +612,7 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 	banPage := checker.NewAction("GET", "/admin/banned")
 	banPage.Description = "管理ユーザーが管理ページにアクセスできること"
 	banPage.ExpectedLocation = `^/admin/banned$`
-	banPage.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	banPage.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
@@ -646,7 +646,7 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 
 	index := checker.NewAction("GET", "/")
 	index.Description = "トップページに禁止ユーザーの画像が表示されていないこと"
-	index.CheckFunc = func(s *checker.Session, body io.Reader) error {
+	index.CheckFunc = func(body io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(body)
 		if err != nil {
 			return errors.New("ページが正しく読み込めませんでした")
