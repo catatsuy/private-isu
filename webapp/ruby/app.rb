@@ -1,6 +1,7 @@
 require 'sinatra/base'
 require 'mysql2'
 require 'rack-flash'
+require 'shellwords'
 
 module Isuconp
   class App < Sinatra::Base
@@ -74,7 +75,8 @@ module Isuconp
       end
 
       def digest(src)
-        `printf "%s" #{src} | openssl dgst -sha512 | sed 's/^.*= //'`.strip # opensslのバージョンによっては (stdin)= というのがつくので取る
+        # opensslのバージョンによっては (stdin)= というのがつくので取る
+        `printf "%s" #{Shellwords.shellescape(src)} | openssl dgst -sha512 | sed 's/^.*= //'`.strip
       end
 
       def calculate_salt(account_name)
