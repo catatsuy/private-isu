@@ -17,7 +17,7 @@ func checkHTML(f func(*goquery.Document) error) func(io.Reader) error {
 	return func(r io.Reader) error {
 		doc, err := goquery.NewDocumentFromReader(r)
 		if err != nil {
-			return errors.New("ページのHTMLが正しく処理できませんでした")
+			return errors.New("ページのHTMLがパースできませんでした")
 		}
 		return f(doc)
 	}
