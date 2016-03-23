@@ -66,7 +66,7 @@ module Isuconp
       end
 
       def validate_user(account_name:, password:)
-        unless /\A[0-9a-zA-Z_]{3,}\z/.match(account_name)
+        if !(/\A[0-9a-zA-Z_]{3,}\z/.match(account_name) && /\A[0-9a-zA-Z_]{6,}\z/.match(password))
           return false
         end
 
@@ -190,7 +190,7 @@ module Isuconp
         password: password
       )
       if !validated
-        flash[:notice] = 'このアカウント名は許可されていません'
+        flash[:notice] = 'アカウント名は3文字以上、パスワードは6文字以上である必要があります'
         redirect '/register', 302
         return
       end
