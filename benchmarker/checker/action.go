@@ -28,7 +28,7 @@ type Action struct {
 
 	Description string
 
-	CheckFunc func(w *Session, body io.Reader) error
+	CheckFunc func(body io.Reader) error
 }
 
 const (
@@ -106,7 +106,7 @@ func (a *Action) Play(s *Session) error {
 	}
 
 	if a.CheckFunc != nil {
-		err := a.CheckFunc(s, res.Body)
+		err := a.CheckFunc(res.Body)
 		if err != nil {
 			return s.Fail(
 				failErrorScore,
@@ -269,7 +269,7 @@ func (a *UploadAction) Play(s *Session) error {
 	}
 
 	if a.CheckFunc != nil {
-		err := a.CheckFunc(s, res.Body)
+		err := a.CheckFunc(res.Body)
 		if err != nil {
 			return s.Fail(
 				failErrorScore,
