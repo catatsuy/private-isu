@@ -338,7 +338,7 @@ $app->get('/posts/{id}', function (Request $request, Response $response, $args) 
     return $this->view->render($response, 'post.html', ['post' => $post, 'me' => $me]);
 });
 
-$app->post '/', function (Request $request, Response $response) {
+$app->post('/', function (Request $request, Response $response) {
     $me = get_session_user();
 
     if ($me === null) {
@@ -372,12 +372,12 @@ $app->post '/', function (Request $request, Response $response) {
         $db = $this->get('db');
         $query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)';
         $ps = $db->prepare($query);
-        $ps->execute(
+        $ps->execute([
           $me['id'],
           $mime,
           file_get_contents($_FILES['file']['tmp_name']),
           $params['body'],
-        )
+        ]);
         $pid = $db->lastInsertId();
         return redirect($response, "/posts/{$pid}", 302);
     } else {
@@ -394,9 +394,9 @@ $app->get('/image/{id}.{ext}', function (Request $request, Response $response, $
     $db = $this->get('db');
     $post = fetch_first($db, 'SELECT * FROM `posts` WHERE `id` = ?', [$args['id']]);
 
-    if ($args['ext'] == 'jpg' && $post':mime'] != 'image/jpeg') ||
+    if (($args['ext'] == 'jpg' && $post['mime'] != 'image/jpeg') ||
         ($args['ext'] == 'png' && $post['mime'] != 'image/png') ||
-        ($args['ext'] == 'gif' && $post['mime'] != 'image/gif') {
+        ($args['ext'] == 'gif' && $post['mime'] != 'image/gif')) {
         return $response->withStatus(404)->write('404');
     }
 
