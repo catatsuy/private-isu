@@ -301,216 +301,164 @@ $app->get('/@:account_name', function (Request $request, Response $response) {
     return $this->view->render($response, 'user.html', ['posts' => $posts, 'user' => $user, 'post_count' => $post_count, 'comment_count' => $comment_count, 'commented_count'=> $commented_count, 'me' => $me]);
 });
 
+$app->get('/posts', function (Request $request, Response $response) {
+    $max_created_at = $params['max_created_at'];
+    $ps = $app->db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC');
+    $ps->execute([$max_created_at === null ? null : date(DATE_ATOM, $max_created_at)]);
+    $results = $ps->fetchAll(PDO::FETCH_ASSOC);
+    $posts = make_posts($results);
 
-
-/*
-$app->get('/initialize', function (Request $request, Response $response) {
-    $name = $request->getAttribute('name');
-    $response->getBody()->write("Hello, $name");
-
-    return $response;
+    return $this->view->render($response, 'posts.html', ['posts' => $posts]);
 });
-*/
+
+$app->get('/posts/:id', function (Request $request, Response $response) {
+    $ps = $app->db->prepare('SELECT * FROM `posts` WHERE `id` = ?');
+    $ps->execute([$params['id']]);
+    $results = $ps->fetchAll(PDO::FETCH_ASSOC);
+    $posts = make_posts($results, ['all_comments' => true]);
+
+    if (count(posts) == 0) {
+        return $response->withStatus(404)->write('404');
+    }
+
+    $post = $posts[0];
+
+    $me = get_session_user();
+
+    return $this->view->render($response, 'post.html', ['post' => $post, 'me' => $me]);
+});
+
+$app->post '/', function (Request $request, Response $response) {
+    $me = get_session_user();
+
+    if ($me === null) {
+        return redirect($response, '/login', 302);
+    }
+
+    if ($params['csrf_token'] != session_id()) {
+        return $response->withStatus(422)->write('422');
+    }
+
+    if ($_FILES['file']) {
+        $mime = '';
+        // 投稿のContent-Typeからファイルのタイプを決定する
+        if (strpos($_FILES['file']['type'], 'jpeg') !== false) {
+            $mime = 'image/jpeg';
+        } elseif (strpos($_FILES['file']['type'], 'png') !== false) {
+            $mime = 'image/png';
+        } elseif (strpos($_FILES['file']['type'], 'gif') !== false) {
+            $mime = 'image/gif';
+        } else {
+            $this->flash->addMessage('notice', '投稿できる画像形式はjpgとpngとgifだけです');
+            return redirect($response, '/', 302);
+        }
+
+        if (strlen(file_get_contents($_FILES['file']['tmp_name'])) > UPLOAD_LIMIT) {
+            $this->flash->addMessage('notice', 'ファイルサイズが大きすぎます');
+            return redirect($response, '/', 302);
+        }
+
+        $query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)';
+        $ps = $app->db->prepare($query);
+        $ps->execute(
+          $me['id'],
+          $mime,
+          file_get_contents($_FILES['file']['tmp_name']),
+          $params['body'],
+        )
+        $pid = $app->db->lastInsertId();
+        return redirect($response, "/posts/{$pid}", 302);
+    } else {
+        $this->flash->addMessage('notice', '画像が必須です');
+        return redirect($response, '/', 302);
+    }
+});
+
+$app->get('/image/:id.:ext', function (Request $request, Response $response) {
+    if ($params['id'] == 0) {
+        return '';
+    }
+
+    $post = fetch_first($app->db, 'SELECT * FROM `posts` WHERE `id` = ?', [$params['id']]);
+
+    if ($params['ext'] == 'jpg' && $post':mime'] != 'image/jpeg') ||
+        ($params['ext'] == 'png' && $post['mime'] != 'image/png') ||
+        ($params['ext'] == 'gif' && $post['mime'] != 'image/gif') {
+        return $response->withStatus(404)->write('404');
+    }
+
+    return $response->withHeader('Content-Type', $post['mime'])
+                    ->write($post['imgdata']);
+});
+
+$app->post('/comment', function (Request $request, Response $response) {
+    $me = get_session_user();
+
+    if ($me === null) {
+        return redirect($response, '/login', 302);
+    }
+
+    if ($params['csrf_token'] !== session_id()) {
+        return $response->withStatus(422)->write('422');
+    }
+
+    // TODO: /\A[0-9]\Z/ か確認
+    if (preg_match('/[0-9]+/', $params['post_id']) === 0) {
+        return $response->write('post_idは整数のみです');
+    }
+    $post_id = $params['post_id'];
+
+    $query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)';
+    $ps = $app->db->prepare(query);
+    $ps->execute([
+        $post_id,
+        $me['id'],
+        $params['comment']
+    ]);
+
+    return redirect($response, "/posts/{$post_id}", 302);
+});
+
+$app->get('/admin/banned', function (Request $request, Response $response) {
+    $me = get_session_user();
+
+    if ($me === null) {
+        return redirect($response, '/login', 302);
+    }
+
+    if ($me['authority'] === 0) {
+        return $response->withStatus(403)->write('403');
+    }
+
+    $ps = $app->db->prepare('SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC');
+    $ps->execute();
+    $users = $ps->fetchAll(PDO::FETCH_ASSOC);
+
+    return $this->view->render($response, 'banned.html', ['users' => $users, 'me' => $me]);
+});
+
+$app->post('/admin/banned', function (Request $request, Response $response) {
+    $me = get_session_user();
+
+    if ($me === null) {
+        return redirect($response, '/login', 302);
+    }
+
+    if ($me['authority'] === 0) {
+        return $response->withStatus(403)->write('403');
+    }
+
+    if ($params['csrf_token'] !== session_id()) {
+        return $response->withStatus(422)->write('422');
+    }
+
+    $query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?';
+    foreach ($params['uid'] as $id) {
+        $ps = $app->db->prepare($query);
+        $ps->execute([1, $id]);
+    }
+
+    return redirect($response, '/admin/banned', 302);
+});
 
 $app->run();
-
-/*
-module Isuconp
-  class App < Sinatra::Base
-    use Rack::Session::Memcache, autofix_keys: true, secret: ENV['ISUCONP_SESSION_SECRET'] || 'sendagaya'
-    use Rack::Flash
-
-    get '/@:account_name' do
-      user = db.prepare('SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0').execute(
-        params[:account_name]
-      ).first
-
-      if user.nil?
-        return 404
-      end
-
-      results = db.prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC').execute(
-        user[:id]
-      )
-      posts = make_posts(results)
-
-      comment_count = db.prepare('SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?').execute(
-        user[:id]
-      ).first[:count]
-
-      post_ids = db.prepare('SELECT `id` FROM `posts` WHERE `user_id` = ?').execute(
-        user[:id]
-      ).map{|post| post[:id]}
-      post_count = post_ids.length
-
-      commented_count = 0
-      if post_count > 0
-        placeholder = (['?'] * post_ids.length).join(",")
-        commented_count = db.prepare("SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN (#{placeholder})").execute(
-          *post_ids
-        ).first[:count]
-      end
-
-      me = get_session_user()
-
-      erb :user, layout: :layout, locals: { posts: posts, user: user, post_count: post_count, comment_count: comment_count, commented_count: commented_count, me: me }
-    end
-
-    get '/posts' do
-      max_created_at = params['max_created_at']
-      results = db.prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC').execute(
-        max_created_at.nil? ? nil : Time.iso8601(max_created_at).localtime
-      )
-      posts = make_posts(results)
-
-      erb :posts, layout: false, locals: { posts: posts }
-    end
-
-    get '/posts/:id' do
-      results = db.prepare('SELECT * FROM `posts` WHERE `id` = ?').execute(
-        params[:id]
-      )
-      posts = make_posts(results, all_comments: true)
-
-      return 404 if posts.length == 0
-
-      post = posts[0]
-
-      me = get_session_user()
-
-      erb :post, layout: :layout, locals: { post: post, me: me }
-    end
-
-    post '/' do
-      me = get_session_user()
-
-      if me.nil?
-        redirect '/login', 302
-      end
-
-      if params['csrf_token'] != session.id
-        return 422
-      end
-
-      if params['file']
-        mime = ''
-        # 投稿のContent-Typeからファイルのタイプを決定する
-        if params["file"][:type].include? "jpeg"
-          mime = "image/jpeg"
-        elsif params["file"][:type].include? "png"
-          mime = "image/png"
-        elsif params["file"][:type].include? "gif"
-          mime = "image/gif"
-        else
-          flash[:notice] = '投稿できる画像形式はjpgとpngとgifだけです'
-          redirect '/', 302
-        end
-
-        if params['file'][:tempfile].read.length > UPLOAD_LIMIT
-          flash[:notice] = 'ファイルサイズが大きすぎます'
-          redirect '/', 302
-        end
-
-        params['file'][:tempfile].rewind
-        query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)'
-        db.prepare(query).execute(
-          me[:id],
-          mime,
-          params["file"][:tempfile].read,
-          params["body"],
-        )
-        pid = db.last_id
-
-        redirect "/posts/#{pid}", 302
-      else
-        flash[:notice] = '画像が必須です'
-        redirect '/', 302
-      end
-    end
-
-    get '/image/:id.:ext' do
-      if params[:id].to_i == 0
-        return ""
-      end
-
-      post = db.prepare('SELECT * FROM `posts` WHERE `id` = ?').execute(params[:id].to_i).first
-
-      if (params[:ext] == "jpg" && post[:mime] != "image/jpeg") ||
-        (params[:ext] == "png" && post[:mime] != "image/png") ||
-        (params[:ext] == "gif" && post[:mime] != "image/gif")
-        return 404
-      end
-
-      headers['Content-Type'] = post[:mime]
-      post[:imgdata]
-    end
-
-    post '/comment' do
-      me = get_session_user()
-
-      if me.nil?
-        redirect '/login', 302
-      end
-
-      if params["csrf_token"] != session.id
-        return 422
-      end
-
-      unless /[0-9]+/.match(params['post_id'])
-        return 'post_idは整数のみです'
-      end
-      post_id = params['post_id']
-
-      query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)'
-      db.prepare(query).execute(
-        post_id,
-        me[:id],
-        params['comment']
-      )
-
-      redirect "/posts/#{post_id}", 302
-    end
-
-    get '/admin/banned' do
-      me = get_session_user()
-
-      if me.nil?
-        redirect '/login', 302
-      end
-
-      if me[:authority] == 0
-        return 403
-      end
-
-      users = db.query('SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC')
-
-      erb :banned, layout: :layout, locals: { users: users, me: me }
-    end
-
-    post '/admin/banned' do
-      me = get_session_user()
-
-      if me.nil?
-        redirect '/', 302
-      end
-
-      if me[:authority] == 0
-        return 403
-      end
-
-      if params['csrf_token'] != session.id
-        return 422
-      end
-
-      query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?'
-
-      params['uid'].each do |id|
-        db.prepare(query).execute(1, id.to_i)
-      end
-
-      redirect '/admin/banned', 302
-    end
-  end
-end
-
- */
