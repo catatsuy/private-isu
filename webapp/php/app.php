@@ -33,6 +33,7 @@ $container['db'] = function ($c) {
     );
 };
 $container['db_initialize'] = function ($c) {
+    $db = $c->get('db');
     $sql = [];
     $sql[] = 'DELETE FROM users WHERE id > 1000';
     $sql[] = 'DELETE FROM posts WHERE id > 10000';
@@ -40,7 +41,7 @@ $container['db_initialize'] = function ($c) {
     $sql[] = 'UPDATE users SET del_flg = 0';
     $sql[] = 'UPDATE users SET del_flg = 1 WHERE id % 50 = 0';
     foreach($sql as $s) {
-        $app->db->query($s);
+        $db->query($s);
     }
 };
 
@@ -60,8 +61,8 @@ function fetch_first($db, $query, array $params = null) {
     return $result;
 }
 
-function try_login($account_name, $password) {
-    $ps = $app->db->prepare('SELECT * FROM users WHERE account_name = ? AND del_flg = 0');
+function try_login($db, $account_name, $password) {
+    $ps = $db->prepare('SELECT * FROM users WHERE account_name = ? AND del_flg = 0');
     $ps->execute([$account_name]);
     $user = $ps->fetch();
     $ps->closeCursor();
@@ -97,8 +98,9 @@ function calculate_passhash($password, $account_name) {
 }
 
 function get_session_user() {
+    $db = $this->get('db');
     if ($_SESSION['user']) {
-        $ps = $app->db->prepare('SELECT * FROM `users` WHERE `id` = ?');
+        $ps = $db->prepare('SELECT * FROM `users` WHERE `id` = ?');
         $ps->execute([$_SESSION['user']['id']]);
         $user = $ps->fetch();
         $ps->closeCursor();
@@ -112,10 +114,11 @@ function make_posts(array $results, $options = []) {
     $options += ['all_comments' => false];
     $all_comments = $options['all_comments'];
 
+    $db = $this->get('db');
     $posts = [];
 
     foreach($results as $post) {
-        $ps = $app->db->prepare('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?');
+        $ps = $db->prepare('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?');
         $ps->execute([$post['id']]);
         $first = $ps->fetch();
         $ps->closeCursor();
@@ -126,11 +129,11 @@ function make_posts(array $results, $options = []) {
             $query .= ' LIMIT 3';
         }
 
-        $ps = $app->db->prepare($query);
+        $ps = $db->prepare($query);
         $ps->execute([$post['id']]);
         $comments = $ps->fetchAll(PDO::FETCH_ASSOC);
         foreach ($comments as &$comment) {
-            $ps = $app->db->prepare('SELECT * FROM `users` WHERE `id` = ?');
+            $ps = $db->prepare('SELECT * FROM `users` WHERE `id` = ?');
             $ps->execute([$comment['user_id']]);
             $comment['user'] = $ps->fetch();
             $ps->closeCursor();
@@ -138,7 +141,7 @@ function make_posts(array $results, $options = []) {
         unset($comment);
         $post['comments'] = array_reverse($comments);
 
-        $ps = $app->db->prepare('SELECT * FROM `users` WHERE `id` = ?');
+        $ps = $db->prepare('SELECT * FROM `users` WHERE `id` = ?');
         $ps->execute([$post['user_id']]);
         $post['user'] = $ps->fetch();
         $ps->closeCursor();
@@ -188,8 +191,9 @@ $app->post('/login', function (Request $request, Response $response) {
         return redirect($response, '/', 302);
     }
 
+    $db = $this->get('db');
     $params = $request->getParams();
-    $user = try_login($params['account_name'], $params['password']);
+    $user = try_login($db, $params['account_name'], $params['password']);
 
     if ($user) {
         $_SESSION['user'] = [
@@ -230,7 +234,8 @@ $app->post('/register', function (Request $request, Response $response) {
         return redirect($response, '/register', 302);
     }
 
-    $ps = $app->db->prepare('SELECT 1 FROM users WHERE `account_name` = ?');
+    $db = $this->get('db');
+    $ps = $db->prepare('SELECT 1 FROM users WHERE `account_name` = ?');
     $ps->execute([account_name]);
     $user = $ps->fetch();
     $ps->closeCursor();
@@ -240,13 +245,13 @@ $app->post('/register', function (Request $request, Response $response) {
         return redirect($response, '/register', 302);
     }
 
-    $ps = $app->db->prepare('INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)');
+    $ps = $db->prepare('INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)');
     $ps->execute([
         account_name,
         calculate_passhash(password, account_name)
     ]);
     $_SESSION['user'] = [
-        'id' => $app->db->lastInsertId(),
+        'id' => $db->lastInsertId(),
     ];
     return redirect($response, '/', 302);
 });
@@ -259,7 +264,8 @@ $app->get('/logout', function (Request $request, Response $response) {
 $app->get('/', function (Request $request, Response $response) {
     $me = get_session_user();
 
-    $ps = $app->db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC');
+    $db = $this->get('db');
+    $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC');
     $ps->execute();
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = make_posts($results);
@@ -268,7 +274,8 @@ $app->get('/', function (Request $request, Response $response) {
 });
 
 $app->get('/{account_name}', function (Request $request, Response $response, $args) {
-    $user = fetch_first($app->db, 'SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', [
+    $db = $this->get('db');
+    $user = fetch_first($db, 'SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', [
         $args['account_name'],
     ]);
 
@@ -276,16 +283,16 @@ $app->get('/{account_name}', function (Request $request, Response $response, $ar
         return $response->withStatus(404)->write('404');
     }
 
-    $ps = $app->db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC');
+    $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC');
     $ps->execute($user['id']);
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = make_posts($results);
 
-    $comment_count = fetch_first($app->db, 'SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?', [
+    $comment_count = fetch_first($db, 'SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?', [
         $user['id']
     ])['count'];
 
-    $ps = $app->db->prepare('SELECT `id` FROM `posts` WHERE `user_id` = ?');
+    $ps = $db->prepare('SELECT `id` FROM `posts` WHERE `user_id` = ?');
     $ps->execute([$user['id']]);
     $post_ids = array_column($ps->fetchAll(PDO::FETCH_ASSOC), 'id');
     $post_count = count($post_ids);
@@ -293,7 +300,7 @@ $app->get('/{account_name}', function (Request $request, Response $response, $ar
     $commented_count = 0;
     if ($post_count > 0) {
         $placeholder = implode(',', array_fill(0, count($post_ids), '?'));
-        $commented_count = fetch_first($app->db, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ({$placeholder})", post_ids)['count'];
+        $commented_count = fetch_first($db, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ({$placeholder})", post_ids)['count'];
     }
 
     $me = get_session_user();
@@ -303,7 +310,8 @@ $app->get('/{account_name}', function (Request $request, Response $response, $ar
 
 $app->get('/posts', function (Request $request, Response $response) {
     $max_created_at = $params['max_created_at'];
-    $ps = $app->db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC');
+    $db = $this->get('db');
+    $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC');
     $ps->execute([$max_created_at === null ? null : date(DATE_ATOM, $max_created_at)]);
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = make_posts($results);
@@ -312,7 +320,8 @@ $app->get('/posts', function (Request $request, Response $response) {
 });
 
 $app->get('/posts/{id}', function (Request $request, Response $response, $args) {
-    $ps = $app->db->prepare('SELECT * FROM `posts` WHERE `id` = ?');
+    $db = $this->get('db');
+    $ps = $db->prepare('SELECT * FROM `posts` WHERE `id` = ?');
     $ps->execute([$args['id']]);
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = make_posts($results, ['all_comments' => true]);
@@ -358,15 +367,16 @@ $app->post '/', function (Request $request, Response $response) {
             return redirect($response, '/', 302);
         }
 
+        $db = $this->get('db');
         $query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)';
-        $ps = $app->db->prepare($query);
+        $ps = $db->prepare($query);
         $ps->execute(
           $me['id'],
           $mime,
           file_get_contents($_FILES['file']['tmp_name']),
           $params['body'],
         )
-        $pid = $app->db->lastInsertId();
+        $pid = $db->lastInsertId();
         return redirect($response, "/posts/{$pid}", 302);
     } else {
         $this->flash->addMessage('notice', '画像が必須です');
@@ -379,7 +389,8 @@ $app->get('/image/{id}.{ext}', function (Request $request, Response $response, $
         return '';
     }
 
-    $post = fetch_first($app->db, 'SELECT * FROM `posts` WHERE `id` = ?', [$args['id']]);
+    $db = $this->get('db');
+    $post = fetch_first($db, 'SELECT * FROM `posts` WHERE `id` = ?', [$args['id']]);
 
     if ($args['ext'] == 'jpg' && $post':mime'] != 'image/jpeg') ||
         ($args['ext'] == 'png' && $post['mime'] != 'image/png') ||
@@ -408,8 +419,9 @@ $app->post('/comment', function (Request $request, Response $response) {
     }
     $post_id = $params['post_id'];
 
+    $db = $this->get('db');
     $query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)';
-    $ps = $app->db->prepare(query);
+    $ps = $db->prepare(query);
     $ps->execute([
         $post_id,
         $me['id'],
@@ -430,7 +442,8 @@ $app->get('/admin/banned', function (Request $request, Response $response) {
         return $response->withStatus(403)->write('403');
     }
 
-    $ps = $app->db->prepare('SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC');
+    $db = $this->get('db');
+    $ps = $db->prepare('SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC');
     $ps->execute();
     $users = $ps->fetchAll(PDO::FETCH_ASSOC);
 
@@ -452,9 +465,10 @@ $app->post('/admin/banned', function (Request $request, Response $response) {
         return $response->withStatus(422)->write('422');
     }
 
+    $db = $this->get('db');
     $query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?';
     foreach ($params['uid'] as $id) {
-        $ps = $app->db->prepare($query);
+        $ps = $db->prepare($query);
         $ps->execute([1, $id]);
     }
 
