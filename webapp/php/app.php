@@ -267,9 +267,9 @@ $app->get('/', function (Request $request, Response $response) {
     return $this->view->render($response, 'index.html', ['posts' => $posts, 'me' => $me]);
 });
 
-$app->get('/@:account_name', function (Request $request, Response $response) {
+$app->get('/{account_name}', function (Request $request, Response $response, $args) {
     $user = fetch_first($app->db, 'SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', [
-        $params['account_name'],
+        $args['account_name'],
     ]);
 
     if ($user === false) {
@@ -311,9 +311,9 @@ $app->get('/posts', function (Request $request, Response $response) {
     return $this->view->render($response, 'posts.html', ['posts' => $posts]);
 });
 
-$app->get('/posts/:id', function (Request $request, Response $response) {
+$app->get('/posts/{id}', function (Request $request, Response $response, $args) {
     $ps = $app->db->prepare('SELECT * FROM `posts` WHERE `id` = ?');
-    $ps->execute([$params['id']]);
+    $ps->execute([$args['id']]);
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = make_posts($results, ['all_comments' => true]);
 
@@ -374,16 +374,16 @@ $app->post '/', function (Request $request, Response $response) {
     }
 });
 
-$app->get('/image/:id.:ext', function (Request $request, Response $response) {
-    if ($params['id'] == 0) {
+$app->get('/image/{id}.{ext}', function (Request $request, Response $response, $args) {
+    if ($args['id'] == 0) {
         return '';
     }
 
-    $post = fetch_first($app->db, 'SELECT * FROM `posts` WHERE `id` = ?', [$params['id']]);
+    $post = fetch_first($app->db, 'SELECT * FROM `posts` WHERE `id` = ?', [$args['id']]);
 
-    if ($params['ext'] == 'jpg' && $post':mime'] != 'image/jpeg') ||
-        ($params['ext'] == 'png' && $post['mime'] != 'image/png') ||
-        ($params['ext'] == 'gif' && $post['mime'] != 'image/gif') {
+    if ($args['ext'] == 'jpg' && $post':mime'] != 'image/jpeg') ||
+        ($args['ext'] == 'png' && $post['mime'] != 'image/png') ||
+        ($args['ext'] == 'gif' && $post['mime'] != 'image/gif') {
         return $response->withStatus(404)->write('404');
     }
 
