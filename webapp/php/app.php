@@ -309,6 +309,7 @@ $app->get('/{account_name}', function (Request $request, Response $response, $ar
 });
 
 $app->get('/posts', function (Request $request, Response $response) {
+    $params = $request->getParams();
     $max_created_at = $params['max_created_at'];
     $db = $this->get('db');
     $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC');
@@ -344,6 +345,7 @@ $app->post '/', function (Request $request, Response $response) {
         return redirect($response, '/login', 302);
     }
 
+    $params = $request->getParams();
     if ($params['csrf_token'] != session_id()) {
         return $response->withStatus(422)->write('422');
     }
@@ -409,6 +411,7 @@ $app->post('/comment', function (Request $request, Response $response) {
         return redirect($response, '/login', 302);
     }
 
+    $params = $request->getParams();
     if ($params['csrf_token'] !== session_id()) {
         return $response->withStatus(422)->write('422');
     }
@@ -461,6 +464,7 @@ $app->post('/admin/banned', function (Request $request, Response $response) {
         return $response->withStatus(403)->write('403');
     }
 
+    $params = $request->getParams();
     if ($params['csrf_token'] !== session_id()) {
         return $response->withStatus(422)->write('422');
     }
