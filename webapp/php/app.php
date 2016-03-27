@@ -4,6 +4,16 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 require 'vendor/autoload.php';
 
+if (PHP_SAPI == 'cli-server') {
+    $_SERVER += ['PATH_INFO' => $_SERVER['REQUEST_URI']];
+    $_SERVER['SCRIPT_NAME'] = '/' . basename($_SERVER['SCRIPT_FILENAME']);
+    $public_dir = dirname(__DIR__) . '/public';
+    $file = $public_dir . $_SERVER['REQUEST_URI'];
+    if (is_file($file)) {
+        return false;
+    }
+}
+
 $config = [
     'settings' => [
         'public_folder' => dirname(dirname(__DIR__)) . '/public',
