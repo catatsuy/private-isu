@@ -20,11 +20,11 @@ $config = [
         'upload_limit' => 10 * 1024 * 1024, // 10mb,
         'posts_per_page' => 20,
         'db' => [
-            'host' => $_ENV['ISUCONP_DB_HOST'] || 'localhost',
-            'port' => $_ENV['ISUCONP_DB_PORT'],
-            'username' => $_ENV['ISUCONP_DB_USER'] || 'root',
-            'password' => $_ENV['ISUCONP_DB_PASSWORD'],
-            'database' => $_ENV['ISUCONP_DB_NAME'] || 'isuconp',
+            'host' => $_ENV['ISUCONP_DB_HOST'] ?? 'localhost',
+            'port' => $_ENV['ISUCONP_DB_PORT'] ?? 3306,
+            'username' => $_ENV['ISUCONP_DB_USER'] ?? 'root',
+            'password' => $_ENV['ISUCONP_DB_PASSWORD'] ?? null,
+            'database' => $_ENV['ISUCONP_DB_NAME'] ?? 'isuconp',
         ]
     ]
 ];
