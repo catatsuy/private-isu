@@ -273,41 +273,6 @@ $app->get('/', function (Request $request, Response $response) {
     return $this->view->render($response, 'index.html', ['posts' => $posts, 'me' => $me]);
 });
 
-$app->get('/{account_name}', function (Request $request, Response $response, $args) {
-    $db = $this->get('db');
-    $user = fetch_first($db, 'SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', [
-        $args['account_name'],
-    ]);
-
-    if ($user === false) {
-        return $response->withStatus(404)->write('404');
-    }
-
-    $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC');
-    $ps->execute($user['id']);
-    $results = $ps->fetchAll(PDO::FETCH_ASSOC);
-    $posts = make_posts($results);
-
-    $comment_count = fetch_first($db, 'SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?', [
-        $user['id']
-    ])['count'];
-
-    $ps = $db->prepare('SELECT `id` FROM `posts` WHERE `user_id` = ?');
-    $ps->execute([$user['id']]);
-    $post_ids = array_column($ps->fetchAll(PDO::FETCH_ASSOC), 'id');
-    $post_count = count($post_ids);
-
-    $commented_count = 0;
-    if ($post_count > 0) {
-        $placeholder = implode(',', array_fill(0, count($post_ids), '?'));
-        $commented_count = fetch_first($db, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ({$placeholder})", post_ids)['count'];
-    }
-
-    $me = get_session_user();
-
-    return $this->view->render($response, 'user.html', ['posts' => $posts, 'user' => $user, 'post_count' => $post_count, 'comment_count' => $comment_count, 'commented_count'=> $commented_count, 'me' => $me]);
-});
-
 $app->get('/posts', function (Request $request, Response $response) {
     $params = $request->getParams();
     $max_created_at = $params['max_created_at'];
@@ -477,6 +442,41 @@ $app->post('/admin/banned', function (Request $request, Response $response) {
     }
 
     return redirect($response, '/admin/banned', 302);
+});
+
+$app->get('/{account_name}', function (Request $request, Response $response, $args) {
+    $db = $this->get('db');
+    $user = fetch_first($db, 'SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', [
+        $args['account_name'],
+    ]);
+
+    if ($user === false) {
+        return $response->withStatus(404)->write('404');
+    }
+
+    $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC');
+    $ps->execute($user['id']);
+    $results = $ps->fetchAll(PDO::FETCH_ASSOC);
+    $posts = make_posts($results);
+
+    $comment_count = fetch_first($db, 'SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?', [
+        $user['id']
+    ])['count'];
+
+    $ps = $db->prepare('SELECT `id` FROM `posts` WHERE `user_id` = ?');
+    $ps->execute([$user['id']]);
+    $post_ids = array_column($ps->fetchAll(PDO::FETCH_ASSOC), 'id');
+    $post_count = count($post_ids);
+
+    $commented_count = 0;
+    if ($post_count > 0) {
+        $placeholder = implode(',', array_fill(0, count($post_ids), '?'));
+        $commented_count = fetch_first($db, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ({$placeholder})", post_ids)['count'];
+    }
+
+    $me = get_session_user();
+
+    return $this->view->render($response, 'user.html', ['posts' => $posts, 'user' => $user, 'post_count' => $post_count, 'comment_count' => $comment_count, 'commented_count'=> $commented_count, 'me' => $me]);
 });
 
 $app->run();
