@@ -197,7 +197,7 @@ $app->get('/login', function (Request $request, Response $response) {
     if (get_session_user()) {
         return redirect($response, '/', 302);
     }
-    return $this->view->render($response, 'login.html', [
+    return $this->view->render($response, 'login.php', [
         'me' => null
     ]);
 });
@@ -226,7 +226,7 @@ $app->get('/register', function (Request $request, Response $response) {
     if (get_session_user()) {
         return redirect($response, '/', 302);
     }
-    return $this->view->render($response, 'register.html', [
+    return $this->view->render($response, 'register.php', [
         'me' => null
     ]);
 });
@@ -286,7 +286,7 @@ $app->get('/', function (Request $request, Response $response) {
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = make_posts($results);
 
-    return $this->view->render($response, 'index.html', ['posts' => $posts, 'me' => $me]);
+    return $this->view->render($response, 'index.php', ['posts' => $posts, 'me' => $me]);
 });
 
 $app->get('/posts', function (Request $request, Response $response) {
@@ -298,7 +298,7 @@ $app->get('/posts', function (Request $request, Response $response) {
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = make_posts($results);
 
-    return $this->view->render($response, 'posts.html', ['posts' => $posts]);
+    return $this->view->render($response, 'posts.php', ['posts' => $posts]);
 });
 
 $app->get('/posts/{id}', function (Request $request, Response $response, $args) {
@@ -316,7 +316,7 @@ $app->get('/posts/{id}', function (Request $request, Response $response, $args) 
 
     $me = get_session_user();
 
-    return $this->view->render($response, 'post.html', ['post' => $post, 'me' => $me]);
+    return $this->view->render($response, 'post.php', ['post' => $post, 'me' => $me]);
 });
 
 $app->post('/', function (Request $request, Response $response) {
@@ -431,7 +431,7 @@ $app->get('/admin/banned', function (Request $request, Response $response) {
     $ps->execute();
     $users = $ps->fetchAll(PDO::FETCH_ASSOC);
 
-    return $this->view->render($response, 'banned.html', ['users' => $users, 'me' => $me]);
+    return $this->view->render($response, 'banned.php', ['users' => $users, 'me' => $me]);
 });
 
 $app->post('/admin/banned', function (Request $request, Response $response) {
@@ -492,7 +492,7 @@ $app->get('/{account_name}', function (Request $request, Response $response, $ar
 
     $me = get_session_user();
 
-    return $this->view->render($response, 'user.html', ['posts' => $posts, 'user' => $user, 'post_count' => $post_count, 'comment_count' => $comment_count, 'commented_count'=> $commented_count, 'me' => $me]);
+    return $this->view->render($response, 'user.php', ['posts' => $posts, 'user' => $user, 'post_count' => $post_count, 'comment_count' => $comment_count, 'commented_count'=> $commented_count, 'me' => $me]);
 });
 
 $app->run();
