@@ -69,6 +69,24 @@ $container['flash'] = function () {
     return new \Slim\Flash\Messages;
 };
 
+function db() {
+    global $container; // workaround
+    return $container['db'];
+}
+
+// ------- helper method for view
+
+function escape_html($h) {
+    return htmlspecialchars($h, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+}
+
+function flash($key) {
+    $flash = new \Slim\Flash\Messages;
+    return $flash->getMessage($key)[0];
+}
+
+// -------- 
+
 function fetch_first($db, $query, array $params = null) {
     $ps = $db->prepare($query);
     $ps->execute($params);
@@ -114,9 +132,8 @@ function calculate_passhash($password, $account_name) {
 }
 
 function get_session_user() {
-    $db = $this->get('db');
-    if ($_SESSION['user']) {
-        $ps = $db->prepare('SELECT * FROM `users` WHERE `id` = ?');
+    if ($_SESSION['user'] ?? false) {
+        $ps = db()->prepare('SELECT * FROM `users` WHERE `id` = ?');
         $ps->execute([$_SESSION['user']['id']]);
         $user = $ps->fetch();
         $ps->closeCursor();
@@ -130,11 +147,10 @@ function make_posts(array $results, $options = []) {
     $options += ['all_comments' => false];
     $all_comments = $options['all_comments'];
 
-    $db = $this->get('db');
     $posts = [];
 
     foreach($results as $post) {
-        $ps = $db->prepare('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?');
+        $ps = db()->prepare('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?');
         $ps->execute([$post['id']]);
         $first = $ps->fetch();
         $ps->closeCursor();
@@ -145,11 +161,11 @@ function make_posts(array $results, $options = []) {
             $query .= ' LIMIT 3';
         }
 
-        $ps = $db->prepare($query);
+        $ps = db()->prepare($query);
         $ps->execute([$post['id']]);
         $comments = $ps->fetchAll(PDO::FETCH_ASSOC);
         foreach ($comments as &$comment) {
-            $ps = $db->prepare('SELECT * FROM `users` WHERE `id` = ?');
+            $ps = db()->prepare('SELECT * FROM `users` WHERE `id` = ?');
             $ps->execute([$comment['user_id']]);
             $comment['user'] = $ps->fetch();
             $ps->closeCursor();
@@ -157,7 +173,7 @@ function make_posts(array $results, $options = []) {
         unset($comment);
         $post['comments'] = array_reverse($comments);
 
-        $ps = $db->prepare('SELECT * FROM `users` WHERE `id` = ?');
+        $ps = db()->prepare('SELECT * FROM `users` WHERE `id` = ?');
         $ps->execute([$post['user_id']]);
         $post['user'] = $ps->fetch();
         $ps->closeCursor();
