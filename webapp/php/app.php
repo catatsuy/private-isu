@@ -252,7 +252,7 @@ $app->post('/register', function (Request $request, Response $response) {
 
     $db = $this->get('db');
     $ps = $db->prepare('SELECT 1 FROM users WHERE `account_name` = ?');
-    $ps->execute([account_name]);
+    $ps->execute([$account_name]);
     $user = $ps->fetch();
     $ps->closeCursor();
 
@@ -263,8 +263,8 @@ $app->post('/register', function (Request $request, Response $response) {
 
     $ps = $db->prepare('INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)');
     $ps->execute([
-        account_name,
-        calculate_passhash(password, account_name)
+        $account_name,
+        calculate_passhash($password, $account_name)
     ]);
     $_SESSION['user'] = [
         'id' => $db->lastInsertId(),
