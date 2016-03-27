@@ -14,11 +14,12 @@ if (PHP_SAPI == 'cli-server') {
     }
 }
 
+const POSTS_PER_PAGE = 20;
+
 $config = [
     'settings' => [
         'public_folder' => dirname(dirname(__DIR__)) . '/public',
         'upload_limit' => 10 * 1024 * 1024, // 10mb,
-        'posts_per_page' => 20,
         'db' => [
             'host' => $_ENV['ISUCONP_DB_HOST'] ?? 'localhost',
             'port' => $_ENV['ISUCONP_DB_PORT'] ?? 3306,
