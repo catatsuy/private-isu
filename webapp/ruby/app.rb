@@ -345,14 +345,14 @@ module Isuconp
 
       post = db.prepare('SELECT * FROM `posts` WHERE `id` = ?').execute(params[:id].to_i).first
 
-      if (params[:ext] == "jpg" && post[:mime] != "image/jpeg") ||
-        (params[:ext] == "png" && post[:mime] != "image/png") ||
-        (params[:ext] == "gif" && post[:mime] != "image/gif")
-        return 404
+      if (params[:ext] == "jpg" && post[:mime] == "image/jpeg") ||
+          (params[:ext] == "png" && post[:mime] == "image/png") ||
+          (params[:ext] == "gif" && post[:mime] == "image/gif")
+        headers['Content-Type'] = post[:mime]
+        return post[:imgdata]
       end
 
-      headers['Content-Type'] = post[:mime]
-      post[:imgdata]
+      return 404
     end
 
     post '/comment' do
