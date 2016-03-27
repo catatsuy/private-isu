@@ -57,7 +57,12 @@ $container['db_initialize'] = function ($c) {
 };
 
 $container['view'] = function ($c) {
-    return new \Slim\Views\PhpRenderer(__DIR__ . '/views');
+    return new class(__DIR__ . '/views/') extends \Slim\Views\PhpRenderer {
+        public function render(\Psr\Http\Message\ResponseInterface $response, $template, array $data = []) {
+            $data += ['view' => $template];
+            return parent::render($response, 'layout.php', $data);
+        }
+    };
 };
 
 $container['flash'] = function () {
