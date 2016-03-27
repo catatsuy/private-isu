@@ -46,7 +46,7 @@ $container['db_initialize'] = function ($c) {
 };
 
 $container['view'] = function ($c) {
-    return new \Slim\Views\PhpRenderer(__DIR__ . '/templates');
+    return new \Slim\Views\PhpRenderer(__DIR__ . '/views');
 };
 
 $container['flash'] = function () {
