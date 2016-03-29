@@ -391,14 +391,13 @@ $app->get('/image/{id}.{ext}', function (Request $request, Response $response, $
     $db = $this->get('db');
     $post = fetch_first($db, 'SELECT * FROM `posts` WHERE `id` = ?', [$args['id']]);
 
-    if (($args['ext'] == 'jpg' && $post['mime'] != 'image/jpeg') ||
-        ($args['ext'] == 'png' && $post['mime'] != 'image/png') ||
-        ($args['ext'] == 'gif' && $post['mime'] != 'image/gif')) {
-        return $response->withStatus(404)->write('404');
+    if (($args['ext'] == 'jpg' && $post['mime'] == 'image/jpeg') ||
+        ($args['ext'] == 'png' && $post['mime'] == 'image/png') ||
+        ($args['ext'] == 'gif' && $post['mime'] == 'image/gif')) {
+        return $response->withHeader('Content-Type', $post['mime'])
+                        ->write($post['imgdata']);
     }
-
-    return $response->withHeader('Content-Type', $post['mime'])
-                    ->write($post['imgdata']);
+    return $response->withStatus(404)->write('404');
 });
 
 $app->post('/comment', function (Request $request, Response $response) {
