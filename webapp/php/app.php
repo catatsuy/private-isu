@@ -15,11 +15,11 @@ if (PHP_SAPI == 'cli-server') {
 }
 
 const POSTS_PER_PAGE = 20;
+const UPLOAD_LIMIT = 10 * 1024 * 1024;
 
 $config = [
     'settings' => [
         'public_folder' => dirname(dirname(__DIR__)) . '/public',
-        'upload_limit' => 10 * 1024 * 1024, // 10mb,
         'db' => [
             'host' => $_ENV['ISUCONP_DB_HOST'] ?? 'localhost',
             'port' => $_ENV['ISUCONP_DB_PORT'] ?? 3306,
@@ -324,7 +324,7 @@ $app->get('/posts/{id}', function (Request $request, Response $response, $args) 
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = make_posts($results, ['all_comments' => true]);
 
-    if (count(posts) == 0) {
+    if (count($posts) == 0) {
         return $response->withStatus(404)->write('404');
     }
 
@@ -421,7 +421,7 @@ $app->post('/comment', function (Request $request, Response $response) {
 
     $db = $this->get('db');
     $query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)';
-    $ps = $db->prepare(query);
+    $ps = $db->prepare($query);
     $ps->execute([
         $post_id,
         $me['id'],
@@ -476,7 +476,7 @@ $app->post('/admin/banned', function (Request $request, Response $response) {
     return redirect($response, '/admin/banned', 302);
 });
 
-$app->get('/{account_name}', function (Request $request, Response $response, $args) {
+$app->get('/@{account_name}', function (Request $request, Response $response, $args) {
     $db = $this->get('db');
     $user = fetch_first($db, 'SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', [
         $args['account_name'],
@@ -487,7 +487,7 @@ $app->get('/{account_name}', function (Request $request, Response $response, $ar
     }
 
     $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC');
-    $ps->execute($user['id']);
+    $ps->execute([$user['id']]);
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = make_posts($results);
 
@@ -503,7 +503,7 @@ $app->get('/{account_name}', function (Request $request, Response $response, $ar
     $commented_count = 0;
     if ($post_count > 0) {
         $placeholder = implode(',', array_fill(0, count($post_ids), '?'));
-        $commented_count = fetch_first($db, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ({$placeholder})", post_ids)['count'];
+        $commented_count = fetch_first($db, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ({$placeholder})", $post_ids)['count'];
     }
 
     $me = get_session_user();
