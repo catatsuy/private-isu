@@ -239,7 +239,7 @@ module Isuconp
         return 404
       end
 
-      results = db.prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC').execute(
+      results = db.prepare('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC').execute(
         user[:id]
       )
       posts = make_posts(results)
@@ -268,7 +268,7 @@ module Isuconp
 
     get '/posts' do
       max_created_at = params['max_created_at']
-      results = db.prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC').execute(
+      results = db.prepare('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC').execute(
         max_created_at.nil? ? nil : Time.iso8601(max_created_at).localtime
       )
       posts = make_posts(results)
@@ -345,14 +345,14 @@ module Isuconp
 
       post = db.prepare('SELECT * FROM `posts` WHERE `id` = ?').execute(params[:id].to_i).first
 
-      if (params[:ext] == "jpg" && post[:mime] != "image/jpeg") ||
-        (params[:ext] == "png" && post[:mime] != "image/png") ||
-        (params[:ext] == "gif" && post[:mime] != "image/gif")
-        return 404
+      if (params[:ext] == "jpg" && post[:mime] == "image/jpeg") ||
+          (params[:ext] == "png" && post[:mime] == "image/png") ||
+          (params[:ext] == "gif" && post[:mime] == "image/gif")
+        headers['Content-Type'] = post[:mime]
+        return post[:imgdata]
       end
 
-      headers['Content-Type'] = post[:mime]
-      post[:imgdata]
+      return 404
     end
 
     post '/comment' do
