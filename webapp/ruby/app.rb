@@ -57,7 +57,7 @@ module Isuconp
       def try_login(account_name, password)
         user = db.prepare('SELECT * FROM users WHERE account_name = ? AND del_flg = 0').execute(account_name).first
 
-        if user && calculate_passhash(password, user[:account_name]) == user[:passhash]
+        if user && calculate_passhash(user[:account_name], password) == user[:passhash]
           return user
         elsif user
           return nil
@@ -66,7 +66,7 @@ module Isuconp
         end
       end
 
-      def validate_user(account_name:, password:)
+      def validate_user(account_name, password)
         if !(/\A[0-9a-zA-Z_]{3,}\z/.match(account_name) && /\A[0-9a-zA-Z_]{6,}\z/.match(password))
           return false
         end
@@ -83,7 +83,7 @@ module Isuconp
         digest account_name
       end
 
-      def calculate_passhash(password, account_name)
+      def calculate_passhash(account_name, password)
         digest "#{password}:#{calculate_salt(account_name)}"
       end
 
@@ -187,10 +187,7 @@ module Isuconp
       account_name = params['account_name']
       password = params['password']
 
-      validated = validate_user(
-        account_name: account_name,
-        password: password
-      )
+      validated = validate_user(account_name, password)
       if !validated
         flash[:notice] = 'アカウント名は3文字以上、パスワードは6文字以上である必要があります'
         redirect '/register', 302
@@ -207,7 +204,7 @@ module Isuconp
       query = 'INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)'
       db.prepare(query).execute(
         account_name,
-        calculate_passhash(password, account_name)
+        calculate_passhash(account_name, password)
       )
 
       session[:user] = {
