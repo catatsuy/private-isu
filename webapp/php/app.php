@@ -101,7 +101,7 @@ function try_login($db, $account_name, $password) {
     $user = $ps->fetch();
     $ps->closeCursor();
 
-    if ($user !== false && calculate_passhash($password, $user['account_name']) == $user['passhash']) {
+    if ($user !== false && calculate_passhash($user['account_name'], $password) == $user['passhash']) {
         return $user;
     } elseif ($user) {
         return null;
@@ -126,7 +126,7 @@ function calculate_salt($account_name) {
     return digest($account_name);
 }
 
-function calculate_passhash($password, $account_name) {
+function calculate_passhash($account_name, $password) {
     $salt = calculate_salt($account_name);
     return digest("{$password}:{$salt}");
 }
@@ -257,10 +257,7 @@ $app->post('/register', function (Request $request, Response $response) {
     $account_name = $params['account_name'];
     $password = $params['password'];
 
-    $validated = validate_user(
-        $account_name,
-        $password
-    );
+    $validated = validate_user($account_name, $password);
     if (!$validated) {
         $this->flash->addMessage('notice', 'アカウント名は3文字以上、パスワードは6文字以上である必要があります');
         return redirect($response, '/register', 302);
@@ -280,7 +277,7 @@ $app->post('/register', function (Request $request, Response $response) {
     $ps = $db->prepare('INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)');
     $ps->execute([
         $account_name,
-        calculate_passhash($password, $account_name)
+        calculate_passhash($account_name, $password)
     ]);
     $_SESSION['user'] = [
         'id' => $db->lastInsertId(),
