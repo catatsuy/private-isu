@@ -1,6 +1,3 @@
 ---
-- name: reload redis
-  shell: /etc/init.d/mysql reload
-
-- name: restart redis
-  shell: /etc/init.d/mysql restart
+- name: restart mysql
+  shell: systemctl restart mysql.service
