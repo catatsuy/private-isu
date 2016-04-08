@@ -15,10 +15,21 @@
       git:
         repo=https://github.com/catatsuy/private-isu.git
         dest=/home/isucon/repos/private_isu.git
-#    - name: remove .git
-#      file: path=/home/isucon/repos/private_isu.git/.git state=absent
-#    - name: git init
-#      command: "cd /home/isucon/repos/private_isu.git/ && git init && git add . && git commit -m 'Initial commit'"
+    - name: remove .git
+      file: path=/home/isucon/repos/private_isu.git/.git state=absent
+    - name: clean ansible
+      file: path=/home/isucon/repos/private_isu.git/ansible state=absent
+    - name: clean benchmarker
+      file: path=/home/isucon/repos/private_isu.git/benchmarker state=absent
+    - name: clean e2etest
+      file: path=/home/isucon/repos/private_isu.git/e2etest state=absent
+    - name: clean portal
+      file: path=/home/isucon/repos/private_isu.git/portal state=absent
+    - name: clean provisioning
+      file: path=/home/isucon/repos/private_isu.git/provisioning state=absent
+# ansible  benchmarker  e2etest  LICENSE  manual.md  portal  provisioning  public_manual.md  README.md
+    - name: git init
+      shell: "cd /home/isucon/repos/private_isu.git/ && git init && git add . && git config --global user.email 'test@example.com' && git config --global user.name 'admin' && git commit -m 'Initial commit'"
     - name: create working copy
       git:
         repo=file:///home/isucon/repos/private_isu.git
