@@ -2,7 +2,7 @@
 # https://github.com/azavea/ansible-golang/blob/develop/tasks/main.yml
 - name: Download, extract and install Go
   unarchive: src=http://golang.org/dl/go{{ golang_version }}.{{ golang_os }}-{{ golang_arch }}.tar.gz
-             dest=/usr/local/go
+             dest=/usr/local
              copy=no
 
 - name: Symlink Go into /usr/local/bin
