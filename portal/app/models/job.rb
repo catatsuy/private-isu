@@ -1,14 +1,11 @@
 class Job < ActiveRecord::Base
-  DEFAULT_TIMEOUT = 60.seconds
-
   belongs_to :team
 
-  def self.time_wait?(team:)
-    where(team: team).where('created_at > ?', Time.current - timeout).count > 0
+  def running?
+    status == 'Running'
   end
 
-  private
-  def self.timeout
-    Rails.application.config.x.benchmarker.timeout || DEFAULT_TIMEOUT
+  def waiting?
+    status == 'Waiting'
   end
 end

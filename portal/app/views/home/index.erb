@@ -19,10 +19,10 @@
 <% end %>
 
 <div>
-  <% if Job.time_wait?(team: current_user.team) %>
-    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
+  <% if current_user.team.jobs.any? {|j| j.running? || j.waiting? } %>
+    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block disabled', disabled: true %>
   <% else %>
-    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block disabled' %>
+    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
   <% end %>
 </div>
 
