@@ -91,5 +91,5 @@ func prepareUserdata(userdata string) ([]user, []user, []user, []string, []*chec
 		})
 	}
 
-	return users, bannedUsers, adminUsers, sentences, images, err
+	return users[9:], bannedUsers, adminUsers, sentences, images, err
 }
