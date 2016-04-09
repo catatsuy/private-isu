@@ -9,6 +9,14 @@
 </div>
 
 <div>
+  <% if Job.time_wait?(team: current_user.team) %>
+    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
+  <% else %>
+    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block disabled' %>
+  <% end %>
+</div>
+
+<div>
   <%= line_chart @chart_data %>
 </div>
 
@@ -16,10 +24,21 @@
   <%= bar_chart @ordered_score %>
 </div>
 
-<div>
-  <% if Job.time_wait?(team: current_user.team) %>
-    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
-  <% else %>
-    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block disabled' %>
-  <% end %>
-</div>
+<h3>あなたのチームのスコア</h3>
+
+<% unless @my_scores.empty? %>
+  <table class="table">
+    <tr>
+      <th>時刻</th>
+      <th>PASS/FAIL</th>
+      <th>メッセージ</th>
+    </tr>
+    <% @my_scores.each do |score| %>
+      <tr>
+        <td><%= score.created_at %></td>
+        <td><%= score.pass ? 'PASS' : 'FAIL' %></td>
+        <td><%= score.message.length > 20 ? (score.message.take(20) + '...') : score.message %></td>
+      </tr>
+    <% end %>
+  </table>
+<% end %>
