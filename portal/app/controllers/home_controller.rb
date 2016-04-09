@@ -19,5 +19,6 @@ class HomeController < ApplicationController
       finished: jobs_stats['Finished'] || 0,
       waiting: jobs_stats['waiting'] || 0
     }
+    @jobs = Job.where(status: ['Running', 'waiting']).order(:id)
   end
 end

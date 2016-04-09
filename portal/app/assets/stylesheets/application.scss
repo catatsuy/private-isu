@@ -22,3 +22,20 @@
 .clickable:hover {
   text-decoration: underline;
 }
+
+.job-exec-status {
+  font-weight: bold;
+  color: #ffffff;
+  weight: 20px;
+  height: 20px;
+  padding: 5px;
+  margin: 0 5px;
+}
+
+.job-running {
+  background-color: #0168b3;
+}
+
+.job-waiting {
+  background-color: #e8e6f3;
+}

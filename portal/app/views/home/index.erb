@@ -26,6 +26,12 @@
   <%= bar_chart @ordered_score %>
 </div>
 
+<h3>ベンチマークの実行状況</h3>
+
+<% @jobs.each do |j| %>
+<span class="job-exec-status <%= j.status == 'Running' ? 'job-running' : 'job-waiting' %>"><%= sprintf("%02d", j.team_id) %></span>
+<% end %>
+
 <h3>あなたのチームのスコア</h3>
 
 <% unless @my_scores.empty? %>
