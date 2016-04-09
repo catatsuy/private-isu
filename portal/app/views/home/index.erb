@@ -19,7 +19,7 @@
 <% end %>
 
 <div>
-  <% if current_user.team.jobs.any? {|j| j.running? || j.waiting? } %>
+  <% if current_user.team.jobs.any?(&:enqueued?) %>
     <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block disabled', disabled: true %>
   <% else %>
     <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
