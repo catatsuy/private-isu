@@ -59,27 +59,27 @@ func extractPostLinks(doc *goquery.Document) []string {
 
 // 普通のページに表示されるべき静的ファイルに一通りアクセス
 func loadAssets(s *checker.Session) {
-	a := checker.NewAssetAction("/favicon.ico", &checker.Asset{})
+	a := checker.NewAssetAction("/favicon.ico", &checker.Asset{MD5: "ad4b0f606e0f8465bc4c4c170b37e1a3"})
 	a.Description = "faviconが読み込めること"
 	a.Play(s)
 
-	a = checker.NewAssetAction("js/jquery-2.2.0.js", &checker.Asset{})
+	a = checker.NewAssetAction("js/jquery-2.2.0.js", &checker.Asset{MD5: "56f1d01ee4bb68d1572cfd60755cf67a"})
 	a.Description = "jqueryが読み込めること"
 	a.Play(s)
 
-	a = checker.NewAssetAction("js/jquery.timeago.js", &checker.Asset{})
+	a = checker.NewAssetAction("js/jquery.timeago.js", &checker.Asset{MD5: "fb592cf6f07c6ba8c65fb7922de011d4"})
 	a.Description = "jquery.timeago.jsが読み込めること"
 	a.Play(s)
 
-	a = checker.NewAssetAction("js/jquery.timeago.ja.js", &checker.Asset{})
+	a = checker.NewAssetAction("js/jquery.timeago.ja.js", &checker.Asset{MD5: "8deed411d62b6ab593b82e2448ec8d7b"})
 	a.Description = "jquery.timeago.ja.jsが読み込めること"
 	a.Play(s)
 
-	a = checker.NewAssetAction("/js/main.js", &checker.Asset{})
+	a = checker.NewAssetAction("/js/main.js", &checker.Asset{MD5: "be25132ce51abdd99b4b0127da278624"})
 	a.Description = "main.jsが読み込めること"
 	a.Play(s)
 
-	a = checker.NewAssetAction("/css/style.css", &checker.Asset{})
+	a = checker.NewAssetAction("/css/style.css", &checker.Asset{MD5: "048da467b6d43b5ccc24cc76a928e929"})
 	a.Description = "style.cssが読み込めること"
 	a.Play(s)
 }
