@@ -15,3 +15,12 @@
 //= require turbolinks
 //= require bootstrap-sprockets
 //= require_tree .
+$(function() {
+  $('.expand-message').on('click', function() {
+    $this = $(this);
+    var msg = $this.attr('data-message');
+    $this.removeClass('clickable');
+    $this.text(msg);
+    $this.off();
+  });
+});

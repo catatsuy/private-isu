@@ -39,7 +39,15 @@
         <td><%= score.created_at %></td>
         <td><%= score.pass ? 'PASS' : 'FAIL' %></td>
         <td><%= score.score %></td>
-        <td><%= score.message.length > 20 ? (score.message.slice(20) + '...') : score.message %></td>
+        <td>
+          <% if score.message.length > 20 %>
+          <span class="clickable expand-message" data-message="<%= score.message %>">
+            <%= score.message.slice(20) + '...' %>
+          </span>
+          <% else %>
+          <span><%= score.message %></span>
+          <% end %>
+        </td>
       </tr>
     <% end %>
   </table>
