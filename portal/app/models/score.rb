@@ -1,13 +1,20 @@
 class Score < ActiveRecord::Base
   belongs_to :team
 
-  def self.ordered_stats(time:)
+  # トップNチームのスコア
+  def self.ordered_stats(time:, limit:10)
+    scores = where('created_at <= ?', time)
+    .group('team_id')
+    .order('best_score DESC')
+    .limit(limit)
+    .pluck('team_id', 'MAX(score) AS best_score')
+
     # Pre-fetch teams (speed)
     team_hash = Team.pluck(:id, :name).to_h
 
     score_hash = {}
-    scores = Score.where('created_at < ?', time).order(:score).reverse_order.group(:team_id).pluck(:team_id, :score)
-    scores.each do |(team_id, best_score)|
+    scores
+    .each do |(team_id, best_score)|
       key = team_hash[team_id]
       score_hash[key] = best_score
     end
