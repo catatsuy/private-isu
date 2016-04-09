@@ -37,7 +37,7 @@
       <tr>
         <td><%= score.created_at %></td>
         <td><%= score.pass ? 'PASS' : 'FAIL' %></td>
-        <td><%= score.message.length > 20 ? (score.message.take(20) + '...') : score.message %></td>
+        <td><%= score.message.length > 20 ? (score.message.slice(20) + '...') : score.message %></td>
       </tr>
     <% end %>
   </table>
