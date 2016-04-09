@@ -243,7 +243,15 @@ func setupInitialize(targetHost string, initialize chan bool) {
 		parsedURL.Scheme = "http"
 		parsedURL.Host = targetHost
 
-		res, err := client.Get(parsedURL.String())
+		req, err := http.NewRequest("GET", parsedURL.String(), nil)
+		if err != nil {
+			return
+		}
+
+		req.Header.Set("User-Agent", checker.UserAgent)
+
+		res, err := client.Do(req)
+
 		if err != nil {
 			initialize <- false
 			return
