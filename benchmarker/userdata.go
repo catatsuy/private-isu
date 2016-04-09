@@ -44,7 +44,7 @@ func prepareUserdata(userdata string) ([]user, []user, []user, []string, []*chec
 		}
 		i++
 	}
-	adminUsers := users[:10]
+	adminUsers := users[:9]
 
 	sentenceFile, err := os.Open(userdata + "/kaomoji.txt")
 	if err != nil {
