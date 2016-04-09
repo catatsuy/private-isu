@@ -1,4 +1,4 @@
-<%= javascript_include_tag '//www.google.com/jsapi', 'chartkick' %>
+<%= javascript_include_tag "http://code.highcharts.com/highcharts.js", "chartkick" %>
 
 <h1>Portal</h1>
 
@@ -25,6 +25,8 @@
     <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block disabled' %>
   <% end %>
 </div>
+
+<h3>各チームのスコア</h3>
 
 <div>
   <%= line_chart @chart_data %>
