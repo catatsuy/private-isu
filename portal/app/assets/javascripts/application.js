@@ -25,3 +25,10 @@ $(function() {
     $this.off();
   });
 });
+
+Highcharts.setOptions({
+  global: {
+    useUTC: false,
+  }
+});
+

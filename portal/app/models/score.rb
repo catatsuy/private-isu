@@ -30,7 +30,7 @@ class Score < ActiveRecord::Base
     where('created_at <= ?', time)
     .order('created_at ASC') # インデックス貼ったほうがいいかも
     .each do |score|
-      team_scores[team_hash[score.team_id]] << [score.created_at, score.score]
+      team_scores[team_hash[score.team_id]] << [score.created_at.in_time_zone, score.score]
     end
 
     # map for graph
