@@ -44,7 +44,7 @@
     </tr>
     <% @my_scores.each do |score| %>
       <tr>
-        <td><%= score.created_at %></td>
+        <td><%= score.created_at.in_time_zone('Tokyo').strftime('%H:%M:%S') # TODO: config.time_zone を変える %></td>
         <td><%= score.pass ? 'PASS' : 'FAIL' %></td>
         <td><%= score.score %></td>
         <td>
