@@ -12,7 +12,7 @@
 
 <p>数字はキューの順番です。</p>
 <p>現在実行中のベンチマークは青く点滅します。</p>
-<p>自分のチームは赤くなります。</p>
+<p>自分のチームの順番は黄色く表示されます。</p>
 
 <% @jobs.each.with_index do |j,i| %>
   <span class="job-exec-status <%= j.status == 'Running' ? 'job-running' : 'job-waiting' %> <%= current_user.team_id == j.team_id ? 'job-my-team' : 'job-other-team' %>"><%= sprintf("%02d", i+1) %></span>
