@@ -8,6 +8,16 @@
   <p>Finished: <%= @job_stats[:finished] %></p>
 </div>
 
+<h3>ベンチマークの実行状況</h3>
+
+<p>数字はキューの順番です。</p>
+<p>現在実行中のベンチマークは青く点滅します。</p>
+<p>自分のチームは赤くなります。</p>
+
+<% @jobs.each.with_index do |j,i| %>
+  <span class="job-exec-status <%= j.status == 'Running' ? 'job-running' : 'job-waiting' %> <%= current_user.team_id == j.team_id ? 'job-my-team' : 'job-other-team' %>"><%= sprintf("%02d", i+1) %></span>
+<% end %>
+
 <div>
   <% if Job.time_wait?(team: current_user.team) %>
     <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
@@ -25,12 +35,6 @@
 <div>
   <%= bar_chart @ordered_score %>
 </div>
-
-<h3>ベンチマークの実行状況</h3>
-
-<% @jobs.each do |j| %>
-<span class="job-exec-status <%= j.status == 'Running' ? 'job-running' : 'job-waiting' %>"><%= sprintf("%02d", j.team_id) %></span>
-<% end %>
 
 <h3>あなたのチームのスコア</h3>
 

@@ -33,9 +33,25 @@
 }
 
 .job-running {
-  background-color: #0168b3;
+  animation-duration: 1s;
+  animation-name: blink;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@keyframes blink {
+  from {
+    background-color: rgba(1, 104, 179, 0.5);
+  }
+  to {
+    background-color: rgba(1, 104, 179, 1);
+  }
 }
 
 .job-waiting {
   background-color: #e8e6f3;
+}
+
+.job-my-team {
+  color: gold;
 }
