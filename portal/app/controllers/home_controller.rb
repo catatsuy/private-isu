@@ -2,10 +2,10 @@ class HomeController < ApplicationController
   before_action :authenticate_user!
 
   def index
-    @my_team = current_user.team
+    my_team = current_user.team
 
-    if @my_team
-      @my_scores = Score.where(team: @my_team).order(:created_at).reverse_order
+    if my_team
+      @my_scores = Score.where(team: my_team).order(:created_at).reverse_order
     end
 
     # Fetch stats current - 60min (5 * 12)
