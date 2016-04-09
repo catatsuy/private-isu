@@ -42,7 +42,7 @@
         <td>
           <% if score.message.length > 20 %>
           <span class="clickable expand-message" data-message="<%= score.message %>">
-            <%= score.message.slice(20) + '...' %>
+            <%= score.message.slice(0, 20) + '...' %>
           </span>
           <% else %>
           <span><%= score.message %></span>
