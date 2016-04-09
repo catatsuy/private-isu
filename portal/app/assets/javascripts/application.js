@@ -16,8 +16,9 @@
 //= require bootstrap-sprockets
 //= require_tree .
 $(function() {
+  'use strict';
   $('.expand-message').on('click', function() {
-    $this = $(this);
+    var $this = $(this);
     var msg = $this.attr('data-message');
     $this.removeClass('clickable');
     $this.text(msg);
