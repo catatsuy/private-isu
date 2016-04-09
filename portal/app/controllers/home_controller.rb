@@ -12,13 +12,6 @@ class HomeController < ApplicationController
     @chart_data = Score.history(time: Time.new)
     @ordered_score = Score.ordered_stats(time: Time.new, limit: 10)
 
-    @job = Job.new
-    jobs_stats = Job.group(:status).count
-    @job_stats = {
-      running: jobs_stats['Running'] || 0,
-      finished: jobs_stats['Finished'] || 0,
-      waiting: jobs_stats['Waiting'] || 0
-    }
     @jobs = Job.where(status: ['Running', 'waiting']).order(:id)
   end
 end
