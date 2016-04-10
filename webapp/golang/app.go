@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +17,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 	"github.com/zenazn/goji"
+	"github.com/zenazn/goji/web"
 )
 
 var (
@@ -35,7 +37,7 @@ type user struct {
 type post struct {
 	ID        int       `db:"id"`
 	UserID    int       `db:"user_id"`
-	Imgdata   []byte    `db:"imagdata"`
+	Imgdata   []byte    `db:"imgdata"`
 	Body      string    `db:"body"`
 	Mime      string    `db:"mime"`
 	CreatedAt time.Time `db:"created_at"`
@@ -69,7 +71,7 @@ func getSessionUser(r *http.Request) *user {
 		return nil
 	}
 
-	u := &user{}
+	u := user{}
 
 	err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
 	if err != nil {
@@ -77,7 +79,7 @@ func getSessionUser(r *http.Request) *user {
 		return nil
 	}
 
-	return u
+	return &u
 }
 
 func tryLogin(accountName, password string) *user {
@@ -100,7 +102,6 @@ func tryLogin(accountName, password string) *user {
 }
 
 func digest(src string) string {
-	fmt.Println(src)
 	// TODO: escape
 	out, err := exec.Command("/bin/bash", "-c", `printf "%s" "`+src+`" | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
 	if err != nil {
@@ -108,7 +109,6 @@ func digest(src string) string {
 		return ""
 	}
 
-	fmt.Println(strings.TrimSuffix(string(out), "\n"))
 	return strings.TrimSuffix(string(out), "\n")
 }
 
@@ -144,6 +144,79 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	).Execute(w, struct{ Posts []post }{posts})
 }
 
+func postIndex(w http.ResponseWriter, r *http.Request) {
+	me := getSessionUser(r)
+	if me == nil {
+		w.Header().Set("Location", "/login")
+		w.WriteHeader(http.StatusFound)
+		return
+	}
+
+	// check csrf token
+
+	file, header, ferr := r.FormFile("file")
+	if ferr != nil {
+		fmt.Println(ferr.Error())
+		return
+	}
+
+	mime := ""
+	if file != nil {
+		contentType := header.Header["Content-Type"][0]
+		if strings.Contains(contentType, "jpeg") {
+			mime = "image/jpeg"
+		} else if strings.Contains(contentType, "png") {
+			mime = "image/png"
+		} else if strings.Contains(contentType, "gif") {
+			mime = "image/gif"
+		} else {
+			w.Header().Set("Location", "/login")
+			w.WriteHeader(http.StatusFound)
+			return
+		}
+	}
+
+	filedata, rerr := ioutil.ReadAll(file)
+	if rerr != nil {
+		fmt.Println(rerr.Error())
+	}
+
+	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
+	result, eerr := db.Exec(
+		query,
+		me.ID,
+		mime,
+		filedata,
+		r.FormValue("body"),
+	)
+	if eerr != nil {
+		fmt.Println(eerr.Error())
+		return
+	}
+
+	pid, lerr := result.LastInsertId()
+	if lerr != nil {
+		fmt.Println(lerr.Error())
+		return
+	}
+
+	w.Header().Set("Location", "/posts/"+strconv.FormatInt(pid, 10))
+	w.WriteHeader(http.StatusFound)
+	return
+}
+
+func getLogin(w http.ResponseWriter, r *http.Request) {
+	if getSessionUser(r) != nil {
+		w.Header().Set("Location", "/")
+		w.WriteHeader(http.StatusFound)
+	}
+
+	template.Must(template.ParseFiles(
+		getTemplPath("layout.html"),
+		getTemplPath("login.html")),
+	).Execute(w, nil)
+}
+
 func postLogin(w http.ResponseWriter, r *http.Request) {
 	if getSessionUser(r) != nil {
 		w.Header().Set("Location", "/")
@@ -164,6 +237,37 @@ func postLogin(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Location", "/login")
 		w.WriteHeader(http.StatusFound)
 	}
+}
+
+func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
+	pidStr := c.URLParams["id"]
+	pid, err := strconv.Atoi(pidStr)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	post := post{}
+	derr := db.Get(&post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	if derr != nil {
+		fmt.Println(derr.Error())
+		return
+	}
+
+	ext := c.URLParams["ext"]
+
+	if ext == "jpg" && post.Mime == "image/jpeg" ||
+		ext == "png" && post.Mime == "image/png" ||
+		ext == "gif" && post.Mime == "image/gif" {
+		w.Header().Set("Content-Type", post.Mime)
+		_, err := w.Write(post.Imgdata)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusNotFound)
 }
 
 func main() {
@@ -205,6 +309,10 @@ func main() {
 	defer db.Close()
 
 	goji.Get("/", getIndex)
+	goji.Post("/", postIndex)
+	goji.Get("/login", getLogin)
 	goji.Post("/login", postLogin)
+	goji.Get("/image/:id.:ext", getImage)
+	goji.Get("/*", http.FileServer(http.Dir("../public")))
 	goji.Serve()
 }
