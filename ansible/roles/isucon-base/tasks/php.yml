@@ -1,0 +1,21 @@
+---
+- name: Apt add Dotdeb jessie repository
+  apt_repository: repo="{{item}}"
+  with_items:
+      - deb http://packages.dotdeb.org jessie all
+      - deb-src http://packages.dotdeb.org jessie all
+  tags: php7
+- name: Apt install Dotdeb key
+  apt_key: url=http://www.dotdeb.org/dotdeb.gpg
+  tags: php7
+- name: Apt update
+  apt: update_cache=yes
+  tags: php7
+- name: PHP7 install
+  apt: name="{{item}}"
+  with_items:
+    - php7.0-cli
+    - php7.0-fpm
+    - php7.0-mysql
+    - php7.0-memcached
+  tags: php7
