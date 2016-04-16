@@ -140,8 +140,7 @@ func getLogout(w http.ResponseWriter, r *http.Request) {
 	session.Options = &sessions.Options{MaxAge: -1}
 	session.Save(r, w)
 
-	w.Header().Set("Location", "/")
-	w.WriteHeader(http.StatusFound)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
@@ -167,8 +166,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 func postIndex(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 	if me == nil {
-		w.Header().Set("Location", "/login")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 
@@ -190,8 +188,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		} else if strings.Contains(contentType, "gif") {
 			mime = "image/gif"
 		} else {
-			w.Header().Set("Location", "/login")
-			w.WriteHeader(http.StatusFound)
+			http.Redirect(w, r, "/login", http.StatusFound)
 			return
 		}
 	}
@@ -220,15 +217,13 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Location", "/posts/"+strconv.FormatInt(pid, 10))
-	w.WriteHeader(http.StatusFound)
+	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 	return
 }
 
 func getLogin(w http.ResponseWriter, r *http.Request) {
 	if getSessionUser(r) != nil {
-		w.Header().Set("Location", "/")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
@@ -240,8 +235,7 @@ func getLogin(w http.ResponseWriter, r *http.Request) {
 
 func postLogin(w http.ResponseWriter, r *http.Request) {
 	if getSessionUser(r) != nil {
-		w.Header().Set("Location", "/")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
@@ -252,18 +246,16 @@ func postLogin(w http.ResponseWriter, r *http.Request) {
 		session.Values["user_id"] = u.ID
 		session.Save(r, w)
 
-		w.Header().Set("Location", "/")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
 	} else {
-		w.Header().Set("Location", "/login")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/login", http.StatusFound)
 	}
 }
 
 func getRegister(w http.ResponseWriter, r *http.Request) {
 	if getSessionUser(r) != nil {
-		w.Header().Set("Location", "/")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
 	}
 
 	template.Must(template.ParseFiles(
@@ -274,16 +266,15 @@ func getRegister(w http.ResponseWriter, r *http.Request) {
 
 func postRegister(w http.ResponseWriter, r *http.Request) {
 	if getSessionUser(r) != nil {
-		w.Header().Set("Location", "/")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
 	}
 
 	accountName, password := r.FormValue("account_name"), r.FormValue("password")
 
 	validated := validateUser(accountName, password)
 	if !validated {
-		w.Header().Set("Location", "/register")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/register", http.StatusFound)
 		return
 	}
 
@@ -303,8 +294,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 	session.Values["user_id"] = uid
 	session.Save(r, w)
 
-	w.Header().Set("Location", "/")
-	w.WriteHeader(http.StatusFound)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -341,8 +331,7 @@ func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
 func postComment(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 	if me != nil {
-		w.Header().Set("Location", "/login")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 
@@ -357,15 +346,13 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 	query := "INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)"
 	db.Exec(query, postID, me.ID, r.FormValue("comment"))
 
-	w.Header().Set("Location", fmt.Sprintf("/posts/%d", postID))
-	w.WriteHeader(http.StatusFound)
+	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }
 
 func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 	if me == nil {
-		w.Header().Set("Location", "/")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
@@ -390,8 +377,7 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 	if me == nil {
-		w.Header().Set("Location", "/")
-		w.WriteHeader(http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
@@ -409,8 +395,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 		db.Exec(query, 1, id)
 	}
 
-	w.Header().Set("Location", "/admin/banned")
-	w.WriteHeader(http.StatusFound)
+	http.Redirect(w, r, "/admin/banned", http.StatusFound)
 }
 
 func main() {
