@@ -134,6 +134,16 @@ func getTemplPath(filename string) string {
 	return path.Join("templates", filename)
 }
 
+func getLogout(w http.ResponseWriter, r *http.Request) {
+	session := getSession(r)
+	delete(session.Values, "user_id")
+	session.Options = &sessions.Options{MaxAge: -1}
+	session.Save(r, w)
+
+	w.Header().Set("Location", "/")
+	w.WriteHeader(http.StatusFound)
+}
+
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	// fmt.Fprintf(w, "Hello, %s!", c.URLParams["name"])
 	_ = getSessionUser(r)
@@ -326,6 +336,28 @@ func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 }
 
+func postComment(w http.ResponseWriter, r *http.Request) {
+	me := getSessionUser(r)
+	if me != nil {
+		w.Header().Set("Location", "/login")
+		w.WriteHeader(http.StatusFound)
+	}
+
+	// csrf token check
+
+	postID, ierr := strconv.Atoi(r.FormValue("post_id"))
+	if ierr != nil {
+		fmt.Println("post_idは整数のみです")
+		return
+	}
+
+	query := "INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)"
+	db.Exec(query, postID, me.ID, r.FormValue("comment"))
+
+	w.Header().Set("Location", fmt.Sprintf("/posts/%d", postID))
+	w.WriteHeader(http.StatusFound)
+}
+
 func main() {
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
@@ -366,10 +398,12 @@ func main() {
 
 	goji.Get("/", getIndex)
 	goji.Post("/", postIndex)
+	goji.Get("/logout", getLogout)
 	goji.Get("/login", getLogin)
 	goji.Post("/login", postLogin)
 	goji.Get("/register", getRegister)
 	goji.Post("/register", postRegister)
+	goji.Post("/comment", postComment)
 	goji.Get("/image/:id.:ext", getImage)
 	goji.Get("/*", http.FileServer(http.Dir("../public")))
 	goji.Serve()
