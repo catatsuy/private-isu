@@ -229,6 +229,7 @@ func getLogin(w http.ResponseWriter, r *http.Request) {
 	if getSessionUser(r) != nil {
 		w.Header().Set("Location", "/")
 		w.WriteHeader(http.StatusFound)
+		return
 	}
 
 	template.Must(template.ParseFiles(
@@ -283,6 +284,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 	if !validated {
 		w.Header().Set("Location", "/register")
 		w.WriteHeader(http.StatusFound)
+		return
 	}
 
 	query := "INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)"
@@ -341,6 +343,7 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 	if me != nil {
 		w.Header().Set("Location", "/login")
 		w.WriteHeader(http.StatusFound)
+		return
 	}
 
 	// csrf token check
@@ -355,6 +358,58 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 	db.Exec(query, postID, me.ID, r.FormValue("comment"))
 
 	w.Header().Set("Location", fmt.Sprintf("/posts/%d", postID))
+	w.WriteHeader(http.StatusFound)
+}
+
+func getAdminBanned(w http.ResponseWriter, r *http.Request) {
+	me := getSessionUser(r)
+	if me == nil {
+		w.Header().Set("Location", "/")
+		w.WriteHeader(http.StatusFound)
+		return
+	}
+
+	if me.Authority == 0 {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	users := []user{}
+	err := db.Select(&users, "SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	template.Must(template.ParseFiles(
+		getTemplPath("layout.html"),
+		getTemplPath("banned.html")),
+	).Execute(w, struct{ Users []user }{users})
+}
+
+func postAdminBanned(w http.ResponseWriter, r *http.Request) {
+	me := getSessionUser(r)
+	if me == nil {
+		w.Header().Set("Location", "/")
+		w.WriteHeader(http.StatusFound)
+		return
+	}
+
+	if me.Authority == 0 {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	// csrf token check
+
+	query := "UPDATE `users` SET `del_flg` = ? WHERE `id` = ?"
+
+	r.ParseForm()
+	for _, id := range r.Form["uid[]"] {
+		db.Exec(query, 1, id)
+	}
+
+	w.Header().Set("Location", "/admin/banned")
 	w.WriteHeader(http.StatusFound)
 }
 
@@ -405,6 +460,8 @@ func main() {
 	goji.Post("/register", postRegister)
 	goji.Post("/comment", postComment)
 	goji.Get("/image/:id.:ext", getImage)
+	goji.Get("/admin/banned", getAdminBanned)
+	goji.Post("/admin/banned", postAdminBanned)
 	goji.Get("/*", http.FileServer(http.Dir("../public")))
 	goji.Serve()
 }
