@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
@@ -99,6 +100,15 @@ func tryLogin(accountName, password string) *user {
 	}
 
 	return &u
+}
+
+func validateUser(accountName, password string) bool {
+	if regexp.MustCompile("\\A[0-9a-zA-Z_]{3,}\\z").MatchString(accountName) &&
+		regexp.MustCompile("\\A[0-9a-zA-Z_]{6,}\\z").MatchString(password) {
+		return false
+	}
+
+	return true
 }
 
 func digest(src string) string {
@@ -239,6 +249,52 @@ func postLogin(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func getRegister(w http.ResponseWriter, r *http.Request) {
+	if getSessionUser(r) != nil {
+		w.Header().Set("Location", "/")
+		w.WriteHeader(http.StatusFound)
+	}
+
+	template.Must(template.ParseFiles(
+		getTemplPath("layout.html"),
+		getTemplPath("register.html")),
+	).Execute(w, nil)
+}
+
+func postRegister(w http.ResponseWriter, r *http.Request) {
+	if getSessionUser(r) != nil {
+		w.Header().Set("Location", "/")
+		w.WriteHeader(http.StatusFound)
+	}
+
+	accountName, password := r.FormValue("account_name"), r.FormValue("password")
+
+	validated := validateUser(accountName, password)
+	if !validated {
+		w.Header().Set("Location", "/register")
+		w.WriteHeader(http.StatusFound)
+	}
+
+	query := "INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)"
+	result, eerr := db.Exec(query, accountName, calculatePasshash(accountName, password))
+	if eerr != nil {
+		fmt.Println(eerr.Error())
+		return
+	}
+
+	session := getSession(r)
+	uid, lerr := result.LastInsertId()
+	if lerr != nil {
+		fmt.Println(lerr.Error())
+		return
+	}
+	session.Values["user_id"] = uid
+	session.Save(r, w)
+
+	w.Header().Set("Location", "/")
+	w.WriteHeader(http.StatusFound)
+}
+
 func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
 	pidStr := c.URLParams["id"]
 	pid, err := strconv.Atoi(pidStr)
@@ -312,6 +368,8 @@ func main() {
 	goji.Post("/", postIndex)
 	goji.Get("/login", getLogin)
 	goji.Post("/login", postLogin)
+	goji.Get("/register", getRegister)
+	goji.Post("/register", postRegister)
 	goji.Get("/image/:id.:ext", getImage)
 	goji.Get("/*", http.FileServer(http.Dir("../public")))
 	goji.Serve()
