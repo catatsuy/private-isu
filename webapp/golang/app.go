@@ -26,7 +26,7 @@ var (
 	store *sessions.CookieStore
 )
 
-type user struct {
+type User struct {
 	ID          int       `db:"id"`
 	AccountName string    `db:"account_name"`
 	Passhash    string    `db:"passhash"`
@@ -35,7 +35,7 @@ type user struct {
 	CreatedAt   time.Time `db:"created_at"`
 }
 
-type post struct {
+type Post struct {
 	ID        int       `db:"id"`
 	UserID    int       `db:"user_id"`
 	Imgdata   []byte    `db:"imgdata"`
@@ -44,7 +44,7 @@ type post struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
-type comment struct {
+type Comment struct {
 	ID        int       `db:"id"`
 	PostID    int       `db:"post_id"`
 	UserID    int       `db:"user_id"`
@@ -65,14 +65,14 @@ func getSession(r *http.Request) *sessions.Session {
 	return session
 }
 
-func getSessionUser(r *http.Request) *user {
+func getSessionUser(r *http.Request) *User {
 	session := getSession(r)
 	uid, ok := session.Values["user_id"]
 	if !ok || uid == nil {
 		return nil
 	}
 
-	u := user{}
+	u := User{}
 
 	err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
 	if err != nil {
@@ -83,8 +83,8 @@ func getSessionUser(r *http.Request) *user {
 	return &u
 }
 
-func tryLogin(accountName, password string) *user {
-	u := user{}
+func tryLogin(accountName, password string) *User {
+	u := User{}
 	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
 	if err != nil {
 		fmt.Println(err)
@@ -147,7 +147,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	// fmt.Fprintf(w, "Hello, %s!", c.URLParams["name"])
 	_ = getSessionUser(r)
 
-	posts := []post{}
+	posts := []Post{}
 
 	err := db.Select(&posts, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
 	if err != nil {
@@ -160,7 +160,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		getTemplPath("index.html"),
 		getTemplPath("posts.html"),
 		getTemplPath("post.html")),
-	).Execute(w, struct{ Posts []post }{posts})
+	).Execute(w, struct{ Posts []Post }{posts})
 }
 
 func postIndex(w http.ResponseWriter, r *http.Request) {
@@ -305,7 +305,7 @@ func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post := post{}
+	post := Post{}
 	derr := db.Get(&post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
 	if derr != nil {
 		fmt.Println(derr.Error())
@@ -361,7 +361,7 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users := []user{}
+	users := []User{}
 	err := db.Select(&users, "SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC")
 	if err != nil {
 		fmt.Println(err)
@@ -371,7 +371,7 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 	template.Must(template.ParseFiles(
 		getTemplPath("layout.html"),
 		getTemplPath("banned.html")),
-	).Execute(w, struct{ Users []user }{users})
+	).Execute(w, struct{ Users []User }{users})
 }
 
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {
