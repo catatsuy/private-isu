@@ -140,6 +140,19 @@ func makePosts(results []Post, allComments bool) ([]Post, error) {
 	return posts, nil
 }
 
+func imageURL(p Post) string {
+	ext := ""
+	if p.Mime == "image/jpeg" {
+		ext = ".jpg"
+	} else if p.Mime == "image/png" {
+		ext = ".png"
+	} else if p.Mime == "image/gif" {
+		ext = ".gif"
+	}
+
+	return "/image/" + strconv.Itoa(p.ID) + ext
+}
+
 func tryLogin(accountName, password string) *User {
 	u := User{}
 	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
