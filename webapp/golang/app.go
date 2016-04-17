@@ -26,6 +26,10 @@ var (
 	store *sessions.CookieStore
 )
 
+const (
+	postsPerPage = 20
+)
+
 type User struct {
 	ID          int       `db:"id"`
 	AccountName string    `db:"account_name"`
@@ -36,12 +40,15 @@ type User struct {
 }
 
 type Post struct {
-	ID        int       `db:"id"`
-	UserID    int       `db:"user_id"`
-	Imgdata   []byte    `db:"imgdata"`
-	Body      string    `db:"body"`
-	Mime      string    `db:"mime"`
-	CreatedAt time.Time `db:"created_at"`
+	ID           int       `db:"id"`
+	UserID       int       `db:"user_id"`
+	Imgdata      []byte    `db:"imgdata"`
+	Body         string    `db:"body"`
+	Mime         string    `db:"mime"`
+	CreatedAt    time.Time `db:"created_at"`
+	CommentCount int
+	Comments     []Comment
+	User         User
 }
 
 type Comment struct {
@@ -50,6 +57,7 @@ type Comment struct {
 	UserID    int       `db:"user_id"`
 	Comment   string    `db:"comment"`
 	CreatedAt time.Time `db:"created_at"`
+	User      User
 }
 
 func init() {
@@ -81,6 +89,55 @@ func getSessionUser(r *http.Request) *User {
 	}
 
 	return &u
+}
+
+func makePosts(results []Post, allComments bool) ([]Post, error) {
+	var posts []Post
+
+	for _, p := range results {
+		err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
+		if !allComments {
+			query += " LIMIT 3"
+		}
+		var comments []Comment
+		cerr := db.Select(&comments, query, p.ID)
+		if cerr != nil {
+			return nil, cerr
+		}
+
+		for i := 0; i < len(comments); i++ {
+			uerr := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
+			if uerr != nil {
+				return nil, uerr
+			}
+		}
+
+		// reverse
+		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
+			comments[i], comments[j] = comments[j], comments[i]
+		}
+
+		p.Comments = comments
+
+		perr := db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
+		if perr != nil {
+			return nil, perr
+		}
+
+		if p.User.DelFlg == 0 {
+			posts = append(posts, p)
+		}
+		if len(posts) >= postsPerPage {
+			break
+		}
+	}
+
+	return posts, nil
 }
 
 func tryLogin(accountName, password string) *User {
