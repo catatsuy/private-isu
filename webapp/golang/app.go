@@ -218,13 +218,18 @@ func getLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
-	// fmt.Fprintf(w, "Hello, %s!", c.URLParams["name"])
-	_ = getSessionUser(r)
+	me := getSessionUser(r)
 
-	posts := []Post{}
+	results := []Post{}
 
-	err := db.Select(&posts, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
+	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
 	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	posts, merr := makePosts(results, false)
+	if merr != nil {
 		fmt.Println(err)
 		return
 	}
@@ -234,7 +239,10 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		getTemplPath("index.html"),
 		getTemplPath("posts.html"),
 		getTemplPath("post.html")),
-	).Execute(w, struct{ Posts []Post }{posts})
+	).Execute(w, struct {
+		Posts []Post
+		Me    User
+	}{posts, me})
 }
 
 func postIndex(w http.ResponseWriter, r *http.Request) {
