@@ -73,11 +73,11 @@ func getSession(r *http.Request) *sessions.Session {
 	return session
 }
 
-func getSessionUser(r *http.Request) *User {
+func getSessionUser(r *http.Request) User {
 	session := getSession(r)
 	uid, ok := session.Values["user_id"]
 	if !ok || uid == nil {
-		return nil
+		return User{}
 	}
 
 	u := User{}
@@ -85,10 +85,14 @@ func getSessionUser(r *http.Request) *User {
 	err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
 	if err != nil {
 		fmt.Println(err)
-		return nil
+		return User{}
 	}
 
-	return &u
+	return u
+}
+
+func isLogin(u User) bool {
+	return u.ID != 0
 }
 
 func makePosts(results []Post, allComments bool) ([]Post, error) {
@@ -235,7 +239,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 func postIndex(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
-	if me == nil {
+	if !isLogin(me) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
@@ -292,7 +296,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func getLogin(w http.ResponseWriter, r *http.Request) {
-	if getSessionUser(r) != nil {
+	if isLogin(getSessionUser(r)) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
@@ -304,7 +308,7 @@ func getLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func postLogin(w http.ResponseWriter, r *http.Request) {
-	if getSessionUser(r) != nil {
+	if isLogin(getSessionUser(r)) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
@@ -323,7 +327,7 @@ func postLogin(w http.ResponseWriter, r *http.Request) {
 }
 
 func getRegister(w http.ResponseWriter, r *http.Request) {
-	if getSessionUser(r) != nil {
+	if isLogin(getSessionUser(r)) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
@@ -335,7 +339,7 @@ func getRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 func postRegister(w http.ResponseWriter, r *http.Request) {
-	if getSessionUser(r) != nil {
+	if isLogin(getSessionUser(r)) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
@@ -400,7 +404,7 @@ func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func postComment(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
-	if me != nil {
+	if isLogin(me) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
@@ -421,7 +425,7 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 
 func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
-	if me == nil {
+	if !isLogin(me) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
@@ -446,7 +450,7 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
-	if me == nil {
+	if !isLogin(me) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
