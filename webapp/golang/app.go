@@ -463,7 +463,10 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 	template.Must(template.ParseFiles(
 		getTemplPath("layout.html"),
 		getTemplPath("banned.html")),
-	).Execute(w, struct{ Users []User }{users})
+	).Execute(w, struct {
+		Users []User
+		Me    User
+	}{users, me})
 }
 
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {
