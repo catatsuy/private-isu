@@ -7,6 +7,22 @@
   </head>
   <body>
     <div class="container">
+      <div class="header">
+        <div class="isu-title">
+          <h1><a href="/">Iscogram</a></h1>
+        </div>
+        <div class="isu-header-menu">
+          {{ if eq .Me.ID 0}}
+          <div><a href="/login">ログイン</a></div>
+          {{ else }}
+          <div><a href="/@{{.Me.AccountName}}"><span class="isu-account-name">{{.Me.AccountName}}</span>さん</a></div>
+          {{ if eq .Me.Authority 1 }}
+          <div><a href="/admin/banned">管理者用ページ</a></div>
+          {{ end }}
+          <div><a href="/logout">ログアウト</a></div>
+          {{ end }}
+        </div>
+      </div>
 
       {{ template "content" . }}
     </div>

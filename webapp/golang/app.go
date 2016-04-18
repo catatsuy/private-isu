@@ -308,7 +308,9 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func getLogin(w http.ResponseWriter, r *http.Request) {
-	if isLogin(getSessionUser(r)) {
+	me := getSessionUser(r)
+
+	if isLogin(me) {
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
@@ -316,7 +318,9 @@ func getLogin(w http.ResponseWriter, r *http.Request) {
 	template.Must(template.ParseFiles(
 		getTemplPath("layout.html"),
 		getTemplPath("login.html")),
-	).Execute(w, nil)
+	).Execute(w, struct {
+		Me User
+	}{me})
 }
 
 func postLogin(w http.ResponseWriter, r *http.Request) {
