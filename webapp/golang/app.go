@@ -351,7 +351,9 @@ func getRegister(w http.ResponseWriter, r *http.Request) {
 	template.Must(template.ParseFiles(
 		getTemplPath("layout.html"),
 		getTemplPath("register.html")),
-	).Execute(w, nil)
+	).Execute(w, struct {
+		Me User
+	}{User{}})
 }
 
 func postRegister(w http.ResponseWriter, r *http.Request) {
