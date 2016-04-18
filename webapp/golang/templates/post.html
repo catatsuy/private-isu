@@ -6,7 +6,7 @@
     </a>
   </div>
   <div class="isu-post-image">
-    <img src="<%= escape_html(image_url(post)) %>" class="isu-image">
+    <img src="{{imageURL .}}" class="isu-image">
   </div>
   <div class="isu-post-text">
     <a href="/@{{.User.AccountName}}" class="isu-post-account-name">{{ .User.AccountName }}</a>
