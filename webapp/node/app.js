@@ -1,5 +1,8 @@
 var express = require('express');
+var ejs = require('ejs');
 var app = express();
+
+app.engine('ejs', ejs.renderFile);
 
 app.get('/initialize', function(req, res) {
 });
@@ -20,6 +23,7 @@ app.get('/logout', function(req, res) {
 });
 
 app.get('/', function(req, res) {
+  res.render('index.ejs', { posts: [] });
 });
 
 app.get('/@(.+)/', function(req, res) {
