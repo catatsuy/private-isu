@@ -15,3 +15,20 @@
 //= require turbolinks
 //= require bootstrap-sprockets
 //= require_tree .
+$(function() {
+  'use strict';
+  $('.expand-message').on('click', function() {
+    var $this = $(this);
+    var msg = $this.attr('data-message');
+    $this.removeClass('clickable');
+    $this.text(msg);
+    $this.off();
+  });
+});
+
+Highcharts.setOptions({
+  global: {
+    useUTC: false,
+  }
+});
+

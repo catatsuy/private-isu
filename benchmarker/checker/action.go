@@ -12,7 +12,6 @@ import (
 	"regexp"
 
 	"github.com/catatsuy/private-isu/benchmarker/cache"
-	"github.com/catatsuy/private-isu/benchmarker/util"
 )
 
 type Action struct {
@@ -178,6 +177,11 @@ func (a *AssetAction) Play(s *Session) error {
 	uc, md5 := cache.NewURLCache(res)
 	if uc != nil {
 		cache.GetInstance().Set(a.Path, uc)
+		if res.StatusCode == http.StatusOK && a.Asset.MD5 == "" {
+			a.Asset.MD5 = md5
+		}
+	} else if a.Asset.MD5 == "" {
+		a.Asset.MD5 = md5
 	}
 
 	success := false
@@ -188,7 +192,7 @@ func (a *AssetAction) Play(s *Session) error {
 	}
 
 	if res.StatusCode == http.StatusOK &&
-		((uc == nil && util.GetMD5ByIO(res.Body) == a.Asset.MD5) || md5 == a.Asset.MD5) {
+		((uc == nil && md5 == a.Asset.MD5) || uc != nil) {
 		success = true
 	}
 

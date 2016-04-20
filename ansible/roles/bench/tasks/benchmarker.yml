@@ -4,28 +4,31 @@
        dest={{ gopath }}/src/github.com/catatsuy/private-isu
        version=master
        accept_hostkey=yes
+  register: benchmarker
 
 - name: go get
   shell: "go get ./..."
   args:
     chdir: "{{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker"
-    creates: "{{ gopath }}/src/github.com/PuerkitoBio/goquery"
   environment:
     GOPATH: "{{ gopath }}"
+  when: benchmarker.changed
 
 - name: go install
   shell: "go install ."
   args:
     chdir: "{{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker"
-    creates: "{{ gopath }}/bin/benchmarker"
   environment:
     GOPATH: "{{ gopath }}"
+  when: benchmarker.changed
 
 - name: install unzip command
   apt: name=unzip state=latest
 
 - name: download images
   get_url: url=https://github.com/catatsuy/private-isu/releases/download/img/img.zip dest={{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker/userdata/img.zip checksum=md5:4e66b924aa095030a9d152ab5f2015de
+  register: imgzip
 
 - name: unarchive images
   unarchive: src={{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker/userdata/img.zip dest={{ gopath }}/src/github.com/catatsuy/private-isu/benchmarker/userdata copy=no
+  when: imgzip.changed

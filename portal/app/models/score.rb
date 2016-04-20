@@ -1,37 +1,36 @@
 class Score < ActiveRecord::Base
   belongs_to :team
 
-  def self.ordered_stats(time:)
+  # トップNチームのスコア
+  def self.ordered_stats(time:, limit:10)
+    scores = where('created_at <= ?', time)
+    .group('team_id')
+    .order('best_score DESC')
+    .limit(limit)
+    .pluck('team_id', 'MAX(score) AS best_score')
+
     # Pre-fetch teams (speed)
     team_hash = Team.pluck(:id, :name).to_h
 
     score_hash = {}
-    scores = Score.where('created_at < ?', time).order(:score).reverse_order.group(:team_id).pluck(:team_id, :score)
-    scores.each do |(team_id, best_score)|
+    scores
+    .each do |(team_id, best_score)|
       key = team_hash[team_id]
       score_hash[key] = best_score
     end
     score_hash
   end
 
-  # Generate score hash for graph (dirty)
-  def self.stats(time:, slice:, limit:)
-    # time round per :slice
-    rounded_t = Time.local(time.year, time.month, time.day, time.hour, time.min/slice*slice)
+  def self.history(time:)
     # Pre-fetch teams (speed)
     team_hash = Team.pluck(:id, :name).to_h
 
-    score_hash = {}
-    # Fetch latest score per :slice
-    # SELECT "scores".* FROM "scores" WHERE (created_at < '2016-03-19 06:00:00') GROUP BY "scores"."team_id"  ORDER BY "scores"."created_at" DESC
-    limit.times do |n|
-      t = rounded_t - (n*slice).minutes
-      scores = where('created_at < ?', t).order(:created_at).reverse_order.group(:team_id)
-      scores.each do |score|
-        key = team_hash[score.team_id]
-        score_hash[key] = [] unless score_hash[key]
-        score_hash[key] << [t, score.score]
-      end
+    team_scores = Hash.new {|h,key| h[key] = []}
+
+    where('created_at <= ?', time)
+    .order('created_at ASC') # インデックス貼ったほうがいいかも
+    .each do |score|
+      team_scores[team_hash[score.team_id]] << [score.created_at.in_time_zone, score.score]
     end
 
     # map for graph
@@ -40,6 +39,6 @@ class Score < ActiveRecord::Base
     #   { name: team2.name, data: [['06:00:00', 234], ['06:05:00', 345]]},
     #   ...
     # ]
-    score_hash.map { |k, v| { name: k, data: v } }
+    team_scores.map { |k, v| { name: k, data: v } }
   end
 end

@@ -1,0 +1,8 @@
+---
+- hosts: bench
+  become: yes
+  become_user: root
+  become_method: sudo
+  roles:
+    - isucon-base
+    - bench

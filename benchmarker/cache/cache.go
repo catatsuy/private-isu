@@ -58,16 +58,15 @@ func NewURLCache(res *http.Response) (*URLCache, string) {
 	directive := res.Header.Get("Cache-Control")
 	cc := cachecontrol.Parse(directive)
 	noCache, _ := cc.NoCache()
+	md5 := util.GetMD5ByIO(res.Body)
 
 	if len(directive) == 0 || noCache || cc.NoStore() {
-		return nil, ""
+		return nil, md5
 	}
 
 	now := time.Now()
 	lm := res.Header.Get("Last-Modified")
 	etag := res.Header.Get("ETag")
-
-	md5 := util.GetMD5ByIO(res.Body)
 
 	return &URLCache{
 		LastModified: lm,

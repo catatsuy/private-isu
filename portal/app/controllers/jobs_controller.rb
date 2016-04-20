@@ -2,7 +2,7 @@ class JobsController < ApplicationController
   before_action :authenticate_user!
 
   def create
-    if Job.time_wait?(team: current_user.team)
+    if current_user.team.jobs.any?(&:enqueued?)
       flash[:alert] = 'Job already enqueued. Please wait and try later.'
     else
       job = Job.create(team: current_user.team, status: 'Waiting')

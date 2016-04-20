@@ -1,0 +1,8 @@
+- hosts: guests:extras
+#- hosts: extras
+  gather_facts: no
+  become: yes
+  tasks:
+    - copy: src=../files/etc/default/grub dest=/etc/default/grub owner=root mode=644
+    - name: update-grub2
+      shell: update-grub2

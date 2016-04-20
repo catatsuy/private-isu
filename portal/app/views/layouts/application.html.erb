@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <title>Isucon Portal</title>
+<%= javascript_include_tag "http://code.highcharts.com/highcharts.js", "chartkick" %>
 <%= stylesheet_link_tag    'application', media: 'all', 'data-turbolinks-track' => true %>
 <%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
 <%= csrf_meta_tags %>
@@ -7,7 +8,7 @@
 <div class="container">
   <div class="clearfix">
     <div class="pull-left">
-      Login: <%= current_user.try(:name) || 'not login' %>
+      Login: <%= current_user ? (current_user.name + ' (' + current_user.team.name + ')') : 'not login' %>
     </div>
     <div class="pull-right">
       <%= button_to 'Logout', destroy_user_session_path, method: :delete, class: 'btn btn-warning' %>

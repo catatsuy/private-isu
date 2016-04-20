@@ -1,11 +1,11 @@
 [app]
-shanai-isucon-app
+shanai-isucon-app-01
 
 [portal]
 shanai-isucon-portal
 
 [bench]
-shanai-isucon-bench
+shanai-isucon-bench-01
 
 [admin:children]
 portal
