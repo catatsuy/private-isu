@@ -43,18 +43,6 @@ $container['db'] = function ($c) {
         $config['db']['password']
     );
 };
-$container['db_initialize'] = function ($c) {
-    $db = $c->get('db');
-    $sql = [];
-    $sql[] = 'DELETE FROM users WHERE id > 1000';
-    $sql[] = 'DELETE FROM posts WHERE id > 10000';
-    $sql[] = 'DELETE FROM comments WHERE id > 100000';
-    $sql[] = 'UPDATE users SET del_flg = 0';
-    $sql[] = 'UPDATE users SET del_flg = 1 WHERE id % 50 = 0';
-    foreach($sql as $s) {
-        $db->query($s);
-    }
-};
 
 $container['view'] = function ($c) {
     return new class(__DIR__ . '/views/') extends \Slim\Views\PhpRenderer {
@@ -73,6 +61,18 @@ function db() {
     global $container; // workaround
     return $container['db'];
 }
+
+function db_initialize($db) {
+    $sql = [];
+    $sql[] = 'DELETE FROM users WHERE id > 1000';
+    $sql[] = 'DELETE FROM posts WHERE id > 10000';
+    $sql[] = 'DELETE FROM comments WHERE id > 100000';
+    $sql[] = 'UPDATE users SET del_flg = 0';
+    $sql[] = 'UPDATE users SET del_flg = 1 WHERE id % 50 = 0';
+    foreach($sql as $s) {
+        $db->query($s);
+    }
+};
 
 // ------- helper method for view
 
@@ -205,7 +205,8 @@ function redirect(Response $response, $location, $status) {
 }
 
 $app->get('/initialize', function (Request $request, Response $response) {
-    db_initialize();
+    $db = $this->get('db');
+    db_initialize($db);
     return $response;
 });
 
@@ -294,7 +295,7 @@ $app->get('/', function (Request $request, Response $response) {
     $me = get_session_user();
 
     $db = $this->get('db');
-    $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC');
+    $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC');
     $ps->execute();
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = make_posts($results);
