@@ -133,12 +133,8 @@ function calculate_passhash($account_name, $password) {
 }
 
 function get_session_user() {
-    if ($_SESSION['user'] ?? false) {
-        $ps = db()->prepare('SELECT * FROM `users` WHERE `id` = ?');
-        $ps->execute([$_SESSION['user']['id']]);
-        $user = $ps->fetch();
-        $ps->closeCursor();
-        return $user;
+    if (isset($_SESSION['user'], $_SESSION['user']['id'])) {
+        return fetch_first('SELECT * FROM `users` WHERE `id` = ?', $_SESSION['user']['id']);
     } else {
         return null;
     }
