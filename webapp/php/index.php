@@ -12,6 +12,7 @@ if (is_file($file)) {
     $mimetype = [
         'js' => 'application/javascript',
         'css' => 'text/css',
+        'ico' => 'image/vnd.microsoft.icon',
     ][pathinfo($file, PATHINFO_EXTENSION)] ?? false;
     if ($mimetype) {
         header("Content-Type: {$mimetype}");
