@@ -129,8 +129,10 @@ function imageUrl(post) {
     break;
   case "image/png":
     ext = ".png";
+    break;
   case "image/gif":
     ext = ".gif";
+    break;
   }
 
   return `/image/${post.id}${ext}`;
@@ -353,8 +355,8 @@ app.get('/image/:id.:ext', function(req, res) {
       return;
     }
     if ((req.params.ext === 'jpg' && post.mime === 'image/jpeg') ||
-        (req.params.ext === 'jpg' && post.mime === 'image/jpeg') ||
-        (req.params.ext === 'jpg' && post.mime === 'image/jpeg')) {
+        (req.params.ext === 'png' && post.mime === 'image/png') ||
+        (req.params.ext === 'gif' && post.mime === 'image/gif')) {
       res.append('Content-Type', post.mime);
       res.send(post.imgdata);
     }
