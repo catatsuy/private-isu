@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bradfitz/gomemcache/memcache"
+	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
@@ -24,7 +26,7 @@ import (
 
 var (
 	db    *sqlx.DB
-	store *sessions.CookieStore
+	store *gsm.MemcacheStore
 )
 
 const (
@@ -63,7 +65,8 @@ type Comment struct {
 }
 
 func init() {
-	store = sessions.NewCookieStore([]byte("Iscogram"))
+	memcacheClient := memcache.New("localhost:11211")
+	store = gsm.NewMemcacheStore(memcacheClient, "isucogram_", []byte("sendagaya"))
 }
 
 func dbInitialize() {
@@ -95,8 +98,6 @@ func tryLogin(accountName, password string) *User {
 	} else {
 		return nil
 	}
-
-	return &u
 }
 
 func validateUser(accountName, password string) bool {
@@ -131,7 +132,7 @@ func getSession(r *http.Request) *sessions.Session {
 	session, err := store.Get(r, "isuconp-go.session")
 	if err != nil {
 		fmt.Println(err)
-		return nil
+		panic("sessionの取得に失敗しました")
 	}
 	return session
 }
