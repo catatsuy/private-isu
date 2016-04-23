@@ -1,3 +1,4 @@
+'use strict';
 var express = require('express');
 var session = require('express-session');
 var ejs = require('ejs');
@@ -5,6 +6,8 @@ var mysql = require('promise-mysql');
 var Promise = require('bluebird');
 
 var app = express();
+
+const POSTS_PER_PAGE = 20;
 
 var db = mysql.createPool({
   host: process.env.ISUCONP_DB_HOST || 'localhost',
@@ -34,6 +37,80 @@ function getSessionUser(req) {
   });
 }
 
+function getUser(userId) {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM `users` WHERE `id` = ?', [userId]).then(function(users) {
+      resolve(users[0]);
+    });
+  });
+}
+
+function imageUrl(post) {
+  let ext = ""
+
+  switch(post.mime) {
+  case "image/jpeg":
+    ext = ".jpg";
+    break;
+  case "image/png":
+    ext = ".png";
+  case "image/gif":
+    ext = ".gif";
+  }
+
+  return `/image/${post.id}${ext}`;
+}
+
+function makeComment(comment) {
+  return new Promise((resolve, reject) => {
+    getUser(comment.user_id).then((user) => {
+      comment.user = user;
+      resolve(comment);
+    }).catch(reject);
+  });
+}
+
+function makePost(post, options) {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?', [post.id]).then(function(commentCount) {
+      post.comment_count = commentCount.count || 0;
+      var query = 'SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC';
+      if (options.allComments) {
+        query += ' LIMIT 3';
+      }
+      db.query(query, [post.id]).then((comments) => {
+        Promise.all(comments.map((comment) => {
+          return makeComment(comment);
+        })).then((comments) => {
+          post.comments = comments;
+          getUser(post.user_id).then((user) => {
+            post.user = user;
+            resolve(post);
+          }).catch(reject);
+        }).catch(reject);
+      }).catch(reject);
+    }).catch(reject);
+  });
+}
+
+function makePosts(posts, options) {
+  if (typeof options === 'undefined') {
+    options = {};
+  }
+  if (typeof options.allComments === 'undefined') {
+    options.allComments = false;
+  }
+  return new Promise((resolve, reject) => {
+    if (posts.length === 0) {
+      resolve([]);
+      return;
+    }
+    Promise.all(posts.map((post) => {
+      return makePost(post, options);
+    })).then(resolve, reject);
+  });
+}
+
 app.get('/initialize', function(req, res) {
 });
 
@@ -55,7 +132,9 @@ app.get('/logout', function(req, res) {
 app.get('/', function(req, res) {
   getSessionUser(req).then(function(me) {
     db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC').then(function(posts) {
-      res.render('index.ejs', { posts: posts, me: me });
+      makePosts(posts).then(function(posts) {
+        res.render('index.ejs', { posts: posts, me: me, imageUrl: imageUrl });
+      });
     });
   });
 });
