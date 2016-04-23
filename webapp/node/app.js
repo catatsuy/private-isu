@@ -152,7 +152,7 @@ function makePost(post, options) {
     db.query('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?', [post.id]).then((commentCount) => {
       post.comment_count = commentCount.count || 0;
       var query = 'SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC';
-      if (options.allComments) {
+      if (!options.allComments) {
         query += ' LIMIT 3';
       }
       db.query(query, [post.id]).then((comments) => {
