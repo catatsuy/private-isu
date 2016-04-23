@@ -19,6 +19,8 @@ var db = mysql.createPool({
 });
 
 app.engine('ejs', ejs.renderFile);
+app.set('etag', false);
+
 app.use(session({
   'resave': true,
   'saveUninitialized': true,
@@ -151,7 +153,22 @@ app.get('/posts/(.+)', function(req, res) {
 app.post('/', function(req, res) {
 });
 
-app.get('/image/(.+)\.(.+)', function(req, res) {
+app.get('/image/:id.:ext', function(req, res) {
+  db.query('SELECT * FROM `posts` WHERE `id` = ?', req.params.id).then((posts) => {
+    let post = posts[0];
+    if (!post) {
+      res.status(404).send('').end();
+      return;
+    }
+    if ((req.params.ext === 'jpg' && post.mime === 'image/jpeg') ||
+        (req.params.ext === 'jpg' && post.mime === 'image/jpeg') ||
+        (req.params.ext === 'jpg' && post.mime === 'image/jpeg')) {
+      res.append('Content-Type', post.mime);
+      res.send(post.imgdata).end();
+    }
+  }).catch((error) => {
+    console.log(error);
+  }) ;
 });
 
 app.post('/comment', function(req, res) {
