@@ -66,6 +66,20 @@ func init() {
 	store = sessions.NewCookieStore([]byte("Iscogram"))
 }
 
+func dbInitialize() {
+	sqls := []string{
+		"DELETE FROM users WHERE id > 1000",
+		"DELETE FROM posts WHERE id > 10000",
+		"DELETE FROM comments WHERE id > 100000",
+		"UPDATE users SET del_flg = 0",
+		"UPDATE users SET del_flg = 1 WHERE id % 50 = 0",
+	}
+
+	for _, sql := range sqls {
+		db.Exec(sql)
+	}
+}
+
 func tryLogin(accountName, password string) *User {
 	u := User{}
 	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
@@ -208,6 +222,11 @@ func isLogin(u User) bool {
 
 func getTemplPath(filename string) string {
 	return path.Join("templates", filename)
+}
+
+func getInitialize(w http.ResponseWriter, r *http.Request) {
+	dbInitialize()
+	w.WriteHeader(http.StatusOK)
 }
 
 func getLogin(w http.ResponseWriter, r *http.Request) {
@@ -707,6 +726,7 @@ func main() {
 	}
 	defer db.Close()
 
+	goji.Get("/initialize", getInitialize)
 	goji.Get("/", getIndex)
 	goji.Post("/", postIndex)
 	goji.Get("/logout", getLogout)
