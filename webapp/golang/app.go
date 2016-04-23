@@ -64,6 +64,53 @@ func init() {
 	store = sessions.NewCookieStore([]byte("Iscogram"))
 }
 
+func tryLogin(accountName, password string) *User {
+	u := User{}
+	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	if &u != nil && calculatePasshash(u.AccountName, password) == u.Passhash {
+		return &u
+	} else if &u == nil {
+		return nil
+	} else {
+		return nil
+	}
+
+	return &u
+}
+
+func validateUser(accountName, password string) bool {
+	if regexp.MustCompile("\\A[0-9a-zA-Z_]{3,}\\z").MatchString(accountName) &&
+		regexp.MustCompile("\\A[0-9a-zA-Z_]{6,}\\z").MatchString(password) {
+		return false
+	}
+
+	return true
+}
+
+func digest(src string) string {
+	// TODO: escape
+	out, err := exec.Command("/bin/bash", "-c", `printf "%s" "`+src+`" | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+
+	return strings.TrimSuffix(string(out), "\n")
+}
+
+func calculateSalt(accountName string) string {
+	return digest(accountName)
+}
+
+func calculatePasshash(accountName, password string) string {
+	return digest(password + ":" + calculateSalt(accountName))
+}
+
 func getSession(r *http.Request) *sessions.Session {
 	session, err := store.Get(r, "isuconp-go.session")
 	if err != nil {
@@ -89,10 +136,6 @@ func getSessionUser(r *http.Request) User {
 	}
 
 	return u
-}
-
-func isLogin(u User) bool {
-	return u.ID != 0
 }
 
 func makePosts(results []Post, allComments bool) ([]Post, error) {
@@ -157,55 +200,94 @@ func imageURL(p Post) string {
 	return "/image/" + strconv.Itoa(p.ID) + ext
 }
 
-func tryLogin(accountName, password string) *User {
-	u := User{}
-	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-
-	if &u != nil && calculatePasshash(u.AccountName, password) == u.Passhash {
-		return &u
-	} else if &u == nil {
-		return nil
-	} else {
-		return nil
-	}
-
-	return &u
-}
-
-func validateUser(accountName, password string) bool {
-	if regexp.MustCompile("\\A[0-9a-zA-Z_]{3,}\\z").MatchString(accountName) &&
-		regexp.MustCompile("\\A[0-9a-zA-Z_]{6,}\\z").MatchString(password) {
-		return false
-	}
-
-	return true
-}
-
-func digest(src string) string {
-	// TODO: escape
-	out, err := exec.Command("/bin/bash", "-c", `printf "%s" "`+src+`" | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
-	if err != nil {
-		fmt.Println(err)
-		return ""
-	}
-
-	return strings.TrimSuffix(string(out), "\n")
-}
-
-func calculateSalt(accountName string) string {
-	return digest(accountName)
-}
-
-func calculatePasshash(accountName, password string) string {
-	return digest(password + ":" + calculateSalt(accountName))
+func isLogin(u User) bool {
+	return u.ID != 0
 }
 
 func getTemplPath(filename string) string {
 	return path.Join("templates", filename)
+}
+
+func getLogin(w http.ResponseWriter, r *http.Request) {
+	me := getSessionUser(r)
+
+	if isLogin(me) {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	template.Must(template.ParseFiles(
+		getTemplPath("layout.html"),
+		getTemplPath("login.html")),
+	).Execute(w, struct {
+		Me User
+	}{me})
+}
+
+func postLogin(w http.ResponseWriter, r *http.Request) {
+	if isLogin(getSessionUser(r)) {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	u := tryLogin(r.FormValue("account_name"), r.FormValue("password"))
+
+	if u != nil {
+		session := getSession(r)
+		session.Values["user_id"] = u.ID
+		session.Save(r, w)
+
+		http.Redirect(w, r, "/", http.StatusFound)
+	} else {
+		http.Redirect(w, r, "/login", http.StatusFound)
+	}
+}
+
+func getRegister(w http.ResponseWriter, r *http.Request) {
+	if isLogin(getSessionUser(r)) {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	template.Must(template.ParseFiles(
+		getTemplPath("layout.html"),
+		getTemplPath("register.html")),
+	).Execute(w, struct {
+		Me User
+	}{User{}})
+}
+
+func postRegister(w http.ResponseWriter, r *http.Request) {
+	if isLogin(getSessionUser(r)) {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	accountName, password := r.FormValue("account_name"), r.FormValue("password")
+
+	validated := validateUser(accountName, password)
+	if !validated {
+		http.Redirect(w, r, "/register", http.StatusFound)
+		return
+	}
+
+	query := "INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)"
+	result, eerr := db.Exec(query, accountName, calculatePasshash(accountName, password))
+	if eerr != nil {
+		fmt.Println(eerr.Error())
+		return
+	}
+
+	session := getSession(r)
+	uid, lerr := result.LastInsertId()
+	if lerr != nil {
+		fmt.Println(lerr.Error())
+		return
+	}
+	session.Values["user_id"] = uid
+	session.Save(r, w)
+
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func getLogout(w http.ResponseWriter, r *http.Request) {
@@ -305,88 +387,6 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 	return
-}
-
-func getLogin(w http.ResponseWriter, r *http.Request) {
-	me := getSessionUser(r)
-
-	if isLogin(me) {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	template.Must(template.ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("login.html")),
-	).Execute(w, struct {
-		Me User
-	}{me})
-}
-
-func postLogin(w http.ResponseWriter, r *http.Request) {
-	if isLogin(getSessionUser(r)) {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	u := tryLogin(r.FormValue("account_name"), r.FormValue("password"))
-
-	if u != nil {
-		session := getSession(r)
-		session.Values["user_id"] = u.ID
-		session.Save(r, w)
-
-		http.Redirect(w, r, "/", http.StatusFound)
-	} else {
-		http.Redirect(w, r, "/login", http.StatusFound)
-	}
-}
-
-func getRegister(w http.ResponseWriter, r *http.Request) {
-	if isLogin(getSessionUser(r)) {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	template.Must(template.ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("register.html")),
-	).Execute(w, struct {
-		Me User
-	}{User{}})
-}
-
-func postRegister(w http.ResponseWriter, r *http.Request) {
-	if isLogin(getSessionUser(r)) {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
-
-	accountName, password := r.FormValue("account_name"), r.FormValue("password")
-
-	validated := validateUser(accountName, password)
-	if !validated {
-		http.Redirect(w, r, "/register", http.StatusFound)
-		return
-	}
-
-	query := "INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)"
-	result, eerr := db.Exec(query, accountName, calculatePasshash(accountName, password))
-	if eerr != nil {
-		fmt.Println(eerr.Error())
-		return
-	}
-
-	session := getSession(r)
-	uid, lerr := result.LastInsertId()
-	if lerr != nil {
-		fmt.Println(lerr.Error())
-		return
-	}
-	session.Values["user_id"] = uid
-	session.Save(r, w)
-
-	http.Redirect(w, r, "/", http.StatusFound)
 }
 
 func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
