@@ -32,6 +32,7 @@ var (
 const (
 	postsPerPage   = 20
 	ISO8601_FORMAT = "2006-01-02T15:04:05-07:00"
+	UPLOAD_LIMIT   = 10 * 1024 * 1024 // 10mb
 )
 
 type User struct {
@@ -605,7 +606,14 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(rerr.Error())
 	}
 
-	// TODO:ファイルサイズチェック
+	if len(filedata) > UPLOAD_LIMIT {
+		session := getSession(r)
+		session.Values["notice"] = "ファイルサイズが大きすぎます"
+		session.Save(r, w)
+
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
 
 	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
 	result, eerr := db.Exec(
