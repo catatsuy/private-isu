@@ -464,6 +464,49 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	)).Execute(w, posts)
 }
 
+func getPostsID(c web.C, w http.ResponseWriter, r *http.Request) {
+	pid, err := strconv.Atoi(c.URLParams["id"])
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	results := []Post{}
+	rerr := db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	if rerr != nil {
+		fmt.Println(rerr)
+		return
+	}
+
+	posts, merr := makePosts(results, true)
+	if merr != nil {
+		fmt.Println(merr)
+		return
+	}
+
+	if len(posts) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	p := posts[0]
+
+	me := getSessionUser(r)
+
+	fmap := template.FuncMap{
+		"imageURL": imageURL,
+	}
+
+	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
+		getTemplPath("layout.html"),
+		getTemplPath("post_id.html"),
+		getTemplPath("post.html"),
+	)).Execute(w, struct {
+		Post Post
+		Me   User
+	}{p, me})
+}
+
 func postIndex(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 	if !isLogin(me) {
@@ -670,6 +713,7 @@ func main() {
 	goji.Get("/login", getLogin)
 	goji.Post("/login", postLogin)
 	goji.Get("/posts", getPosts)
+	goji.Get("/posts/:id", getPostsID)
 	goji.Get(regexp.MustCompile(`^/@(?P<accountName>[a-zA-Z]+)$`), getAccountName)
 	goji.Get("/register", getRegister)
 	goji.Post("/register", postRegister)
