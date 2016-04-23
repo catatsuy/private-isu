@@ -1,0 +1,27 @@
+<%- include('header.ejs') %>
+<div class="header">
+  <h1>ユーザー登録</h1>
+</div>
+
+<% if (messages.notice) { %>
+<div id="notice-message" class="alert alert-danger">
+  <%= messages.notice %>
+</div>
+<% } %>
+
+<div class="submit">
+  <form method="post" action="/register">
+    <div class="form-account-name">
+      <span>アカウント名</span>
+      <input type="text" name="account_name">
+    </div>
+    <div class="form-password">
+      <span>パスワード</span>
+      <input type="password" name="password">
+    </div>
+    <div class="form-submit">
+      <input type="submit" name="submit" value="submit">
+    </div>
+  </form>
+</div>
+<%- include('footer.ejs') %>
