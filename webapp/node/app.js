@@ -233,6 +233,9 @@ app.get('/', function(req, res) {
     db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC').then(function(posts) {
       makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then(function(posts) {
         res.render('index.ejs', { posts: filterPosts(posts), me: me, imageUrl: imageUrl });
+      }).catch((error) => {
+        console.log(error);
+        res.status(500).send(error);
       });
     }).catch((error) => {
       console.log(error);
@@ -271,7 +274,19 @@ app.get('/posts', function(req, res) {
   });
 });
 
-app.get('/posts/(.+)', function(req, res) {
+app.get('/posts/:id', function(req, res) {
+  db.query('SELECT * FROM `posts` WHERE `id` = ?', req.params.id || '').then((posts) => {
+    makePosts(posts, {allComments: true}).then((posts) => {
+      let post = posts[0];
+      if (!post) {
+        res.status(404).send('not found');
+        return;
+      }
+      getSessionUser(req).then((me) => {
+        res.render('post.ejs', {imageUrl, post: post, me: me});
+      });
+    });
+  });
 });
 
 app.post('/', function(req, res) {
