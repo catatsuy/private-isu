@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -27,7 +28,8 @@ var (
 )
 
 const (
-	postsPerPage = 20
+	postsPerPage   = 20
+	ISO8601_FORMAT = "2006-01-02T15:04:05-07:00"
 )
 
 type User struct {
@@ -312,7 +314,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 	posts, merr := makePosts(results, false)
 	if merr != nil {
-		fmt.Println(err)
+		fmt.Println(merr)
 		return
 	}
 
@@ -414,6 +416,52 @@ func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
 		CommentedCount int
 		Me             User
 	}{posts, user, postCount, commentCount, commentedCount, me})
+}
+
+func getPosts(w http.ResponseWriter, r *http.Request) {
+	m, parseErr := url.ParseQuery(r.URL.RawQuery)
+	if parseErr != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Println(parseErr)
+		return
+	}
+	maxCreatedAt := m.Get("max_created_at")
+	if maxCreatedAt == "" {
+		return
+	}
+
+	t, terr := time.Parse(ISO8601_FORMAT, maxCreatedAt)
+	if terr != nil {
+		fmt.Println(terr)
+		return
+	}
+
+	results := []Post{}
+	rerr := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601_FORMAT))
+	if rerr != nil {
+		fmt.Println(rerr)
+		return
+	}
+
+	posts, merr := makePosts(results, false)
+	if merr != nil {
+		fmt.Println(merr)
+		return
+	}
+
+	if len(posts) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	fmap := template.FuncMap{
+		"imageURL": imageURL,
+	}
+
+	template.Must(template.New("posts.html").Funcs(fmap).ParseFiles(
+		getTemplPath("posts.html"),
+		getTemplPath("post.html"),
+	)).Execute(w, posts)
 }
 
 func postIndex(w http.ResponseWriter, r *http.Request) {
@@ -621,6 +669,7 @@ func main() {
 	goji.Get("/logout", getLogout)
 	goji.Get("/login", getLogin)
 	goji.Post("/login", postLogin)
+	goji.Get("/posts", getPosts)
 	goji.Get(regexp.MustCompile(`^/@(?P<accountName>[a-zA-Z]+)$`), getAccountName)
 	goji.Get("/register", getRegister)
 	goji.Post("/register", postRegister)
