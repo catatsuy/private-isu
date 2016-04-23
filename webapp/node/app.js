@@ -1,9 +1,12 @@
 'use strict';
+var bodyParser = require('body-parser');
 var express = require('express');
 var session = require('express-session');
+var flash = require('express-flash');
 var ejs = require('ejs');
 var mysql = require('promise-mysql');
 var Promise = require('bluebird');
+var exec = require('child_process').exec;
 
 var app = express();
 
@@ -19,6 +22,7 @@ var db = mysql.createPool({
 });
 
 app.engine('ejs', ejs.renderFile);
+app.use(bodyParser.urlencoded({extended: true}));
 app.set('etag', false);
 
 app.use(session({
@@ -26,6 +30,8 @@ app.use(session({
   'saveUninitialized': true,
   'secret': process.env.ISUCONP_SESSION_SECRET || 'sendagaya'
 }));
+
+app.use(flash());
 
 function getSessionUser(req) {
   return new Promise(function(done, reject) {
@@ -35,6 +41,46 @@ function getSessionUser(req) {
     }
     db.query('SELECT * FROM `users` WHERE `id` = ?', [req.session.userId]).then(function(users) {
       done(users[0]);
+    }).catch(reject);
+  });
+}
+
+function digest(src) {
+  return new Promise((resolve, reject) => {
+    // TODO: shellescape対策
+    exec("printf \"%s\" " + src + " | openssl dgst -sha512 | sed 's/^.*= //'", (err, stdout, stderr) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(stdout.replace(/^\s*(.+)\s*$/, "$1"));
+    });
+  });
+}
+
+function calculatePasshash(accountName, password) {
+  return new Promise((resolve, reject) => {
+    digest(accountName).then((salt) => {
+      digest(`${password}:${salt}`).then(resolve, reject);
+    }).catch(reject);
+  });
+}
+
+function tryLogin(accountName, password) {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT * FROM users WHERE account_name = ? AND del_flg = 0', accountName).then((users) => {
+      let user = users[0];
+      if (!user) {
+        resolve();
+        return;
+      }
+      calculatePasshash(accountName, password).then((passhash) => {
+        if (passhash === user.passhash) {
+          resolve(user);
+        } else {
+          resolve();
+        }
+      });
     }).catch(reject);
   });
 }
@@ -137,9 +183,34 @@ app.get('/initialize', function(req, res) {
 });
 
 app.get('/login', function(req, res) {
+  getSessionUser(req).then((me) => {
+    if (me) {
+      res.redirect('/');
+      return;
+    }
+    res.render('login.ejs', {me});
+  });
 });
 
 app.post('/login', function(req, res) {
+  getSessionUser(req).then((me) => {
+    if (me) {
+      res.redirect('/');
+      return;
+    }
+    tryLogin(req.body.account_name || '', req.body.password || '').then((user) => {
+      if (user) {
+        req.session.userId = user.id;
+        res.redirect('/');
+      } else {
+        req.flash('notice', 'アカウント名かパスワードが間違っています');
+        res.redirect('/login');
+      }
+    }).catch((error) => {
+      console.log(error);
+      res.status(500).send(error);
+    });
+  });
 });
 
 app.get('/register', function(req, res) {
@@ -149,6 +220,8 @@ app.post('/register', function(req, res) {
 });
 
 app.get('/logout', function(req, res) {
+  req.session.destroy();
+  res.redirect('/');
 });
 
 app.get('/', function(req, res) {
