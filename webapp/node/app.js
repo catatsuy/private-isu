@@ -155,6 +155,10 @@ function makePost(post, options) {
   });
 }
 
+function filterPosts(posts) {
+  return posts.filter((post) => post.user.del_flg === 0).slice(0, POSTS_PER_PAGE);
+}
+
 function makePosts(posts, options) {
   if (typeof options === 'undefined') {
     options = {};
@@ -228,7 +232,7 @@ app.get('/', function(req, res) {
   getSessionUser(req).then(function(me) {
     db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC').then(function(posts) {
       makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then(function(posts) {
-        res.render('index.ejs', { posts: posts.filter((post) => post.user.del_flg === 0).slice(0, POSTS_PER_PAGE), me: me, imageUrl: imageUrl });
+        res.render('index.ejs', { posts: filterPosts(posts), me: me, imageUrl: imageUrl });
       });
     }).catch((error) => {
       console.log(error);
@@ -251,7 +255,7 @@ app.get('/@:accountName/', function(req, res) {
     db.query('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC', user.id).then((posts) => {
       makePosts(posts).then((posts) => {
         getSessionUser(req).then((me) => {
-          res.render('user.ejs', {user: user, posts: posts, post_count: 0, comment_count: 0, commented_count: 0, me: me, imageUrl: imageUrl});
+          res.render('user.ejs', {user: user, posts: filterPosts(posts), post_count: 0, comment_count: 0, commented_count: 0, me: me, imageUrl: imageUrl});
         });
       });
     });
@@ -259,6 +263,12 @@ app.get('/@:accountName/', function(req, res) {
 });
 
 app.get('/posts', function(req, res) {
+  let max_created_at = Date.parse(req.params.max_created_at) || new Date();
+  db.query('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC', max_created_at).then((posts) => {
+    makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then((posts) => {
+      res.render('posts.ejs', {imageUrl, posts: filterPosts(posts)});
+    });
+  });
 });
 
 app.get('/posts/(.+)', function(req, res) {
