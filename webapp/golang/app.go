@@ -388,7 +388,7 @@ func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
 			args[i] = v
 		}
 
-		ccerr := db.Get(&commentedCount, db.Rebind("SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ("+placeholder+")"), args...)
+		ccerr := db.Get(&commentedCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ("+placeholder+")", args...)
 		if ccerr != nil {
 			fmt.Println(ccerr)
 			return
