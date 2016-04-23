@@ -324,7 +324,9 @@ app.get('/posts', function(req, res) {
   let max_created_at = Date.parse(req.params.max_created_at) || new Date();
   db.query('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC', max_created_at).then((posts) => {
     makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then((posts) => {
-      res.render('posts.ejs', {imageUrl, posts: filterPosts(posts)});
+      getSessionUser(req).then((me) => {
+        res.render('posts.ejs', {me, imageUrl, posts: filterPosts(posts)});
+      });
     });
   });
 });
