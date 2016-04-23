@@ -35,12 +35,12 @@ app.use(session({
 app.use(flash());
 
 function getSessionUser(req) {
-  return new Promise(function(done, reject) {
+  return new Promise((done, reject) => {
     if (!req.session.userId) {
       done();
       return;
     }
-    db.query('SELECT * FROM `users` WHERE `id` = ?', [req.session.userId]).then(function(users) {
+    db.query('SELECT * FROM `users` WHERE `id` = ?', [req.session.userId]).then((users) => {
       let user = users[0];
       if (user) {
         user.postKey = req.session.postKey;
@@ -100,7 +100,7 @@ function tryLogin(accountName, password) {
 
 function getUser(userId) {
   return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM `users` WHERE `id` = ?', [userId]).then(function(users) {
+    db.query('SELECT * FROM `users` WHERE `id` = ?', [userId]).then((users) => {
       resolve(users[0]);
     });
   });
@@ -149,7 +149,7 @@ function makeComment(comment) {
 
 function makePost(post, options) {
   return new Promise((resolve, reject) => {
-    db.query('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?', [post.id]).then(function(commentCount) {
+    db.query('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?', [post.id]).then((commentCount) => {
       post.comment_count = commentCount.count || 0;
       var query = 'SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC';
       if (options.allComments) {
@@ -192,7 +192,7 @@ function makePosts(posts, options) {
   });
 }
 
-app.get('/initialize', function(req, res) {
+app.get('/initialize', (req, res) => {
   dbInitialize().then(() => {
     res.send('OK');
   }).catch((error) => {
@@ -201,7 +201,7 @@ app.get('/initialize', function(req, res) {
   });
 });
 
-app.get('/login', function(req, res) {
+app.get('/login', (req, res) => {
   getSessionUser(req).then((me) => {
     if (me) {
       res.redirect('/');
@@ -211,7 +211,7 @@ app.get('/login', function(req, res) {
   });
 });
 
-app.post('/login', function(req, res) {
+app.post('/login', (req, res) => {
   getSessionUser(req).then((me) => {
     if (me) {
       res.redirect('/');
@@ -233,7 +233,7 @@ app.post('/login', function(req, res) {
   });
 });
 
-app.get('/register', function(req, res) {
+app.get('/register', (req, res) => {
   getSessionUser(req).then((me) => {
     if (me) {
       res.redirect('/');
@@ -243,7 +243,7 @@ app.get('/register', function(req, res) {
   });
 });
 
-app.post('/register', function(req, res) {
+app.post('/register', (req, res) => {
   getSessionUser(req).then((me) => {
     if (me) {
       res.redirect('/');
@@ -278,15 +278,15 @@ app.post('/register', function(req, res) {
   });
 });
 
-app.get('/logout', function(req, res) {
+app.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/');
 });
 
-app.get('/', function(req, res) {
-  getSessionUser(req).then(function(me) {
-    db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC').then(function(posts) {
-      makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then(function(posts) {
+app.get('/', (req, res) => {
+  getSessionUser(req).then((me) => {
+    db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC').then((posts) => {
+      makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then((posts) => {
         res.render('index.ejs', { posts: filterPosts(posts), me: me, imageUrl: imageUrl});
       }).catch((error) => {
         console.log(error);
@@ -302,7 +302,7 @@ app.get('/', function(req, res) {
   });
 });
 
-app.get('/@:accountName/', function(req, res) {
+app.get('/@:accountName/', (req, res) => {
   db.query('SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', req.params.accountName).then((users) => {
     let user = users[0];
     if (!user) {
@@ -320,7 +320,7 @@ app.get('/@:accountName/', function(req, res) {
   });
 });
 
-app.get('/posts', function(req, res) {
+app.get('/posts', (req, res) => {
   let max_created_at = Date.parse(req.params.max_created_at) || new Date();
   db.query('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC', max_created_at).then((posts) => {
     makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then((posts) => {
@@ -331,7 +331,7 @@ app.get('/posts', function(req, res) {
   });
 });
 
-app.get('/posts/:id', function(req, res) {
+app.get('/posts/:id', (req, res) => {
   db.query('SELECT * FROM `posts` WHERE `id` = ?', req.params.id || '').then((posts) => {
     makePosts(posts, {allComments: true}).then((posts) => {
       let post = posts[0];
@@ -346,10 +346,10 @@ app.get('/posts/:id', function(req, res) {
   });
 });
 
-app.post('/', function(req, res) {
+app.post('/', (req, res) => {
 });
 
-app.get('/image/:id.:ext', function(req, res) {
+app.get('/image/:id.:ext', (req, res) => {
   db.query('SELECT * FROM `posts` WHERE `id` = ?', req.params.id).then((posts) => {
     let post = posts[0];
     if (!post) {
@@ -368,7 +368,7 @@ app.get('/image/:id.:ext', function(req, res) {
   }) ;
 });
 
-app.post('/comment', function(req, res) {
+app.post('/comment', (req, res) => {
   getSessionUser(req).then((me) => {
     if (!me) {
       res.redirect('/login');
@@ -390,10 +390,10 @@ app.post('/comment', function(req, res) {
   });
 });
 
-app.get('/admin/banned', function(req, res) {
+app.get('/admin/banned', (req, res) => {
 });
 
-app.post('/admin/banned', function(req, res) {
+app.post('/admin/banned', (req, res) => {
 });
 
 app.use(express.static('../public', {}));
