@@ -47,6 +47,20 @@ function getUser(userId) {
   });
 }
 
+function dbInitialize() {
+  return new Promise((resolve, reject) => {
+    let sqls = [];
+    sqls.push('DELETE FROM users WHERE id > 1000');
+    sqls.push('DELETE FROM posts WHERE id > 10000');
+    sqls.push('DELETE FROM comments WHERE id > 100000');
+    sqls.push('UPDATE users SET del_flg = 0');
+
+    Promise.all(sqls.map((sql) => db.query(sql))).then(() => {
+      db.query('UPDATE users SET del_flg = 1 WHERE id % 50 = 0');
+    }).then(resolve, reject);
+  });
+}
+
 function imageUrl(post) {
   let ext = ""
 
@@ -114,6 +128,12 @@ function makePosts(posts, options) {
 }
 
 app.get('/initialize', function(req, res) {
+  dbInitialize().then(() => {
+    res.send('OK');
+  }).catch((error) => {
+    console.log(error);
+    res.status(500).send(error);
+  });
 });
 
 app.get('/login', function(req, res) {
