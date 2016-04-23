@@ -87,7 +87,6 @@ func tryLogin(accountName, password string) *User {
 	u := User{}
 	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
 	if err != nil {
-		fmt.Println(err)
 		return nil
 	}
 
@@ -148,11 +147,23 @@ func getSessionUser(r *http.Request) User {
 
 	err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
 	if err != nil {
-		fmt.Println(err)
 		return User{}
 	}
 
 	return u
+}
+
+func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
+	session := getSession(r)
+	value, ok := session.Values[key]
+
+	if !ok || value == nil {
+		return ""
+	} else {
+		delete(session.Values, key)
+		session.Save(r, w)
+		return value.(string)
+	}
 }
 
 func makePosts(results []Post, allComments bool) ([]Post, error) {
@@ -242,8 +253,9 @@ func getLogin(w http.ResponseWriter, r *http.Request) {
 		getTemplPath("layout.html"),
 		getTemplPath("login.html")),
 	).Execute(w, struct {
-		Me User
-	}{me})
+		Me    User
+		Flash string
+	}{me, getFlash(w, r, "notice")})
 }
 
 func postLogin(w http.ResponseWriter, r *http.Request) {
@@ -261,6 +273,10 @@ func postLogin(w http.ResponseWriter, r *http.Request) {
 
 		http.Redirect(w, r, "/", http.StatusFound)
 	} else {
+		session := getSession(r)
+		session.Values["notice"] = "アカウント名かパスワードが間違っています"
+		session.Save(r, w)
+
 		http.Redirect(w, r, "/login", http.StatusFound)
 	}
 }
@@ -275,8 +291,9 @@ func getRegister(w http.ResponseWriter, r *http.Request) {
 		getTemplPath("layout.html"),
 		getTemplPath("register.html")),
 	).Execute(w, struct {
-		Me User
-	}{User{}})
+		Me    User
+		Flash string
+	}{User{}, getFlash(w, r, "notice")})
 }
 
 func postRegister(w http.ResponseWriter, r *http.Request) {
@@ -289,6 +306,23 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 
 	validated := validateUser(accountName, password)
 	if !validated {
+		session := getSession(r)
+		session.Values["notice"] = "アカウント名は3文字以上、パスワードは6文字以上である必要があります"
+		session.Save(r, w)
+
+		http.Redirect(w, r, "/register", http.StatusFound)
+		return
+	}
+
+	exists := 0
+	// ユーザーが存在しない場合はエラーになるのでエラーチェックはしない
+	db.Get(&exists, "SELECT 1 FROM users WHERE `account_name` = ?", accountName)
+
+	if exists == 1 {
+		session := getSession(r)
+		session.Values["notice"] = "アカウント名がすでに使われています"
+		session.Save(r, w)
+
 		http.Redirect(w, r, "/register", http.StatusFound)
 		return
 	}
@@ -350,7 +384,8 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	)).Execute(w, struct {
 		Posts []Post
 		Me    User
-	}{posts, me})
+		Flash string
+	}{posts, me, getFlash(w, r, "notice")})
 }
 
 func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -538,7 +573,11 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 
 	file, header, ferr := r.FormFile("file")
 	if ferr != nil {
-		fmt.Println(ferr.Error())
+		session := getSession(r)
+		session.Values["notice"] = "画像が必須です"
+		session.Save(r, w)
+
+		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 
@@ -552,7 +591,11 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		} else if strings.Contains(contentType, "gif") {
 			mime = "image/gif"
 		} else {
-			http.Redirect(w, r, "/login", http.StatusFound)
+			session := getSession(r)
+			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
+			session.Save(r, w)
+
+			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 	}
@@ -561,6 +604,8 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	if rerr != nil {
 		fmt.Println(rerr.Error())
 	}
+
+	// TODO:ファイルサイズチェック
 
 	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
 	result, eerr := db.Exec(

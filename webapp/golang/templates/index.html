@@ -11,6 +11,11 @@
       <input type="hidden" name="csrf_token" value="<%= escape_html session.id %>">
       <input type="submit" name="submit" value="submit">
     </div>
+    {{if .Flash}}
+    <div id="notice-message" class="alert alert-danger">
+      {{.Flash}}
+    </div>
+    {{end}}
   </form>
 </div>
 
