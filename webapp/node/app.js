@@ -137,11 +137,32 @@ app.get('/', function(req, res) {
       makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then(function(posts) {
         res.render('index.ejs', { posts: posts.filter((post) => post.user.del_flg === 0).slice(0, POSTS_PER_PAGE), me: me, imageUrl: imageUrl });
       });
+    }).catch((error) => {
+      console.log(error);
+      res.status(500).send(error);
     });
+  }).catch((error) => {
+    console.log(error);
+    res.status(500).send(error);
   });
 });
 
-app.get('/@(.+)/', function(req, res) {
+app.get('/@:accountName/', function(req, res) {
+  db.query('SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', req.params.accountName).then((users) => {
+    let user = users[0];
+    if (!user) {
+      res.status(404).send('not_found');
+      return;
+    }
+
+    db.query('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC', user.id).then((posts) => {
+      makePosts(posts).then((posts) => {
+        getSessionUser(req).then((me) => {
+          res.render('user.ejs', {user: user, posts: posts, post_count: 0, comment_count: 0, commented_count: 0, me: me, imageUrl: imageUrl});
+        });
+      });
+    });
+  });
 });
 
 app.get('/posts', function(req, res) {
@@ -157,17 +178,18 @@ app.get('/image/:id.:ext', function(req, res) {
   db.query('SELECT * FROM `posts` WHERE `id` = ?', req.params.id).then((posts) => {
     let post = posts[0];
     if (!post) {
-      res.status(404).send('').end();
+      res.status(404).send('image not found');
       return;
     }
     if ((req.params.ext === 'jpg' && post.mime === 'image/jpeg') ||
         (req.params.ext === 'jpg' && post.mime === 'image/jpeg') ||
         (req.params.ext === 'jpg' && post.mime === 'image/jpeg')) {
       res.append('Content-Type', post.mime);
-      res.send(post.imgdata).end();
+      res.send(post.imgdata);
     }
   }).catch((error) => {
     console.log(error);
+    res.status(500).send(error);
   }) ;
 });
 
