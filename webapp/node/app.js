@@ -132,8 +132,8 @@ app.get('/logout', function(req, res) {
 app.get('/', function(req, res) {
   getSessionUser(req).then(function(me) {
     db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC').then(function(posts) {
-      makePosts(posts).then(function(posts) {
-        res.render('index.ejs', { posts: posts, me: me, imageUrl: imageUrl });
+      makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then(function(posts) {
+        res.render('index.ejs', { posts: posts.filter((post) => post.user.del_flg === 0).slice(0, POSTS_PER_PAGE), me: me, imageUrl: imageUrl });
       });
     });
   });
