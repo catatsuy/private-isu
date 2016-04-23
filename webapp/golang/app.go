@@ -331,6 +331,91 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	}{posts, me})
 }
 
+func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
+	user := User{}
+	uerr := db.Get(&user, "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0", c.URLParams["accountName"])
+
+	if uerr != nil {
+		fmt.Println(uerr)
+		return
+	}
+
+	if user.ID == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	results := []Post{}
+
+	rerr := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC", user.ID)
+	if rerr != nil {
+		fmt.Println(rerr)
+		return
+	}
+
+	posts, merr := makePosts(results, false)
+	if merr != nil {
+		fmt.Println(merr)
+		return
+	}
+
+	commentCount := 0
+	cerr := db.Get(&commentCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?", user.ID)
+	if cerr != nil {
+		fmt.Println(cerr)
+		return
+	}
+
+	postIDs := []int{}
+	perr := db.Select(&postIDs, "SELECT `id` FROM `posts` WHERE `user_id` = ?", user.ID)
+	if perr != nil {
+		fmt.Println(perr)
+		return
+	}
+	postCount := len(postIDs)
+
+	commentedCount := 0
+	if postCount > 0 {
+		s := []string{}
+		for range postIDs {
+			s = append(s, "?")
+		}
+		placeholder := strings.Join(s, ", ")
+
+		// convert []int -> []interface{}
+		args := make([]interface{}, len(postIDs))
+		for i, v := range postIDs {
+			args[i] = v
+		}
+
+		ccerr := db.Get(&commentedCount, db.Rebind("SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ("+placeholder+")"), args...)
+		if ccerr != nil {
+			fmt.Println(ccerr)
+			return
+		}
+	}
+
+	me := getSessionUser(r)
+
+	fmap := template.FuncMap{
+		"imageURL": imageURL,
+	}
+
+	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
+		getTemplPath("layout.html"),
+		getTemplPath("user.html"),
+		getTemplPath("posts.html"),
+		getTemplPath("post.html"),
+	)).Execute(w, struct {
+		Posts          []Post
+		User           User
+		PostCount      int
+		CommentCount   int
+		CommentedCount int
+		Me             User
+	}{posts, user, postCount, commentCount, commentedCount, me})
+}
+
 func postIndex(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 	if !isLogin(me) {
@@ -536,6 +621,7 @@ func main() {
 	goji.Get("/logout", getLogout)
 	goji.Get("/login", getLogin)
 	goji.Post("/login", postLogin)
+	goji.Get(regexp.MustCompile(`^/@(?P<accountName>[a-zA-Z]+)$`), getAccountName)
 	goji.Get("/register", getRegister)
 	goji.Post("/register", postRegister)
 	goji.Post("/comment", postComment)
