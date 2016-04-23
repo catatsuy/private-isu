@@ -391,9 +391,45 @@ app.post('/comment', (req, res) => {
 });
 
 app.get('/admin/banned', (req, res) => {
+  getSessionUser(req).then((me) => {
+    if (!me) {
+      res.redirect('/login');
+      return;
+    }
+    if (me.authority === 0) {
+      res.status(403).send('authority is required');
+      return;
+    }
+
+    db.query('SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC').then((users) => {
+      res.render('banned.ejs', {me, users});
+    });
+  });
 });
 
 app.post('/admin/banned', (req, res) => {
+  getSessionUser(req).then((me) => {
+    if (!me) {
+      res.redirect('/');
+      return;
+    }
+
+    if (me.authority === 0) {
+      res.status(403).send('authority is required');
+      return;
+    }
+
+    if (req.body.csrf_token !== req.session.postKey) {
+      res.status(422).send('invalid CSRF Token');
+      return;
+    }
+
+    let query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?'
+    Promise.all(req.body.uid.map((userId) => { db.query(query, [1, userId]) })).then(() => {
+      res.redirect('/admin/banned');
+      return;
+    });
+  });
 });
 
 app.use(express.static('../public', {}));
