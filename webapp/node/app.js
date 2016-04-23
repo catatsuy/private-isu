@@ -58,6 +58,14 @@ function digest(src) {
   });
 }
 
+function validateUser(accountName, password) {
+  if (!(/^[0-9a-zA-Z_]{3,}$/.test(accountName) && /^[0-9a-zA-Z_]{6,}$/.test(password))) {
+    return false;
+  } else {
+    return true;
+  }
+}
+
 function calculatePasshash(accountName, password) {
   return new Promise((resolve, reject) => {
     digest(accountName).then((salt) => {
@@ -218,9 +226,48 @@ app.post('/login', function(req, res) {
 });
 
 app.get('/register', function(req, res) {
+  getSessionUser(req).then((me) => {
+    if (me) {
+      res.redirect('/');
+      return;
+    }
+    res.render('register.ejs', {me});
+  });
 });
 
 app.post('/register', function(req, res) {
+  getSessionUser(req).then((me) => {
+    if (me) {
+      res.redirect('/');
+      return;
+    }
+    let accountName = req.body.account_name || '';
+    let password = req.body.password || '';
+    let validated = validateUser(accountName, password);
+    if (!validated) {
+      req.flash('notice', 'アカウント名は3文字以上、パスワードは6文字以上である必要があります');
+      res.redirect('/register');
+      return;
+    }
+
+    db.query('SELECT 1 FROM users WHERE `account_name` = ?', accountName).then((rows) => {
+      if (rows[0]) {
+        req.flash('notice', 'アカウント名がすでに使われています');
+        res.redirect('/register');
+        return;
+      }
+
+      calculatePasshash(accountName, password).then((passhash) => {
+        let query = 'INSERT INTO `users` (`account_name`, `passhash`) VALUES (?, ?)';
+        db.query(query, [accountName, passhash]).then(() => {
+          db.query('SELECT * FROM `users` WHERE `account_name` = ?', accountName).then((me) => {
+            session.userId = me.id;
+            res.redirect('/');
+          });
+        });
+      });
+    });
+  });
 });
 
 app.get('/logout', function(req, res) {
