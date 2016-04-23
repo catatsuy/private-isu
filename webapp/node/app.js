@@ -7,6 +7,7 @@ var ejs = require('ejs');
 var mysql = require('promise-mysql');
 var Promise = require('bluebird');
 var exec = require('child_process').exec;
+var crypto = require('crypto');
 
 var app = express();
 
@@ -40,7 +41,11 @@ function getSessionUser(req) {
       return;
     }
     db.query('SELECT * FROM `users` WHERE `id` = ?', [req.session.userId]).then(function(users) {
-      done(users[0]);
+      let user = users[0];
+      if (user) {
+        user.postKey = req.session.postKey;
+      }
+      done(user);
     }).catch(reject);
   });
 }
@@ -213,6 +218,7 @@ app.post('/login', function(req, res) {
     tryLogin(req.body.account_name || '', req.body.password || '').then((user) => {
       if (user) {
         req.session.userId = user.id;
+        req.session.postKey = crypto.randomBytes(16).toString('hex');;
         res.redirect('/');
       } else {
         req.flash('notice', 'アカウント名かパスワードが間違っています');
@@ -279,7 +285,7 @@ app.get('/', function(req, res) {
   getSessionUser(req).then(function(me) {
     db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC').then(function(posts) {
       makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then(function(posts) {
-        res.render('index.ejs', { posts: filterPosts(posts), me: me, imageUrl: imageUrl });
+        res.render('index.ejs', { posts: filterPosts(posts), me: me, imageUrl: imageUrl});
       }).catch((error) => {
         console.log(error);
         res.status(500).send(error);
@@ -359,6 +365,25 @@ app.get('/image/:id.:ext', function(req, res) {
 });
 
 app.post('/comment', function(req, res) {
+  getSessionUser(req).then((me) => {
+    if (!me) {
+      res.redirect('/login');
+      return;
+    }
+
+    if (req.body.csrf_token !== req.session.postKey) {
+      res.status(422).send('invalid CSRF Token');
+    }
+
+    if (!req.body.post_id || !/^[0-9]+$/.test(req.body.post_id)) {
+      res.send('post_idは整数のみです');
+      return;
+    }
+    let query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)';
+    db.query(query, [req.body.post_id, me.id, req.body.comment || '']).then(() => {
+      res.redirect(`/posts/${encodeURIComponent(req.body.post_id)}`);
+    });
+  });
 });
 
 app.get('/admin/banned', function(req, res) {
