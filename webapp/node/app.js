@@ -1,22 +1,22 @@
 'use strict';
-var bodyParser = require('body-parser');
-var multer = require('multer');
-var express = require('express');
-var session = require('express-session');
-var flash = require('express-flash');
-var ejs = require('ejs');
-var mysql = require('promise-mysql');
-var Promise = require('bluebird');
-var exec = require('child_process').exec;
-var crypto = require('crypto');
+const bodyParser = require('body-parser');
+const multer = require('multer');
+const express = require('express');
+const session = require('express-session');
+const flash = require('express-flash');
+const ejs = require('ejs');
+const mysql = require('promise-mysql');
+const Promise = require('bluebird');
+const exec = require('child_process').exec;
+const crypto = require('crypto');
 
-var upload = multer({});
-
-var app = express();
+const app = express();
+const upload = multer({});
 
 const POSTS_PER_PAGE = 20;
+const UPLOAD_LIMIT = 10 * 1024 * 1024 // 10mb
 
-var db = mysql.createPool({
+const db = mysql.createPool({
   host: process.env.ISUCONP_DB_HOST || 'localhost',
   port: process.env.ISUCONP_DB_PORT || 3306,
   user: process.env.ISUCONP_DB_USER || 'root',
