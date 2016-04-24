@@ -322,6 +322,26 @@ app.get('/@:accountName/', (req, res) => {
       return {user, posts};
     });
   }).then((context) => {
+    return db.query('SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?', context.user.id).then((commentCount) => {
+      context.commentCount = commentCount[0] ? commentCount[0].count : 0;
+      return context;
+    });
+  }).then((context) => {
+    return db.query('SELECT `id` FROM `posts` WHERE `user_id` = ?', context.user.id).then((postIdRows) => {
+      return postIdRows.map((row) => row.id);
+    }).then((postIds) => {
+      context.postCount = postIds.length;
+      if (context.postCount === 0 ) {
+        context.commentedCount = 0;
+        return context;
+      } else {
+        return db.query('SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN (?)', [postIds]).then((commentedCount) => {
+          context.commentedCount = commentedCount[0] ? commentedCount[0].count : 0;
+          return context;
+        });
+      }
+    });
+  }).then((context) => {
     return getSessionUser(req).then((me) => {
       context.me = me;
       return context;
@@ -331,14 +351,15 @@ app.get('/@:accountName/', (req, res) => {
       me: context.me,
       user: context.user,
       posts: filterPosts(context.posts),
-      post_count: 0,
-      comment_count: 0,
-      commented_count: 0,
+      post_count: context.postCount,
+      comment_count: context.commentCount,
+      commented_count: context.commentedCount,
       imageUrl: imageUrl
     });
   }).catch((error) => {
     if (error) {
-      res.status(500).send(err);
+      res.status(500).send('ERROR');
+      throw error;
     }
   });
 });
