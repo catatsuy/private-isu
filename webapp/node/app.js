@@ -106,7 +106,7 @@ function getUser(userId) {
   return new Promise((resolve, reject) => {
     db.query('SELECT * FROM `users` WHERE `id` = ?', [userId]).then((users) => {
       resolve(users[0]);
-    });
+    }).catch(reject);
   });
 }
 
@@ -119,8 +119,10 @@ function dbInitialize() {
     sqls.push('UPDATE users SET del_flg = 0');
 
     Promise.all(sqls.map((sql) => db.query(sql))).then(() => {
-      db.query('UPDATE users SET del_flg = 1 WHERE id % 50 = 0');
-    }).then(resolve, reject);
+      db.query('UPDATE users SET del_flg = 1 WHERE id % 50 = 0').then(() => {
+        resolve();
+      }).catch(reject);
+    });
   });
 }
 
