@@ -113,9 +113,15 @@ func validateUser(accountName, password string) bool {
 	return true
 }
 
+// 今回のGo実装では言語側のエスケープの仕組みが使えないのでOSコマンドインジェクション対策できない
+// 取り急ぎPHPのescapeshellarg関数を参考に自前で実装
+// cf: http://jp2.php.net/manual/ja/function.escapeshellarg.php
+func escapeshellarg(arg string) string {
+	return "'" + strings.Replace(arg, "'", "'\\''", -1) + "'"
+}
+
 func digest(src string) string {
-	// TODO: escape
-	out, err := exec.Command("/bin/bash", "-c", `printf "%s" "`+src+`" | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
+	out, err := exec.Command("/bin/bash", "-c", `printf "%s" `+escapeshellarg(src)+` | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
 	if err != nil {
 		fmt.Println(err)
 		return ""
