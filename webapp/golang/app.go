@@ -33,6 +33,9 @@ const (
 	postsPerPage   = 20
 	ISO8601_FORMAT = "2006-01-02T15:04:05-07:00"
 	UPLOAD_LIMIT   = 10 * 1024 * 1024 // 10mb
+
+	// CSRF Token error
+	StatusUnprocessableEntity = 422
 )
 
 type User struct {
@@ -54,6 +57,7 @@ type Post struct {
 	CommentCount int
 	Comments     []Comment
 	User         User
+	CSRFToken    string
 }
 
 type Comment struct {
@@ -101,8 +105,8 @@ func tryLogin(accountName, password string) *User {
 }
 
 func validateUser(accountName, password string) bool {
-	if regexp.MustCompile("\\A[0-9a-zA-Z_]{3,}\\z").MatchString(accountName) &&
-		regexp.MustCompile("\\A[0-9a-zA-Z_]{6,}\\z").MatchString(password) {
+	if !(regexp.MustCompile("\\A[0-9a-zA-Z_]{3,}\\z").MatchString(accountName) &&
+		regexp.MustCompile("\\A[0-9a-zA-Z_]{6,}\\z").MatchString(password)) {
 		return false
 	}
 
@@ -129,11 +133,8 @@ func calculatePasshash(accountName, password string) string {
 }
 
 func getSession(r *http.Request) *sessions.Session {
-	session, err := store.Get(r, "isuconp-go.session")
-	if err != nil {
-		fmt.Println(err)
-		panic("sessionの取得に失敗しました")
-	}
+	session, _ := store.Get(r, "isuconp-go.session")
+
 	return session
 }
 
@@ -167,7 +168,7 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 	}
 }
 
-func makePosts(results []Post, allComments bool) ([]Post, error) {
+func makePosts(results []Post, CSRFToken string, allComments bool) ([]Post, error) {
 	var posts []Post
 
 	for _, p := range results {
@@ -205,6 +206,8 @@ func makePosts(results []Post, allComments bool) ([]Post, error) {
 			return nil, perr
 		}
 
+		p.CSRFToken = CSRFToken
+
 		if p.User.DelFlg == 0 {
 			posts = append(posts, p)
 		}
@@ -231,6 +234,12 @@ func imageURL(p Post) string {
 
 func isLogin(u User) bool {
 	return u.ID != 0
+}
+
+func getCSRFToken(r *http.Request) string {
+	session := getSession(r)
+
+	return session.ID
 }
 
 func getTemplPath(filename string) string {
@@ -367,7 +376,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, merr := makePosts(results, false)
+	posts, merr := makePosts(results, getCSRFToken(r), false)
 	if merr != nil {
 		fmt.Println(merr)
 		return
@@ -383,10 +392,11 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		getTemplPath("posts.html"),
 		getTemplPath("post.html"),
 	)).Execute(w, struct {
-		Posts []Post
-		Me    User
-		Flash string
-	}{posts, me, getFlash(w, r, "notice")})
+		Posts     []Post
+		Me        User
+		CSRFToken string
+		Flash     string
+	}{posts, me, getCSRFToken(r), getFlash(w, r, "notice")})
 }
 
 func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -411,7 +421,7 @@ func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, merr := makePosts(results, false)
+	posts, merr := makePosts(results, getCSRFToken(r), false)
 	if merr != nil {
 		fmt.Println(merr)
 		return
@@ -499,7 +509,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, merr := makePosts(results, false)
+	posts, merr := makePosts(results, getCSRFToken(r), false)
 	if merr != nil {
 		fmt.Println(merr)
 		return
@@ -534,7 +544,7 @@ func getPostsID(c web.C, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	posts, merr := makePosts(results, true)
+	posts, merr := makePosts(results, getCSRFToken(r), true)
 	if merr != nil {
 		fmt.Println(merr)
 		return
@@ -570,7 +580,10 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// check csrf token
+	if r.FormValue("csrf_token") != getCSRFToken(r) {
+		w.WriteHeader(StatusUnprocessableEntity)
+		return
+	}
 
 	file, header, ferr := r.FormFile("file")
 	if ferr != nil {
@@ -671,12 +684,15 @@ func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
 
 func postComment(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
-	if isLogin(me) {
+	if !isLogin(me) {
 		http.Redirect(w, r, "/login", http.StatusFound)
 		return
 	}
 
-	// csrf token check
+	if r.FormValue("csrf_token") != getCSRFToken(r) {
+		w.WriteHeader(StatusUnprocessableEntity)
+		return
+	}
 
 	postID, ierr := strconv.Atoi(r.FormValue("post_id"))
 	if ierr != nil {
@@ -713,9 +729,10 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 		getTemplPath("layout.html"),
 		getTemplPath("banned.html")),
 	).Execute(w, struct {
-		Users []User
-		Me    User
-	}{users, me})
+		Users     []User
+		Me        User
+		CSRFToken string
+	}{users, me, getCSRFToken(r)})
 }
 
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {
@@ -730,7 +747,10 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// csrf token check
+	if r.FormValue("csrf_token") != getCSRFToken(r) {
+		w.WriteHeader(StatusUnprocessableEntity)
+		return
+	}
 
 	query := "UPDATE `users` SET `del_flg` = ? WHERE `id` = ?"
 
