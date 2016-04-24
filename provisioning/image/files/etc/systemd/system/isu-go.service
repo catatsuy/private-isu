@@ -3,10 +3,10 @@ Description=isu-go
 After=syslog.target
 
 [Service]
-WorkingDirectory=/home/isucon/private_isu/webapp/ruby
+WorkingDirectory=/home/isucon/private_isu/webapp/golang
 EnvironmentFile=/home/isucon/env.sh
 Environment=RACK_ENV=production
-PIDFile=/home/isucon/private_isu/webapp/ruby/unicorn.pid
+PIDFile=/home/isucon/private_isu/webapp/golang/server.pid
 
 User=isucon
 Group=isucon
