@@ -79,7 +79,7 @@ func loadAssets(s *checker.Session) {
 	a.Description = "main.jsが読み込めること"
 	a.Play(s)
 
-	a = checker.NewAssetAction("/css/style.css", &checker.Asset{MD5: "048da467b6d43b5ccc24cc76a928e929"})
+	a = checker.NewAssetAction("/css/style.css", &checker.Asset{MD5: "e4c3606a18d11863189405eb5c6ca551"})
 	a.Description = "style.cssが読み込めること"
 	a.Play(s)
 }
