@@ -313,16 +313,33 @@ app.get('/@:accountName/', (req, res) => {
     let user = users[0];
     if (!user) {
       res.status(404).send('not_found');
-      return;
+      return Promise.reject();
     }
-
-    db.query('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC', user.id).then((posts) => {
-      makePosts(posts).then((posts) => {
-        getSessionUser(req).then((me) => {
-          res.render('user.ejs', {user: user, posts: filterPosts(posts), post_count: 0, comment_count: 0, commented_count: 0, me: me, imageUrl: imageUrl});
-        });
-      });
+    return user;
+  }).then((user) => {
+    return db.query('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC', user.id).then((posts) => makePosts(posts))
+    .then((posts) => {
+      return {user, posts};
     });
+  }).then((context) => {
+    return getSessionUser(req).then((me) => {
+      context.me = me;
+      return context;
+    });
+  }).then((context) => {
+    res.render('user.ejs', {
+      me: context.me,
+      user: context.user,
+      posts: filterPosts(context.posts),
+      post_count: 0,
+      comment_count: 0,
+      commented_count: 0,
+      imageUrl: imageUrl
+    });
+  }).catch((error) => {
+    if (error) {
+      res.status(500).send(err);
+    }
   });
 });
 
