@@ -11,8 +11,9 @@
       <input type="hidden" name="csrf_token" value="<%= me ? me.postKey : '' %>">
       <input type="submit" name="submit" value="submit">
     </div>
-    <div id="notice-message" class="alert alert-danger">
-    </div>
+    <% if (messages.notice) { %>
+      <div id="notice-message" class="alert alert-danger"><%= messages.notice %></div>
+    <% } %>
   </form>
 </div>
 

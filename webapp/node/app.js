@@ -417,6 +417,12 @@ app.post('/', upload.single('file'), (req, res) => {
       return;
     }
 
+    if (req.file.size > UPLOAD_LIMIT) {
+      req.flash('notice', 'ファイルサイズが大きすぎます');
+      res.redirect('/');
+      return;
+    }
+
     let query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)';
     db.query(query, [me.id, mime, req.file.buffer, req.body.body]).then((result) => {
       res.redirect(`/posts/${encodeURIComponent(result.insertId)}`);
