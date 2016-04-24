@@ -1,5 +1,6 @@
 'use strict';
 var bodyParser = require('body-parser');
+var multer = require('multer');
 var express = require('express');
 var session = require('express-session');
 var flash = require('express-flash');
@@ -8,6 +9,8 @@ var mysql = require('promise-mysql');
 var Promise = require('bluebird');
 var exec = require('child_process').exec;
 var crypto = require('crypto');
+
+var upload = multer({});
 
 var app = express();
 
@@ -347,7 +350,43 @@ app.get('/posts/:id', (req, res) => {
   });
 });
 
-app.post('/', (req, res) => {
+app.post('/', upload.single('file'), (req, res) => {
+  getSessionUser(req).then((me) => {
+    if (!me) {
+      res.redirect('/login');
+      return;
+    }
+
+    if (req.body.csrf_token !== req.session.postKey) {
+      res.status(422).send('invalid CSRF Token');
+      return;
+    }
+
+    if (!req.file) {
+      req.flash('notice', '画像が必須です');
+      res.redirect('/');
+      return;
+    }
+
+    let mime = ''
+    if (req.file.mimetype.indexOf('jpeg') >= 0) {
+      mime = 'image/jpeg';
+    } else if (req.file.mimetype.indexOf('png') >= 0) {
+      mime = 'image/png';
+    } else if (req.file.mimetype.indexOf('gif') >= 0) {
+      mime = 'image/gif';
+    } else {
+      req.flash('notice', '投稿できる画像形式はjpgとpngとgifだけです');
+      res.redirect('/');
+      return;
+    }
+
+    let query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)';
+    db.query(query, [me.id, mime, req.file.buffer, req.body.body]).then((result) => {
+      res.redirect(`/posts/${encodeURIComponent(result.insertId)}`);
+      return;
+    });
+  });
 });
 
 app.get('/image/:id.:ext', (req, res) => {
