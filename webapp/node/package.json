@@ -2,6 +2,7 @@
   "dependencies": {
     "bluebird": "^3.3.5",
     "body-parser": "^1.15.0",
+    "connect-memcached": "^0.2.0",
     "ejs": "^2.4.1",
     "express": "^4.13.4",
     "express-flash": "0.0.2",

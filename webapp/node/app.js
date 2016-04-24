@@ -9,6 +9,7 @@ const mysql = require('promise-mysql');
 const Promise = require('bluebird');
 const exec = require('child_process').exec;
 const crypto = require('crypto');
+const memcacheStore = require('connect-memcached')(session);
 
 const app = express();
 const upload = multer({});
@@ -33,7 +34,10 @@ app.set('etag', false);
 app.use(session({
   'resave': true,
   'saveUninitialized': true,
-  'secret': process.env.ISUCONP_SESSION_SECRET || 'sendagaya'
+  'secret': process.env.ISUCONP_SESSION_SECRET || 'sendagaya',
+  'store': new memcacheStore({
+    hosts: ['127.0.0.1:11211']
+  })
 }));
 
 app.use(flash());
