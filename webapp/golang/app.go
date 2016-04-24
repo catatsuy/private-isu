@@ -32,7 +32,7 @@ var (
 const (
 	postsPerPage   = 20
 	ISO8601_FORMAT = "2006-01-02T15:04:05-07:00"
-	UPLOAD_LIMIT   = 10 * 1024 * 1024 // 10mb
+	UploadLimit    = 10 * 1024 * 1024 // 10mb
 
 	// CSRF Token error
 	StatusUnprocessableEntity = 422
@@ -625,7 +625,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(rerr.Error())
 	}
 
-	if len(filedata) > UPLOAD_LIMIT {
+	if len(filedata) > UploadLimit {
 		session := getSession(r)
 		session.Values["notice"] = "ファイルサイズが大きすぎます"
 		session.Save(r, w)
@@ -792,7 +792,7 @@ func main() {
 	}
 
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?parseTime=true&loc=Local",
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local",
 		user,
 		password,
 		host,
@@ -807,18 +807,18 @@ func main() {
 	defer db.Close()
 
 	goji.Get("/initialize", getInitialize)
-	goji.Get("/", getIndex)
-	goji.Post("/", postIndex)
-	goji.Get("/logout", getLogout)
 	goji.Get("/login", getLogin)
 	goji.Post("/login", postLogin)
-	goji.Get("/posts", getPosts)
-	goji.Get("/posts/:id", getPostsID)
-	goji.Get(regexp.MustCompile(`^/@(?P<accountName>[a-zA-Z]+)$`), getAccountName)
 	goji.Get("/register", getRegister)
 	goji.Post("/register", postRegister)
-	goji.Post("/comment", postComment)
+	goji.Get("/logout", getLogout)
+	goji.Get("/", getIndex)
+	goji.Get(regexp.MustCompile(`^/@(?P<accountName>[a-zA-Z]+)$`), getAccountName)
+	goji.Get("/posts", getPosts)
+	goji.Get("/posts/:id", getPostsID)
+	goji.Post("/", postIndex)
 	goji.Get("/image/:id.:ext", getImage)
+	goji.Post("/comment", postComment)
 	goji.Get("/admin/banned", getAdminBanned)
 	goji.Post("/admin/banned", postAdminBanned)
 	goji.Get("/*", http.FileServer(http.Dir("../public")))
