@@ -294,15 +294,9 @@ app.get('/logout', (req, res) => {
 app.get('/', (req, res) => {
   getSessionUser(req).then((me) => {
     db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC').then((posts) => {
-      makePosts(posts.slice(0, POSTS_PER_PAGE * 2)).then((posts) => {
-        res.render('index.ejs', { posts: filterPosts(posts), me: me, imageUrl: imageUrl});
-      }).catch((error) => {
-        console.log(error);
-        res.status(500).send(error);
-      });
-    }).catch((error) => {
-      console.log(error);
-      res.status(500).send(error);
+      return makePosts(posts.slice(0, POSTS_PER_PAGE * 2));
+    }).then((posts) => {
+      res.render('index.ejs', { posts: filterPosts(posts), me: me, imageUrl: imageUrl});
     });
   }).catch((error) => {
     console.log(error);
