@@ -506,7 +506,7 @@ app.post('/admin/banned', (req, res) => {
       return;
     }
 
-    let query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?'
+    let query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?';
     Promise.all(req.body.uid.map((userId) => { db.query(query, [1, userId]) })).then(() => {
       res.redirect('/admin/banned');
       return;
