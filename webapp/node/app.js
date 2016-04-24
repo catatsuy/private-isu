@@ -161,17 +161,19 @@ function makePost(post, options) {
       if (!options.allComments) {
         query += ' LIMIT 3';
       }
-      db.query(query, [post.id]).then((comments) => {
-        Promise.all(comments.map((comment) => {
+      return db.query(query, [post.id]).then((comments) => {
+        return Promise.all(comments.map((comment) => {
           return makeComment(comment);
         })).then((comments) => {
           post.comments = comments;
-          getUser(post.user_id).then((user) => {
-            post.user = user;
-            resolve(post);
-          }).catch(reject);
-        }).catch(reject);
-      }).catch(reject);
+          return post;
+        });
+      }).then((post) => {
+        return getUser(post.user_id).then((user) => {
+          post.user = user;
+          return post;
+        });
+      }).then(resolve, reject);
     }).catch(reject);
   });
 }
