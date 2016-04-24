@@ -1,0 +1,16 @@
+<div class="header">
+  <div class="isu-title">
+    <h1><a href="/">Iscogram</a></h1>
+  </div>
+  <div class="isu-header-menu">
+    <% if (!me) { %>
+    <div><a href="/login">ログイン</a></div>
+    <% } else { %>
+    <div><a href="/@<%= encodeURIComponent(me.account_name) %>"><span class="isu-account-name"><%= me.account_name %></span>さん</a></div>
+    <% if (me.authority === 1) { %>
+    <div><a href="/admin/banned">管理者用ページ</a></div>
+    <% } %>
+    <div><a href="/logout">ログアウト</a></div>
+    <% } %>
+  </div>
+</div>
