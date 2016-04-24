@@ -1,4 +1,4 @@
-<div class="isu-post" id="pid_<%= post.id %>" data-created-at="<%= post.created_at %>">
+<div class="isu-post" id="pid_<%= post.id %>" data-created-at="<%= post.created_at.toISOString() %>">
   <div class="isu-post-header">
     <a href="/@<%= post.user.account_name %>" class="isu-post-account-name"><%= post.user.account_name %></a>
     <a href="/posts/<%= post.id %>" class="isu-post-permalink">
