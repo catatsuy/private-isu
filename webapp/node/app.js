@@ -280,8 +280,10 @@ app.post('/register', (req, res) => {
       calculatePasshash(accountName, password).then((passhash) => {
         let query = 'INSERT INTO `users` (`account_name`, `passhash`) VALUES (?, ?)';
         db.query(query, [accountName, passhash]).then(() => {
-          db.query('SELECT * FROM `users` WHERE `account_name` = ?', accountName).then((me) => {
-            session.userId = me.id;
+          db.query('SELECT * FROM `users` WHERE `account_name` = ?', accountName).then((users) => {
+            let me = users[0];
+            req.session.userId = me.id;
+            req.session.postKey = crypto.randomBytes(16).toString('hex');;
             res.redirect('/');
           });
         });
