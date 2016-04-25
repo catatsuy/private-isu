@@ -6,7 +6,7 @@
     </div>
     <% end %>
     <div class="form-submit">
-      <input type="hidden" name="csrf_token" value="<%= escape_html session.id %>">
+      <input type="hidden" name="csrf_token" value="<%= escape_html session[:csrf_token] %>">
       <input type="submit" name="submit" value="submit">
     </div>
   </form>
