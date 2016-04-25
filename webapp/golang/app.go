@@ -1,8 +1,11 @@
 package main
 
 import (
+	crand "crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"html/template"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -244,8 +247,19 @@ func isLogin(u User) bool {
 
 func getCSRFToken(r *http.Request) string {
 	session := getSession(r)
+	postKey, ok := session.Values["post_key"]
+	if !ok {
+		return ""
+	}
+	return postKey.(string)
+}
 
-	return session.ID
+func secureRandomStr(b int) string {
+	k := make([]byte, b)
+	if _, err := io.ReadFull(crand.Reader, k); err != nil {
+		panic("error reading from random source: " + err.Error())
+	}
+	return hex.EncodeToString(k)
 }
 
 func getTemplPath(filename string) string {
@@ -285,6 +299,7 @@ func postLogin(w http.ResponseWriter, r *http.Request) {
 	if u != nil {
 		session := getSession(r)
 		session.Values["user_id"] = u.ID
+		session.Values["post_key"] = secureRandomStr(16)
 		session.Save(r, w)
 
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -357,6 +372,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	session.Values["user_id"] = uid
+	session.Values["post_key"] = secureRandomStr(16)
 	session.Save(r, w)
 
 	http.Redirect(w, r, "/", http.StatusFound)
