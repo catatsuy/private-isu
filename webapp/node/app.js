@@ -232,7 +232,7 @@ app.post('/login', (req, res) => {
     tryLogin(req.body.account_name || '', req.body.password || '').then((user) => {
       if (user) {
         req.session.userId = user.id;
-        req.session.postKey = crypto.randomBytes(16).toString('hex');;
+        req.session.postKey = crypto.randomBytes(16).toString('hex');
         res.redirect('/');
       } else {
         req.flash('notice', 'アカウント名かパスワードが間違っています');
@@ -283,7 +283,7 @@ app.post('/register', (req, res) => {
           db.query('SELECT * FROM `users` WHERE `account_name` = ?', accountName).then((users) => {
             let me = users[0];
             req.session.userId = me.id;
-            req.session.postKey = crypto.randomBytes(16).toString('hex');;
+            req.session.postKey = crypto.randomBytes(16).toString('hex');
             res.redirect('/');
           });
         });
