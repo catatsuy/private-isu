@@ -247,11 +247,11 @@ func isLogin(u User) bool {
 
 func getCSRFToken(r *http.Request) string {
 	session := getSession(r)
-	postKey, ok := session.Values["post_key"]
+	csrfToken, ok := session.Values["csrf_token"]
 	if !ok {
 		return ""
 	}
-	return postKey.(string)
+	return csrfToken.(string)
 }
 
 func secureRandomStr(b int) string {
@@ -299,7 +299,7 @@ func postLogin(w http.ResponseWriter, r *http.Request) {
 	if u != nil {
 		session := getSession(r)
 		session.Values["user_id"] = u.ID
-		session.Values["post_key"] = secureRandomStr(16)
+		session.Values["csrf_token"] = secureRandomStr(16)
 		session.Save(r, w)
 
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -372,7 +372,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	session.Values["user_id"] = uid
-	session.Values["post_key"] = secureRandomStr(16)
+	session.Values["csrf_token"] = secureRandomStr(16)
 	session.Save(r, w)
 
 	http.Redirect(w, r, "/", http.StatusFound)
