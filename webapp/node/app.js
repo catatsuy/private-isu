@@ -51,7 +51,7 @@ function getSessionUser(req) {
     db.query('SELECT * FROM `users` WHERE `id` = ?', [req.session.userId]).then((users) => {
       let user = users[0];
       if (user) {
-        user.postKey = req.session.postKey;
+        user.csrfToken = req.session.csrfToken;
       }
       done(user);
     }).catch(reject);
@@ -232,7 +232,7 @@ app.post('/login', (req, res) => {
     tryLogin(req.body.account_name || '', req.body.password || '').then((user) => {
       if (user) {
         req.session.userId = user.id;
-        req.session.postKey = crypto.randomBytes(16).toString('hex');
+        req.session.csrfToken = crypto.randomBytes(16).toString('hex');
         res.redirect('/');
       } else {
         req.flash('notice', 'アカウント名かパスワードが間違っています');
@@ -283,7 +283,7 @@ app.post('/register', (req, res) => {
           db.query('SELECT * FROM `users` WHERE `account_name` = ?', accountName).then((users) => {
             let me = users[0];
             req.session.userId = me.id;
-            req.session.postKey = crypto.randomBytes(16).toString('hex');
+            req.session.csrfToken = crypto.randomBytes(16).toString('hex');
             res.redirect('/');
           });
         });
@@ -402,7 +402,7 @@ app.post('/', upload.single('file'), (req, res) => {
       return;
     }
 
-    if (req.body.csrf_token !== req.session.postKey) {
+    if (req.body.csrf_token !== req.session.csrfToken) {
       res.status(422).send('invalid CSRF Token');
       return;
     }
@@ -466,7 +466,7 @@ app.post('/comment', (req, res) => {
       return;
     }
 
-    if (req.body.csrf_token !== req.session.postKey) {
+    if (req.body.csrf_token !== req.session.csrfToken) {
       res.status(422).send('invalid CSRF Token');
     }
 
@@ -510,7 +510,7 @@ app.post('/admin/banned', (req, res) => {
       return;
     }
 
-    if (req.body.csrf_token !== req.session.postKey) {
+    if (req.body.csrf_token !== req.session.csrfToken) {
       res.status(422).send('invalid CSRF Token');
       return;
     }

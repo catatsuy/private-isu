@@ -7,7 +7,7 @@
     </div>
     <% }); %>
     <div class="form-submit">
-      <input type="hidden" name="csrf_token" value="<%= me ? me.postKey : '' %>">
+      <input type="hidden" name="csrf_token" value="<%= me ? me.csrfToken : '' %>">
       <input type="submit" name="submit" value="submit">
     </div>
   </form>
