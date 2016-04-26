@@ -26,6 +26,6 @@
 #        creates: /home/isucon/.local/php/bin/php
 #    - copy: src=../files/php.ini dest=/home/isucon/.local/php/etc/php.ini owner=isucon mode=644
     # golang
-    - command: /home/isucon/.xbuild/go-install 1.6 /home/isucon/.local/go
+    - command: /home/isucon/.xbuild/go-install 1.6.2 /home/isucon/.local/go
       args:
         creates: /home/isucon/.local/go/bin/go

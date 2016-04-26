@@ -1,0 +1,17 @@
+[Unit]
+Description=isu-go
+After=syslog.target
+
+[Service]
+WorkingDirectory=/home/isucon/private_isu/webapp/golang
+EnvironmentFile=/home/isucon/env.sh
+Environment=RACK_ENV=production
+PIDFile=/home/isucon/private_isu/webapp/golang/server.pid
+
+User=isucon
+Group=isucon
+ExecStart=/home/isucon/private_isu/webapp/golang/app -bind "127.0.0.1:8080"
+ExecStop=/bin/kill -s QUIT $MAINPID
+
+[Install]
+WantedBy=multi-user.target
