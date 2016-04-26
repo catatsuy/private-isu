@@ -165,6 +165,7 @@ module Isuconp
         session[:user] = {
           id: user[:id]
         }
+        session[:csrf_token] = SecureRandom.hex(16)
         redirect '/', 302
       else
         flash[:notice] = 'アカウント名かパスワードが間違っています'
@@ -210,6 +211,7 @@ module Isuconp
       session[:user] = {
         id: db.last_id
       }
+      session[:csrf_token] = SecureRandom.hex(16)
       redirect '/', 302
     end
 
@@ -295,7 +297,7 @@ module Isuconp
         redirect '/login', 302
       end
 
-      if params['csrf_token'] != session.id
+      if params['csrf_token'] != session[:csrf_token]
         return 422
       end
 
@@ -359,7 +361,7 @@ module Isuconp
         redirect '/login', 302
       end
 
-      if params["csrf_token"] != session.id
+      if params["csrf_token"] != session[:csrf_token]
         return 422
       end
 
@@ -405,7 +407,7 @@ module Isuconp
         return 403
       end
 
-      if params['csrf_token'] != session.id
+      if params['csrf_token'] != session[:csrf_token]
         return 422
       end
 
