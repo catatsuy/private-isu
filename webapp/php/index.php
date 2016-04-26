@@ -44,7 +44,7 @@ $container = $app->getContainer();
 $container['db'] = function ($c) {
     $config = $c['settings'];
     return new PDO(
-        "mysql:dbname={$config['db']['database']};host={$config['db']['host']};port={$config['db']['port']}",
+        "mysql:dbname={$config['db']['database']};host={$config['db']['host']};port={$config['db']['port']};charset=utf8mb4",
         $config['db']['username'],
         $config['db']['password']
     );
