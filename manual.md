@@ -54,22 +54,40 @@ EC2インスタンスのパブリックIPアドレスにブラウザでアクセ
 エラーなどの出力については、
 
 ```
-$ sudo journalctl -f -u isu-ruby.service
+$ sudo journalctl -f -u isu-ruby
 ```
 
 などで見ることができます。
 
+また、unicornの再起動は、
+
+```
+$ sudo systemctl restart isu-ruby
+```
+
+などですることができます。
+
 #### PHPへの切り替え方
 
 起動する実装をPHPに切り替えるには、以下の操作を行います。
+
+```
+$ sudo systemctl stop isu-ruby
+$ sudo rm /etc/nginx/site-enabled/isucon.conf
+$ sudo ln -s /etc/nginx/site-available/isucon-php.conf /etc/nginx/site-enabled/
+$ sudo systemctl reload nginx
+$ sudo systemctl start php7.0-fpm
+```
+
+php-fpmの設定については、/etc/php/7.0/fpm/以下にあります。
 
 #### Goへの切り替え方
 
 起動する実装をGOに切り替えるには、以下の操作を行います。
 
 ```
-$ sudo systemctl stop isu-ruby.service
-$ sudo systemctl start isu-go.service
+$ sudo systemctl stop isu-ruby
+$ sudo systemctl start isu-go
 ```
 
 プログラムの詳しい起動方法は、 /etc/systemd/system/isu-go.service を参照してください。
@@ -77,7 +95,7 @@ $ sudo systemctl start isu-go.service
 エラーなどの出力については、
 
 ```
-$ sudo journalctl -f -u isu-go.service
+$ sudo journalctl -f -u isu-go
 ```
 
 などで見ることができます。
@@ -87,8 +105,8 @@ $ sudo journalctl -f -u isu-go.service
 起動する実装をnode.jsに切り替えるには、以下の操作を行います。
 
 ```
-$ sudo systemctl stop isu-ruby.service
-$ sudo systemctl start isu-node.service
+$ sudo systemctl stop isu-ruby
+$ sudo systemctl start isu-node
 ```
 
 プログラムの詳しい起動方法は、 /etc/systemd/system/isu-node.service を参照してください。
@@ -96,10 +114,11 @@ $ sudo systemctl start isu-node.service
 エラーなどの出力については、
 
 ```
-$ sudo journalctl -f -u isu-node.service
+$ sudo journalctl -f -u isu-node
 ```
 
 などで見ることができます。
+
 ### MySQL
 
 3306番ポートでMySQLが起動しています。初期状態では以下のユーザが設定されています。
