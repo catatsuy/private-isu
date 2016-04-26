@@ -49,9 +49,57 @@ EC2インスタンスのパブリックIPアドレスにブラウザでアクセ
 
 80番ポートでアクセスできるので、ブラウザから動作確認をすることができます。
 
+プログラムの詳しい起動方法は、 /etc/systemd/system/isu-ruby.service を参照してください。
+
+エラーなどの出力については、
+
+```
+$ sudo journalctl -f -u isu-ruby.service
+```
+
+などで見ることができます。
+
+#### PHPへの切り替え方
+
 起動する実装をPHPに切り替えるには、以下の操作を行います。
 
+#### Goへの切り替え方
 
+起動する実装をGOに切り替えるには、以下の操作を行います。
+
+```
+$ sudo systemctl stop isu-ruby.service
+$ sudo systemctl start isu-go.service
+```
+
+プログラムの詳しい起動方法は、 /etc/systemd/system/isu-go.service を参照してください。
+
+エラーなどの出力については、
+
+```
+$ sudo journalctl -f -u isu-go.service
+```
+
+などで見ることができます。
+
+#### node.jsへの切り替え方
+
+起動する実装をnode.jsに切り替えるには、以下の操作を行います。
+
+```
+$ sudo systemctl stop isu-ruby.service
+$ sudo systemctl start isu-node.service
+```
+
+プログラムの詳しい起動方法は、 /etc/systemd/system/isu-node.service を参照してください。
+
+エラーなどの出力については、
+
+```
+$ sudo journalctl -f -u isu-node.service
+```
+
+などで見ることができます。
 ### MySQL
 
 3306番ポートでMySQLが起動しています。初期状態では以下のユーザが設定されています。
