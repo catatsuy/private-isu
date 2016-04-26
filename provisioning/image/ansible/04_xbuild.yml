@@ -20,12 +20,32 @@
     - command: /home/isucon/.xbuild/node-install v4.4.3 /home/isucon/.local/node
       args:
         creates: /home/isucon/.local/node/bin/node
-    # php
-#    - command: /home/isucon/.xbuild/php-install 7.0.4 /home/isucon/.local/php -- --with-pear --with-openssl --with-pdo-pgsql
-#      args:
-#        creates: /home/isucon/.local/php/bin/php
-#    - copy: src=../files/php.ini dest=/home/isucon/.local/php/etc/php.ini owner=isucon mode=644
     # golang
     - command: /home/isucon/.xbuild/go-install 1.6.2 /home/isucon/.local/go
       args:
         creates: /home/isucon/.local/go/bin/go
+
+- hosts: guests:extras
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Apt add Dotdeb jessie repository
+      apt_repository: repo="{{item}}"
+      with_items:
+          - deb http://packages.dotdeb.org jessie all
+          - deb-src http://packages.dotdeb.org jessie all
+      tags: php7
+    - name: Apt install Dotdeb key
+      apt_key: url=http://www.dotdeb.org/dotdeb.gpg
+      tags: php7
+    - name: Apt update
+      apt: update_cache=yes
+      tags: php7
+    - name: PHP7 install
+      apt: name="{{item}}"
+      with_items:
+        - php7.0-cli
+        - php7.0-fpm
+        - php7.0-mysql
+        - php7.0-memcached
+      tags: php7

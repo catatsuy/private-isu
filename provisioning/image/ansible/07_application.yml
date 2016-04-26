@@ -8,12 +8,23 @@
       shell: cd /home/isucon/private_isu/webapp/ruby; bash -lc "bundle install"
 
 - hosts: guests:extras
+#- hosts: extras
   become: yes
   become_user: isucon
   gather_facts: no
   tasks:
-    - name: go build
-      shell: cd /home/isucon/private_isu/webapp/golang; bash -lc "./setup.sh"
+    - name: bundle install
+      shell: cd /home/isucon/private_isu/webapp/ruby; bash -lc "bundle install"
+
+- hosts: guests:extras
+  become: yes
+  become_user: isucon
+  gather_facts: no
+  tasks:
+    - name: download composer.phar
+      get_url: url=http://getcomposer.org/composer.phar dest=/home/isucon/private_isu/webapp/php/composer.phar sha256sum=0fac8d873a7a5f09ce3ebea4a570d4c89e3df3e337d3619bee2e19910219cd79 force=1 mode=755
+    - name: composer install
+      shell: cd /home/isucon/private_isu/webapp/php; bash -lc "./composer.phar install"
 
 - hosts: guests:extras
   become: yes

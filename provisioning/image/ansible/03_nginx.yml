@@ -15,6 +15,8 @@
       notify: reload nginx
     - copy: src=../files/etc/nginx/sites-available/isucon.conf dest=/etc/nginx/sites-available/isucon.conf owner=root mode=644
       notify: reload nginx
+    - copy: src=../files/etc/nginx/sites-available/isucon-php.conf dest=/etc/nginx/sites-available/isucon-php.conf owner=root mode=644
+      notify: reload nginx
     - file: src=/etc/nginx/sites-available/isucon.conf dest=/etc/nginx/sites-enabled/isucon.conf state=link
       notify: reload nginx
   handlers:
