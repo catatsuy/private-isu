@@ -17,7 +17,7 @@
       args:
         creates: /home/isucon/.local/ruby/bin/bundle
     # node
-    - command: /home/isucon/.xbuild/node-install v4.4.0 /home/isucon/.local/node
+    - command: /home/isucon/.xbuild/node-install v4.4.3 /home/isucon/.local/node
       args:
         creates: /home/isucon/.local/node/bin/node
     # php

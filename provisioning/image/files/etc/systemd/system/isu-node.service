@@ -1,0 +1,17 @@
+[Unit]
+Description=isu-node
+After=syslog.target
+
+[Service]
+WorkingDirectory=/home/isucon/private_isu/webapp/node
+EnvironmentFile=/home/isucon/env.sh
+Environment=NODE_ENV=production
+PIDFile=/home/isucon/private_isu/webapp/node/server.pid
+
+User=isucon
+Group=isucon
+ExecStart=/home/isucon/.local/node/bin/node app.js
+ExecStop=/bin/kill -s QUIT $MAINPID
+
+[Install]
+WantedBy=multi-user.target
