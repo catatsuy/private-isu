@@ -804,7 +804,7 @@ func main() {
 	password := os.Getenv("ISUCONP_DB_PASSWORD")
 	dbname := os.Getenv("ISUCONP_DB_NAME")
 	if dbname == "" {
-		dbname = "isucon5q"
+		dbname = "isuconp"
 	}
 
 	dsn := fmt.Sprintf(
