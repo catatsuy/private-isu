@@ -13,8 +13,8 @@
   become_user: isucon
   gather_facts: no
   tasks:
-    - name: bundle install
-      shell: cd /home/isucon/private_isu/webapp/ruby; bash -lc "bundle install"
+    - name: go build
+      shell: cd /home/isucon/private_isu/webapp/golang; bash -lc "./setup.sh"
 
 - hosts: guests:extras
   become: yes
@@ -31,7 +31,7 @@
   become_user: isucon
   gather_facts: no
   tasks:
-    - name: go build
+    - name: npm install
       shell: cd /home/isucon/private_isu/webapp/node; bash -lc "npm install"
 
 - hosts: guests:extras
