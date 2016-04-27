@@ -124,6 +124,7 @@ func escapeshellarg(arg string) string {
 }
 
 func digest(src string) string {
+	// opensslのバージョンによっては (stdin)= というのがつくので取る
 	out, err := exec.Command("/bin/bash", "-c", `printf "%s" `+escapeshellarg(src)+` | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
 	if err != nil {
 		fmt.Println(err)
@@ -619,6 +620,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 
 	mime := ""
 	if file != nil {
+		// 投稿のContent-Typeからファイルのタイプを決定する
 		contentType := header.Header["Content-Type"][0]
 		if strings.Contains(contentType, "jpeg") {
 			mime = "image/jpeg"
