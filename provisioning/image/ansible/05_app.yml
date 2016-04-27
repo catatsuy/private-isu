@@ -27,7 +27,8 @@
       file: path=/home/isucon/repos/private_isu.git/portal state=absent
     - name: clean provisioning
       file: path=/home/isucon/repos/private_isu.git/provisioning state=absent
-# ansible  benchmarker  e2etest  LICENSE  manual.md  portal  provisioning  public_manual.md  README.md
+    - name: clean provisioning
+      file: path=/home/isucon/repos/private_isu.git/README.md state=absent
     - name: git init
       shell: "cd /home/isucon/repos/private_isu.git/ && git init && git add . && git config --global user.email 'test@example.com' && git config --global user.name 'admin' && git commit -m 'Initial commit'"
     - name: create working copy
