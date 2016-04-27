@@ -1,7 +1,7 @@
 class BenchmarkerJob < ActiveJob::Base
   queue_as :default
 
-  DEFAULT_TIMEOUT = 60
+  DEFAULT_TIMEOUT = 100
 
   def perform(job_id:)
     buf = ''
