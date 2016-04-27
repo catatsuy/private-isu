@@ -13,12 +13,12 @@
 
 はじめに以下の操作を行い、問題なく動くかを確認して下さい。
 
-### 2. 起動したEC2インスタンスに `ec2-user` ユーザで SSH ログインする
+### 2. 起動したEC2インスタンスに `isucon` ユーザで SSH ログインする
 
 例:
 
 ```
-ssh -i ~/.ssh/your_private_key.pem ec2-user@xx.xx.xx.xx
+ssh -i <共有された鍵ファイル> isucon@xx.xx.xx.xx
 ```
 
 ### 3. アプリケーションの動作を確認
@@ -40,6 +40,8 @@ EC2インスタンスのパブリックIPアドレスにブラウザでアクセ
 ```
 /home/isucon
   ├ env.sh       # アプリケーション用の環境変数
+  ├ manual.md    # 本マニュアル
+  ├ public_manual.md # 当日レギュレーション
   └ webapp/      # 各言語の参考実装
 ```
 
