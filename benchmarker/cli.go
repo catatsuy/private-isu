@@ -21,8 +21,8 @@ const (
 
 	FailThreshold     = 5
 	InitializeTimeout = time.Duration(10) * time.Second
-	BenchmarkTimeout  = 30 * time.Second
-	WaitAfterTimeout  = 5
+	BenchmarkTimeout  = 60 * time.Second
+	WaitAfterTimeout  = 10
 
 	PostsPerPage = 20
 )
@@ -127,7 +127,7 @@ func (cli *CLI) Run(args []string) int {
 	userAndPostPageScenarioCh := makeChanBool(2)
 	commentScenarioCh := makeChanBool(1)
 	postImageScenarioCh := makeChanBool(1)
-	loginScenarioCh := makeChanBool(1)
+	loginScenarioCh := makeChanBool(2)
 	banScenarioCh := makeChanBool(1)
 
 	timeoutCh := time.After(BenchmarkTimeout)
