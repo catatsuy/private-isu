@@ -75,8 +75,8 @@ $ sudo systemctl restart isu-ruby
 
 ```
 $ sudo systemctl stop isu-ruby
-$ sudo rm /etc/nginx/site-enabled/isucon.conf
-$ sudo ln -s /etc/nginx/site-available/isucon-php.conf /etc/nginx/site-enabled/
+$ sudo rm /etc/nginx/sites-enabled/isucon.conf
+$ sudo ln -s /etc/nginx/sites-available/isucon-php.conf /etc/nginx/sites-enabled/
 $ sudo systemctl reload nginx
 $ sudo systemctl start php7.0-fpm
 ```
