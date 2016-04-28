@@ -25,7 +25,7 @@ module Isucon6WorkerQueue
 
     # benchmaker
     config.x.benchmarker.command = '/opt/go/bin/benchmarker'
-    config.x.benchmarker.timeout = 60
+    config.x.benchmarker.timeout = 100
     config.x.benchmarker.userdata = '/opt/go/src/github.com/catatsuy/private-isu/benchmarker/userdata'
   end
 end
