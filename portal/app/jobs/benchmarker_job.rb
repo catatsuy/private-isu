@@ -38,6 +38,11 @@ class BenchmarkerJob < ActiveJob::Base
   rescue Timeout::Error => e
     Process.kill('SIGINT', pid) if pid
     process.close if process
+    job.team.scores << Score.create(
+      pass: 'FAIL',
+      score: 0,
+      message: 'TIMEOUT'
+    )
   rescue => e
     logger.info "Unexpected error: #{e.to_s}"
   ensure
