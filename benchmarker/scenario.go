@@ -325,6 +325,7 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 		}
 		return nil
 	})
+	postImage.Play(s)
 
 	if len(imageUrls) < 1 {
 		return // このケースは上のCheckFuncの中で既にエラーにしてある
