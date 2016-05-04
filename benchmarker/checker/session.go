@@ -173,12 +173,11 @@ func (s *Session) Success(point int64) {
 	score.GetInstance().SetScore(point)
 }
 
-func (s *Session) Fail(point int64, req *http.Request, err error) error {
+func (s *Session) Fail(point int64, req *http.Request, err error) {
 	score.GetInstance().SetFails(point)
 	if req != nil {
 		err = fmt.Errorf("%s (%s %s)", err, req.Method, req.URL.Path)
 	}
 
 	score.GetFailErrorsInstance().Append(err)
-	return nil
 }

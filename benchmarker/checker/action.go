@@ -54,7 +54,7 @@ func NewAction(method, path string) *Action {
 	}
 }
 
-func (a *Action) Play(s *Session) error {
+func (a *Action) Play(s *Session) {
 	formData := url.Values{}
 	for key, val := range a.PostData {
 		formData.Set(key, val)
@@ -65,7 +65,8 @@ func (a *Action) Play(s *Session) error {
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
+		s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
+		return
 	}
 
 	for key, val := range a.Headers {
@@ -80,38 +81,43 @@ func (a *Action) Play(s *Session) error {
 
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
-			return s.Fail(failExceptionScore, req, errors.New("リクエストがタイムアウトしました"))
+			s.Fail(failExceptionScore, req, errors.New("リクエストがタイムアウトしました"))
+			return
 		}
 		fmt.Fprintln(os.Stderr, err)
-		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました"))
+		s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました"))
+		return
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		return s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		return
 	}
 
 	if a.ExpectedLocation != "" {
 		if !regexp.MustCompile(a.ExpectedLocation).MatchString(res.Request.URL.Path) {
-			return s.Fail(
+			s.Fail(
 				failErrorScore,
 				res.Request,
 				fmt.Errorf(
 					"リダイレクト先URLが正しくありません: expected '%s', got '%s'",
 					a.ExpectedLocation, res.Request.URL.Path,
 				))
+			return
 		}
 	}
 
 	if a.CheckFunc != nil {
 		err := a.CheckFunc(res.Body)
 		if err != nil {
-			return s.Fail(
+			s.Fail(
 				failErrorScore,
 				res.Request,
 				err,
 			)
+			return
 		}
 	}
 
@@ -120,8 +126,6 @@ func (a *Action) Play(s *Session) error {
 	if a.Method == "POST" {
 		s.Success(suceessPostScore)
 	}
-
-	return nil
 }
 
 type AssetAction struct {
@@ -140,7 +144,7 @@ func NewAssetAction(path string, asset *Asset) *AssetAction {
 	}
 }
 
-func (a *AssetAction) Play(s *Session) error {
+func (a *AssetAction) Play(s *Session) {
 	formData := url.Values{}
 	for key, val := range a.PostData {
 		formData.Set(key, val)
@@ -151,7 +155,8 @@ func (a *AssetAction) Play(s *Session) error {
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
+		s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
+		return
 	}
 
 	for key, val := range a.Headers {
@@ -167,10 +172,12 @@ func (a *AssetAction) Play(s *Session) error {
 
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
-			return s.Fail(failExceptionScore, req, errors.New("リクエストがタイムアウトしました"))
+			s.Fail(failExceptionScore, req, errors.New("リクエストがタイムアウトしました"))
+			return
 		}
 		fmt.Fprintln(os.Stderr, err)
-		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました"))
+		s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました"))
+		return
 	}
 
 	// 2回ioutil.ReadAllを呼ぶとおかしくなる
@@ -199,16 +206,15 @@ func (a *AssetAction) Play(s *Session) error {
 	defer res.Body.Close()
 
 	if !success {
-		return s.Fail(
+		s.Fail(
 			failErrorScore,
 			res.Request,
 			fmt.Errorf("静的ファイルが正しくありません"),
 		)
+		return
 	}
 
 	s.Success(suceessGetScore)
-
-	return nil
 }
 
 type UploadAction struct {
@@ -228,12 +234,13 @@ func NewUploadAction(method, path, uploadParamname string) *UploadAction {
 	}
 }
 
-func (a *UploadAction) Play(s *Session) error {
+func (a *UploadAction) Play(s *Session) {
 	req, err := s.NewFileUploadRequest(a.Path, a.PostData, a.UploadParamName, a.Asset)
 
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
-		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
+		s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました (主催者に連絡してください)"))
+		return
 	}
 
 	for key, val := range a.Headers {
@@ -244,47 +251,50 @@ func (a *UploadAction) Play(s *Session) error {
 
 	if err != nil {
 		if err, ok := err.(net.Error); ok && err.Timeout() {
-			return s.Fail(failExceptionScore, req, errors.New("リクエストがタイムアウトしました"))
+			s.Fail(failExceptionScore, req, errors.New("リクエストがタイムアウトしました"))
+			return
 		}
 		fmt.Fprintln(os.Stderr, err)
-		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました"))
+		s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました"))
+		return
 	}
 
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		return s.Fail(
+		s.Fail(
 			failErrorScore,
 			res.Request,
 			fmt.Errorf("ステータスコードが正しくありません: expected %d, got %d", a.ExpectedStatusCode, res.StatusCode),
 		)
+		return
 	}
 
 	if a.ExpectedLocation != "" {
 		if !regexp.MustCompile(a.ExpectedLocation).MatchString(res.Request.URL.Path) {
-			return s.Fail(
+			s.Fail(
 				failErrorScore,
 				res.Request,
 				fmt.Errorf(
 					"リダイレクト先URLが正しくありません: expected '%s', got '%s'",
 					a.ExpectedLocation, res.Request.URL.Path,
 				))
+			return
 		}
 	}
 
 	if a.CheckFunc != nil {
 		err := a.CheckFunc(res.Body)
 		if err != nil {
-			return s.Fail(
+			s.Fail(
 				failErrorScore,
 				res.Request,
 				err,
 			)
+			return
 		}
 	}
 
 	s.Success(suceessUploadScore)
 	s.Success(suceessGetScore)
-
-	return nil
 }

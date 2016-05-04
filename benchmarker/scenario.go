@@ -102,10 +102,7 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 	index.ExpectedLocation = `^/$`
 	index.Description = "インデックスページが表示できること"
 	index.CheckFunc = imagePerPageChecker
-	err := index.Play(s)
-	if err != nil {
-		return
-	}
+	index.Play(s)
 
 	loadAssets(s)
 	loadImages(s, imageUrls)
@@ -118,10 +115,7 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 		posts := checker.NewAction("GET", "/posts?max_created_at="+url.QueryEscape(maxCreatedAt.Format(time.RFC3339)))
 		posts.Description = "インデックスページの「もっと見る」が表示できること"
 		posts.CheckFunc = imagePerPageChecker
-		err := posts.Play(s)
-		if err != nil {
-			return
-		}
+		posts.Play(s)
 
 		loadImages(s, imageUrls)
 
@@ -149,10 +143,7 @@ func loadIndexScenario(s *checker.Session) {
 	index.ExpectedLocation = `^/$`
 	index.Description = "インデックスページが表示できること"
 	index.CheckFunc = imagePerPageChecker
-	err := index.Play(s)
-	if err != nil {
-		return
-	}
+	index.Play(s)
 
 	loadAssets(s)
 	loadImages(s, imageUrls)
@@ -162,10 +153,7 @@ func loadIndexScenario(s *checker.Session) {
 		index := checker.NewAction("GET", "/")
 		index.ExpectedLocation = `^/$`
 		index.Description = "インデックスページが表示できること"
-		err := index.Play(s)
-		if err != nil {
-			return
-		}
+		index.Play(s)
 
 		loadAssets(s)
 		loadImages(s, imageUrls) // 画像は初回と同じものにリクエスト投げる
@@ -190,10 +178,7 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 		postLinks = extractPostLinks(doc)
 		return nil
 	})
-	err := userPage.Play(s)
-	if err != nil {
-		return
-	}
+	userPage.Play(s)
 
 	loadAssets(s)
 	loadImages(s, imageUrls)
@@ -208,10 +193,7 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 			}
 			return nil
 		})
-		err := postPage.Play(s)
-		if err != nil {
-			return
-		}
+		postPage.Play(s)
 
 		loadAssets(s)
 		loadImages(s, imageUrls)
@@ -236,10 +218,7 @@ func commentScenario(s *checker.Session, me user, accountName string, sentence s
 		"account_name": me.AccountName,
 		"password":     me.Password,
 	}
-	err := login.Play(s)
-	if err != nil {
-		return
-	}
+	login.Play(s)
 
 	userPage := checker.NewAction("GET", "/@"+accountName)
 	userPage.Description = "ユーザーページが表示できること"
@@ -263,10 +242,7 @@ func commentScenario(s *checker.Session, me user, accountName string, sentence s
 
 		return nil
 	})
-	err = userPage.Play(s)
-	if err != nil {
-		return
-	}
+	userPage.Play(s)
 
 	if postID == "" {
 		return
@@ -305,10 +281,7 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 
 		return nil
 	})
-	err := login.Play(s)
-	if err != nil {
-		return
-	}
+	login.Play(s)
 
 	postImage := checker.NewUploadAction("POST", "/", "file")
 	postImage.Description = "画像を投稿してリダイレクトされること"
@@ -390,10 +363,7 @@ func cannotAccessAdminScenario(s *checker.Session, me user) {
 		"account_name": me.AccountName,
 		"password":     me.Password,
 	}
-	err := login.Play(s)
-	if err != nil {
-		return
-	}
+	login.Play(s)
 
 	adminPage := checker.NewAction("GET", "/admin/banned")
 	adminPage.ExpectedStatusCode = http.StatusForbidden
@@ -411,10 +381,7 @@ func cannotPostWrongCSRFTokenScenario(s *checker.Session, me user, image *checke
 		"account_name": me.AccountName,
 		"password":     me.Password,
 	}
-	err := login.Play(s)
-	if err != nil {
-		return
-	}
+	login.Play(s)
 
 	postImage := checker.NewUploadAction("POST", "/", "file")
 	postImage.ExpectedStatusCode = 422
@@ -451,10 +418,7 @@ func loginScenario(s *checker.Session, me user) {
 		}
 		return nil
 	})
-	err := login.Play(s)
-	if err != nil {
-		return
-	}
+	login.Play(s)
 
 	loadAssets(s)
 	loadImages(s, imageUrls) // この画像へのアクセスでSet-Cookieされてたら失敗する
@@ -472,10 +436,7 @@ func loginScenario(s *checker.Session, me user) {
 		}
 		return nil
 	})
-	err = logout.Play(s)
-	if err != nil {
-		return
-	}
+	logout.Play(s)
 
 	loadAssets(s)
 	loadImages(s, imageUrls)
@@ -511,10 +472,7 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 
 		return nil
 	})
-	err := register.Play(s1)
-	if err != nil {
-		return
-	}
+	register.Play(s1)
 
 	postImage := checker.NewUploadAction("POST", "/", "file")
 	postImage.Description = "画像を投稿してリダイレクトされること"
@@ -540,10 +498,7 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 
 	getImage := checker.NewAssetAction(imageUrl, image)
 	getImage.Description = "投稿した画像と一致することを確認"
-	err = getImage.Play(s1)
-	if err != nil {
-		return
-	}
+	getImage.Play(s1)
 
 	login := checker.NewAction("POST", "/login")
 	login.ExpectedLocation = `^/$`
@@ -561,10 +516,7 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		}
 		return errors.New("投稿した画像が表示されていません")
 	})
-	err = login.Play(s2)
-	if err != nil {
-		return
-	}
+	login.Play(s2)
 
 	banPage := checker.NewAction("GET", "/admin/banned")
 	banPage.Description = "管理ユーザーが管理ページにアクセスできること"
@@ -580,10 +532,7 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		}
 		return nil
 	})
-	err = banPage.Play(s2)
-	if err != nil {
-		return
-	}
+	banPage.Play(s2)
 
 	ban := checker.NewAction("POST", "/admin/banned")
 	ban.Description = "ユーザーの禁止ができること"
@@ -592,10 +541,7 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		"uid[]":      userID,
 		"csrf_token": csrfToken,
 	}
-	err = ban.Play(s2)
-	if err != nil {
-		return
-	}
+	ban.Play(s2)
 
 	index := checker.NewAction("GET", "/")
 	index.Description = "トップページに禁止ユーザーの画像が表示されていないこと"
