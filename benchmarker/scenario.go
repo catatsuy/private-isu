@@ -327,10 +327,6 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 	})
 	postImage.Play(s)
 
-	if len(imageUrls) < 1 {
-		return // このケースは上のCheckFuncの中で既にエラーにしてある
-	}
-
 	getImage := checker.NewAssetAction(imageUrls[0], image)
 	getImage.Description = "投稿した画像と一致すること"
 	getImage.Play(s)
