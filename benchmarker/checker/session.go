@@ -180,5 +180,5 @@ func (s *Session) Fail(point int64, req *http.Request, err error) error {
 	}
 
 	score.GetFailErrorsInstance().Append(err)
-	return nil
+	return err
 }
