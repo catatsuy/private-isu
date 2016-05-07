@@ -1,4 +1,4 @@
-{{ block "content" . }}
+{{ define "content" }}
 <div class="isu-user">
   <div><span class="isu-user-account-name">{{ .User.AccountName }}さん</span>のページ</div>
   <div>投稿数 <span class="isu-post-count">{{ .PostCount }}</span></div>
