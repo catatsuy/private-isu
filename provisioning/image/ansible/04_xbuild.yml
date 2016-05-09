@@ -52,4 +52,4 @@
     - name: copy www.conf (php-fpm)
       copy: src=../files/etc/php/7.0/fpm/pool.d/www.conf dest=/etc/php/7.0/fpm/pool.d/www.conf owner=root mode=644
     - name: stop php-fpm
-      service: name=php7.0-fpm state=stopped enabled=no
+      service: name=php7.0-fpm state=stopped enabled=yes
