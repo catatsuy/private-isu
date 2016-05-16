@@ -4,12 +4,12 @@
 
 ### AMI
 
-以下のAMI IDとインスタンスタイプで起動する。
+以下のAMI IDとインスタンスタイプで起動する。リージョンは『Asia Pacific (Tokyo)』。
 
 | 用途 | AMI ID | インスタンスタイプ |
 |---|:---:|---|
-| 競技者用 | ami-xxx | c4.large |
-|  ベンチマーカー | ami-zzz | c4.xlarge |
+| 競技者用 | ami-18b05179 | c4.large |
+|  ベンチマーカー | ami-eba8498a | c4.xlarge |
 
 ### 競技者用インスタンス
 
