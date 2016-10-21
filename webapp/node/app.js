@@ -292,6 +292,8 @@ app.post('/register', (req, res) => {
   });
 });
 
+
+
 app.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/');
@@ -299,7 +301,7 @@ app.get('/logout', (req, res) => {
 
 app.get('/', (req, res) => {
   getSessionUser(req).then((me) => {
-    db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC').then((posts) => {
+    db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC LIMIT ?', POSTS_PER_PAGE * 2).then((posts) => {
       return makePosts(posts.slice(0, POSTS_PER_PAGE * 2));
     }).then((posts) => {
       res.render('index.ejs', { posts: filterPosts(posts), me: me, imageUrl: imageUrl});
