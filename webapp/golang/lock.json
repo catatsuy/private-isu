@@ -1,0 +1,70 @@
+{
+    "memo": "ad60002a675101975f43b58e03d950b301a73a7b5b6cf771eb78a41641c40f5a",
+    "projects": [
+        {
+            "name": "github.com/bradfitz/gomemcache",
+            "branch": "master",
+            "revision": "4faecadd4f695d18a912ba110120fcfd460aca98",
+            "packages": [
+                "memcache"
+            ]
+        },
+        {
+            "name": "github.com/bradleypeabody/gorilla-sessions-memcache",
+            "branch": "master",
+            "revision": "88ee8d4815fec038f22ce295cffa0165820fc2b8",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/go-sql-driver/mysql",
+            "branch": "master",
+            "revision": "66312f7fe2678aa0f5ec770f96702f4c4ec5aa8e",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/gorilla/context",
+            "branch": "master",
+            "revision": "1ea25387ff6f684839d82767c1733ff4d4d15d0a",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/gorilla/securecookie",
+            "branch": "master",
+            "revision": "8dacca26977607e637262eb66b15b7d39f2d3009",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/gorilla/sessions",
+            "branch": "master",
+            "revision": "8cd570d8b4ed84b18bca9d8c3ae2db55885ccd8b",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/jmoiron/sqlx",
+            "branch": "master",
+            "revision": "05b81a7d5d38058e42148dc01f17daf4acba4640",
+            "packages": [
+                "."
+            ]
+        },
+        {
+            "name": "github.com/zenazn/goji",
+            "branch": "master",
+            "revision": "1925ec6302925f4760d7a11cc17036f44ec98d5b",
+            "packages": [
+                ".",
+                "web"
+            ]
+        }
+    ]
+}

@@ -1,5 +1,12 @@
-all:
+app: deps app.go
 	go build -o app
 
-setup:
-	go get -u .
+.PHONY: deps
+deps: dep lock.json manifest.json
+	dep ensure
+
+.PHONY: dep
+dep:
+ifeq ($(shell command -v dep 2> /dev/null),)
+	go get -u github.com/golang/dep/...
+endif

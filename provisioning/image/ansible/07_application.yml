@@ -1,4 +1,9 @@
 - hosts: guests:extras
+  become: yes
+  tasks:
+    - copy: src=../files/home/isucon/env.sh dest=/home/isucon/env.sh owner=isucon mode=644
+
+- hosts: guests:extras
 #- hosts: extras
   become: yes
   become_user: isucon
@@ -37,7 +42,6 @@
 - hosts: guests:extras
   become: yes
   tasks:
-    - copy: src=../files/home/isucon/env.sh dest=/home/isucon/env.sh owner=isucon mode=644
     - name: ruby (systemd)
       copy: src=../files/etc/systemd/system/isu-ruby.service dest=/etc/systemd/system/isu-ruby.service owner=root mode=644
     - name: go app (systemd)
