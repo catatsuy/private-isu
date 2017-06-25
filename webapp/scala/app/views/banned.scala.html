@@ -1,0 +1,17 @@
+@(maybeMe: Option[User], users: Seq[User])(implicit session: Session)
+
+@main(maybeMe) {
+    <div>
+        <form method="post" action="/admin/banned">
+            @users.map { user =>
+                <div>
+                    <input type="checkbox" name="uid[]" id="uid_@user.id" value="@user.id" data-account-name="@user.accountName"><label for="uid_@user.id">@user.accountName</label>
+                </div>
+            }
+            <div class="form-submit">
+                <input type="hidden" name="csrf_token" value="@session.get("csrf_token").getOrElse("")">
+                <input type="submit" name="submit" value="submit">
+            </div>
+        </form>
+    </div>
+}

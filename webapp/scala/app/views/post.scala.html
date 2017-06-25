@@ -1,0 +1,44 @@
+@(postResult: PostResult)(implicit session: Session)
+
+<div class="isu-post" id="pid_@postResult.post.id" data-created-at="@postResult.post.createdAt.iso8601">
+    <div class="isu-post-header">
+        <a href="/@@@postResult.user.accountName.urlEncode" class="isu-post-account-name">@postResult.user.accountName</a>
+        <a href="/posts/@postResult.post.id" class="isu-post-permalink">
+            <time class="timeago" datetime="@postResult.post.createdAt.iso8601"></time>
+        </a>
+    </div>
+    <div class="isu-post-image">
+        <img src="@imageUrl(postResult.post)" class="isu-image">
+    </div>
+    <div class="isu-post-text">
+        <a href="/@@@postResult.user.accountName.urlEncode" class="isu-post-account-name">@postResult.user.accountName</a>
+        @postResult.post.body.split("""\r?\n""").zipWithIndex.map { case (line, idx) =>
+            @if(idx > 0) {
+                <br/>
+                @line
+            } else {
+                @line
+            }
+        }
+    </div>
+    <div class="isu-post-comment">
+        <div class="isu-post-comment-count">
+            comments: <b>@postResult.commentCount</b>
+        </div>
+
+        @postResult.comments.map { commentResult =>
+            <div class="isu-comment">
+                <a href="/@@@commentResult.user.accountName.urlEncode" class="isu-comment-account-name">@commentResult.user.accountName</a>
+                <span class="isu-comment-text">@commentResult.comment.comment</span>
+            </div>
+        }
+        <div class="isu-comment-form">
+            <form method="post" action="/comment">
+                <input type="text" name="comment">
+                <input type="hidden" name="post_id" value="@postResult.post.id">
+                <input type="hidden" name="csrf_token" value="@session.get("csrf_token").getOrElse("")">
+                <input type="submit" name="submit" value="submit">
+            </form>
+        </div>
+    </div>
+</div>
