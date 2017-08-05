@@ -13,7 +13,7 @@
       file: path=/home/isucon/repos/private_isu.git state=absent
     - name: clone repos
       git:
-        repo=https://github.com/catatsuy/private-isu.git
+        repo=https://github.com/opt-tech/private-isu.git
         dest=/home/isucon/repos/private_isu.git
     - name: remove .git
       file: path=/home/isucon/repos/private_isu.git/.git state=absent

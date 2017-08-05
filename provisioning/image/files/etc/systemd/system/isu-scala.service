@@ -1,0 +1,17 @@
+[Unit]
+Description=isu-scala
+After=syslog.target
+
+[Service]
+WorkingDirectory=/home/isucon/private_isu/webapp/scala
+EnvironmentFile=/home/isucon/env.sh
+SuccessExitStatus=143
+
+User=isucon
+Group=isucon
+ExecStart=/home/isucon/private_isu/webapp/scala/target/universal/stage/bin/private-isu -J-server -J-Xmx512M -Dhttp.port=8080 -Duser.timezone=Asia/Tokyo
+ExecStop=/bin/kill -s QUIT $MAINPID
+ExecReload=/bin/kill -s USR2 $MAINPID
+
+[Install]
+WantedBy=multi-user.target

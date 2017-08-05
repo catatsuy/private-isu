@@ -1,0 +1,12 @@
+@(maybeMe: Option[User], user: User, postResults: Seq[PostResult], postCount: Int, commentCount: Int, commentedCount: Int)(implicit session: Session)
+
+@main(maybeMe) {
+    <div class="isu-user">
+        <div><span class="isu-user-account-name">@{user.accountName}さん</span>のページ</div>
+        <div>投稿数 <span class="isu-post-count">@postCount</span></div>
+        <div>コメント数 <span class="isu-comment-count">@commentCount</span></div>
+        <div>被コメント数 <span class="isu-commented-count">@commentedCount</span></div>
+    </div>
+
+    @posts(postResults)
+}
