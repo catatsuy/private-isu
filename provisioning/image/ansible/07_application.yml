@@ -36,6 +36,14 @@
 
 - hosts: guests:extras
   become: yes
+  become_user: isucon
+  gather_facts: no
+  tasks:
+    - name: build Play app
+      shell: cd /home/isucon/private_isu/webapp/scala; bash -lc "./setup.sh"
+
+- hosts: guests:extras
+  become: yes
   tasks:
     - copy: src=../files/home/isucon/env.sh dest=/home/isucon/env.sh owner=isucon mode=644
     - name: ruby (systemd)
@@ -44,5 +52,7 @@
       copy: src=../files/etc/systemd/system/isu-go.service dest=/etc/systemd/system/isu-go.service owner=root mode=644
     - name: node app (systemd)
       copy: src=../files/etc/systemd/system/isu-node.service dest=/etc/systemd/system/isu-node.service owner=root mode=644
+    - name: scala app (systemd)
+      copy: src=../files/etc/systemd/system/isu-scala.service dest=/etc/systemd/system/isu-scala.service owner=root mode=644
     - name: default application selection
       service: name=isu-ruby state=running enabled=true
