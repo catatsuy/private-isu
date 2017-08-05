@@ -124,6 +124,25 @@ $ sudo journalctl -f -u isu-node
 
 などで見ることができます。
 
+#### Scalaへの切り替え方
+
+起動する実装をScala(Play 2.6)に切り替えるには、以下の操作を行います。
+
+```
+$ sudo systemctl stop isu-ruby
+$ sudo systemctl start isu-scala
+```
+
+プログラムの詳しい起動方法は、 /etc/systemd/system/isu-scala.service を参照してください。
+
+エラーなどの出力については、
+
+```
+$ sudo journalctl -f -u isu-scala
+```
+
+などで見ることができます。
+
 ### MySQL
 
 3306番ポートでMySQLが起動しています。初期状態では以下のユーザが設定されています。
