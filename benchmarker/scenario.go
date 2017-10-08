@@ -325,7 +325,11 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 		}
 		return nil
 	})
-	postImage.Play(s)
+
+	err = postImage.Play(s)
+	if err != nil {
+		return
+	}
 
 	getImage := checker.NewAssetAction(imageUrls[0], image)
 	getImage.Description = "投稿した画像と一致すること"
