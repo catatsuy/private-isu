@@ -12,5 +12,5 @@ export PATH=/home/isucon/.local/php/bin:$PATH
 export PATH=/home/isucon/.local/php/sbin:$PATH
 export PATH=/home/isucon/.local/go/bin:$PATH
 export GOROOT=/home/isucon/.local/go
-export GOPATH=/home/isucon/gocode
+export GOPATH=/home/isucon/private_isu/webapp/golang
 export PATH=/home/isucon/.local/scala/bin:$PATH

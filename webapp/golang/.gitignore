@@ -1,1 +1,5 @@
+/bin/
+/pkg/
+/src/github.com/
+
 app

@@ -1,0 +1,23 @@
+[[constraint]]
+  name = "github.com/bradfitz/gomemcache"
+  revision = "4faecadd4f695d18a912ba110120fcfd460aca98"
+
+[[constraint]]
+  name = "github.com/bradleypeabody/gorilla-sessions-memcache"
+  revision = "88ee8d4815fec038f22ce295cffa0165820fc2b8"
+
+[[constraint]]
+  name = "github.com/go-sql-driver/mysql"
+  revision = "66312f7fe2678aa0f5ec770f96702f4c4ec5aa8e"
+
+[[constraint]]
+  name = "github.com/gorilla/sessions"
+  revision = "8cd570d8b4ed84b18bca9d8c3ae2db55885ccd8b"
+
+[[constraint]]
+  name = "github.com/jmoiron/sqlx"
+  revision = "05b81a7d5d38058e42148dc01f17daf4acba4640"
+
+[[constraint]]
+  name = "github.com/zenazn/goji"
+  revision = "1925ec6302925f4760d7a11cc17036f44ec98d5b"
