@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	_ "net/http/pprof"
+
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
 	_ "github.com/go-sql-driver/mysql"
@@ -787,6 +789,15 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	go func() {
+		port := os.Getenv("ISUCONP_PPROF_PORT")
+		if port == "" {
+			port = "6060"
+		}
+		log.Println("Starting pprof on:", port)
+		log.Println(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
+	}()
+
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
 		host = "localhost"
