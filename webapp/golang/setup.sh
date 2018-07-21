@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 go get "github.com/bradfitz/gomemcache/memcache"
 go get "github.com/bradleypeabody/gorilla-sessions-memcache"
 go get "github.com/go-sql-driver/mysql"
