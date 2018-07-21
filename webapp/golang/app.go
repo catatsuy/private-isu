@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	_ "net/http/pprof"
+
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
 	_ "github.com/go-sql-driver/mysql"
