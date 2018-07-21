@@ -395,7 +395,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 
-	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `id` DESC LIMIT ?", postsPerPage)
+	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `id` DESC LIMIT ?", postsPerPage*2)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -528,7 +528,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	rerr := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `id` DESC LIMIT ?", t.Format(ISO8601_FORMAT), postsPerPage)
+	rerr := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `id` DESC LIMIT ?", t.Format(ISO8601_FORMAT), postsPerPage*2)
 	if rerr != nil {
 		fmt.Println(rerr)
 		return
