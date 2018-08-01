@@ -1,4 +1,4 @@
-all:
+all: deps app.go
 	go build -o app
 
 .PHONY: deps
