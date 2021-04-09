@@ -8,7 +8,7 @@ GEM
     memcache-client (1.8.5)
     multi_json (1.11.2)
     mysql2 (0.4.3)
-    rack (1.6.4)
+    rack (1.6.13)
     rack-flash3 (1.0.5)
       rack
     rack-protection (1.5.3)
