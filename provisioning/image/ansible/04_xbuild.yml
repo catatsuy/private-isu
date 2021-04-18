@@ -21,7 +21,7 @@
       args:
         creates: /home/isucon/.local/node/bin/node
     # golang
-    - command: /home/isucon/.xbuild/go-install 1.6.2 /home/isucon/.local/go
+    - command: /home/isucon/.xbuild/go-install 1.16.3 /home/isucon/.local/go
       args:
         creates: /home/isucon/.local/go/bin/go
 
