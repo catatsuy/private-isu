@@ -1,14 +1,26 @@
-# 社内ISUCON 2016
+# 社内ISUCON 改
+
+2016年に作成した社内ISUCONリポジトリを2021年に手直ししました。
+
+  * ISUCON6出題チームが社内ISUCONを開催！AMIも公開！！ - pixiv inside [archive] https://devpixiv.hatenablog.com/entry/2016/05/18/115206
+  * 社内ISUCONを公開したら広く使われた話 - pixiv inside [archive] https://devpixiv.hatenablog.com/entry/2016/09/26/130112
+
+
+## ディレクトリ構成
+
+```
+├── ansible      # ベンチマーカー用ansible（非推奨）
+├── benchmarker  # ベンチマーカーなどが依存するパッケージのソースコード
+├── provisioning # 競技者用インスタンスセットアップ用ansible
+└── webapp       # 各言語の参考実装
+```
+
+* [manual.md](/manual.md)は当日マニュアル。一部社内イベントを意識した記述があるので注意すること。
+* [public_manual.md](/public_manual.md) は事前公開レギュレーション
 
 ## 起動方法
 
-### 競技者用インスタンス
-
-[manual.md](/manual.md)を参照のこと（一部社内イベントを意識した記述がある）。
-
-`webapp/`ディレクトリ以下に全言語の実装がある。
-
-### ベンチマーカー用インスタンス
+### ベンチマーカー
 
 以下の手順で実行できる。
 
@@ -24,8 +36,6 @@
 自分で立ち上げたい人向け。`provisioning/`ディレクトリ以下参照。
 
 ## 適当に手元で立てる
-
-ベンチマーカーのビルドにはリポジトリ自体が`GOPATH`内にある必要がある。
 
 ```sh
 curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
