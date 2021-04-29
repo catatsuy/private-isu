@@ -1,15 +1,1 @@
 vendor/
-
-### Portal
-# Ignore bundler config.
-/portal/.bundle
-/portal/vendor/bundle
-
-# Ignore the default SQLite database.
-/portal/db/*.sqlite3
-/portal/db/*.sqlite3-journal
-
-# Ignore all logfiles and tempfiles.
-/portal/log/*
-!/portal/log/.keep
-/portal/tmp
