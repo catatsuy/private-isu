@@ -5,7 +5,6 @@
   * ISUCON6出題チームが社内ISUCONを開催！AMIも公開！！ - pixiv inside [archive] https://devpixiv.hatenablog.com/entry/2016/05/18/115206
   * 社内ISUCONを公開したら広く使われた話 - pixiv inside [archive] https://devpixiv.hatenablog.com/entry/2016/09/26/130112
 
-
 ## ディレクトリ構成
 
 ```
@@ -55,3 +54,8 @@ cd benchmarker
 make
 ./bin/benchmarker -t "localhost:8080" -u $PWD/userdata
 ```
+
+## 他の言語実装
+
+* Python実装 https://github.com/methane/pixiv-isucon2016-python
+* Scala実装 https://github.com/catatsuy/private-isu/pull/140
