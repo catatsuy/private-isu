@@ -1,5 +1,4 @@
-all:
-	go build -o app
+all: app
 
-setup:
-	go get -u .
+app: *.go
+	go build -o app
