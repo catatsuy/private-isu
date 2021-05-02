@@ -83,9 +83,9 @@ func (cli *CLI) Run(args []string) int {
 		return ExitCodeOK
 	}
 
-	targetHost, terr := checker.SetTargetHost(target)
-	if terr != nil {
-		outputNeedToContactUs(terr.Error())
+	targetHost, err := checker.SetTargetHost(target)
+	if err != nil {
+		outputNeedToContactUs(err.Error())
 		return ExitCodeError
 	}
 
@@ -209,7 +209,7 @@ func outputResultJSON(pass bool, messages []string) string {
 
 // 主催者に連絡して欲しいエラー
 func outputNeedToContactUs(message string) {
-	outputResultJSON(false, []string{"！！！主催者に連絡してください！！！", message})
+	fmt.Println(outputResultJSON(false, []string{"！！！主催者に連絡してください！！！", message}))
 }
 
 func makeChanBool(len int) chan bool {
@@ -238,10 +238,11 @@ func setupInitialize(targetHost string, initialize chan bool) {
 			Timeout: InitializeTimeout,
 		}
 
-		parsedURL, _ := url.Parse("/initialize")
-		parsedURL.Scheme = "http"
-		parsedURL.Host = targetHost
-
+		parsedURL := &url.URL{
+			Scheme: "http",
+			Host:   targetHost,
+			Path:   "/initialize",
+		}
 		req, err := http.NewRequest("GET", parsedURL.String(), nil)
 		if err != nil {
 			return
