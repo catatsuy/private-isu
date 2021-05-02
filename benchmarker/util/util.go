@@ -23,7 +23,6 @@ func GetMD5ByIO(r io.Reader) string {
 
 var (
 	lunRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	lnRunes  = []rune("abcdefghijklmnopqrstuvwxyz0123456789")
 	random   = mrand.New(mrand.NewSource(time.Now().UnixNano()))
 )
 

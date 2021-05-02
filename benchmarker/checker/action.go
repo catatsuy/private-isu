@@ -89,7 +89,7 @@ func (a *Action) Play(s *Session) error {
 	defer res.Body.Close()
 
 	if res.StatusCode != a.ExpectedStatusCode {
-		return s.Fail(failErrorScore, res.Request, fmt.Errorf("Response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
+		return s.Fail(failErrorScore, res.Request, fmt.Errorf("response code should be %d, got %d", a.ExpectedStatusCode, res.StatusCode))
 	}
 
 	if a.ExpectedLocation != "" {
