@@ -33,9 +33,9 @@ var (
 )
 
 const (
-	postsPerPage   = 20
-	ISO8601_FORMAT = "2006-01-02T15:04:05-07:00"
-	UploadLimit    = 10 * 1024 * 1024 // 10mb
+	postsPerPage  = 20
+	ISO8601Format = "2006-01-02T15:04:05-07:00"
+	UploadLimit   = 10 * 1024 * 1024 // 10mb
 
 	// CSRF Token error
 	StatusUnprocessableEntity = 422
@@ -75,6 +75,7 @@ type Comment struct {
 func init() {
 	memcacheClient := memcache.New("localhost:11211")
 	store = gsm.NewMemcacheStore(memcacheClient, "isucogram_", []byte("sendagaya"))
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
 func dbInitialize() {
@@ -92,28 +93,22 @@ func dbInitialize() {
 }
 
 func tryLogin(accountName, password string) *User {
-	u := User{}
-	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
+	u := &User{}
+	err := db.Get(u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
 	if err != nil {
 		return nil
 	}
 
-	if &u != nil && calculatePasshash(u.AccountName, password) == u.Passhash {
-		return &u
-	} else if &u == nil {
-		return nil
+	if calculatePasshash(u.AccountName, password) == u.Passhash {
+		return u
 	} else {
 		return nil
 	}
 }
 
 func validateUser(accountName, password string) bool {
-	if !(regexp.MustCompile("\\A[0-9a-zA-Z_]{3,}\\z").MatchString(accountName) &&
-		regexp.MustCompile("\\A[0-9a-zA-Z_]{6,}\\z").MatchString(password)) {
-		return false
-	}
-
-	return true
+	return regexp.MustCompile(`\A[0-9a-zA-Z_]{3,}\z`).MatchString(accountName) &&
+		regexp.MustCompile(`\A[0-9a-zA-Z_]{6,}\z`).MatchString(password)
 }
 
 // 今回のGo実装では言語側のエスケープの仕組みが使えないのでOSコマンドインジェクション対策できない
@@ -127,7 +122,7 @@ func digest(src string) string {
 	// opensslのバージョンによっては (stdin)= というのがつくので取る
 	out, err := exec.Command("/bin/bash", "-c", `printf "%s" `+escapeshellarg(src)+` | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
 	if err != nil {
-		fmt.Println(err)
+		log.Print(err)
 		return ""
 	}
 
@@ -192,15 +187,15 @@ func makePosts(results []Post, CSRFToken string, allComments bool) ([]Post, erro
 			query += " LIMIT 3"
 		}
 		var comments []Comment
-		cerr := db.Select(&comments, query, p.ID)
-		if cerr != nil {
-			return nil, cerr
+		err = db.Select(&comments, query, p.ID)
+		if err != nil {
+			return nil, err
 		}
 
 		for i := 0; i < len(comments); i++ {
-			uerr := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
-			if uerr != nil {
-				return nil, uerr
+			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
+			if err != nil {
+				return nil, err
 			}
 		}
 
@@ -211,9 +206,9 @@ func makePosts(results []Post, CSRFToken string, allComments bool) ([]Post, erro
 
 		p.Comments = comments
 
-		perr := db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		if perr != nil {
-			return nil, perr
+		err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
+		if err != nil {
+			return nil, err
 		}
 
 		p.CSRFToken = CSRFToken
@@ -360,16 +355,16 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := "INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)"
-	result, eerr := db.Exec(query, accountName, calculatePasshash(accountName, password))
-	if eerr != nil {
-		fmt.Println(eerr.Error())
+	result, err := db.Exec(query, accountName, calculatePasshash(accountName, password))
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
 	session := getSession(r)
-	uid, lerr := result.LastInsertId()
-	if lerr != nil {
-		fmt.Println(lerr.Error())
+	uid, err := result.LastInsertId()
+	if err != nil {
+		log.Print(err)
 		return
 	}
 	session.Values["user_id"] = uid
@@ -395,13 +390,13 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
 	if err != nil {
-		fmt.Println(err)
+		log.Print(err)
 		return
 	}
 
-	posts, merr := makePosts(results, getCSRFToken(r), false)
-	if merr != nil {
-		fmt.Println(merr)
+	posts, err := makePosts(results, getCSRFToken(r), false)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
@@ -424,10 +419,10 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
 	user := User{}
-	uerr := db.Get(&user, "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0", c.URLParams["accountName"])
+	err := db.Get(&user, "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0", c.URLParams["accountName"])
 
-	if uerr != nil {
-		fmt.Println(uerr)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
@@ -438,29 +433,29 @@ func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 
-	rerr := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC", user.ID)
-	if rerr != nil {
-		fmt.Println(rerr)
+	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC", user.ID)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
-	posts, merr := makePosts(results, getCSRFToken(r), false)
-	if merr != nil {
-		fmt.Println(merr)
+	posts, err := makePosts(results, getCSRFToken(r), false)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
 	commentCount := 0
-	cerr := db.Get(&commentCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?", user.ID)
-	if cerr != nil {
-		fmt.Println(cerr)
+	err = db.Get(&commentCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?", user.ID)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
 	postIDs := []int{}
-	perr := db.Select(&postIDs, "SELECT `id` FROM `posts` WHERE `user_id` = ?", user.ID)
-	if perr != nil {
-		fmt.Println(perr)
+	err = db.Select(&postIDs, "SELECT `id` FROM `posts` WHERE `user_id` = ?", user.ID)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 	postCount := len(postIDs)
@@ -479,9 +474,9 @@ func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
 			args[i] = v
 		}
 
-		ccerr := db.Get(&commentedCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ("+placeholder+")", args...)
-		if ccerr != nil {
-			fmt.Println(ccerr)
+		err = db.Get(&commentedCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ("+placeholder+")", args...)
+		if err != nil {
+			log.Print(err)
 			return
 		}
 	}
@@ -508,10 +503,10 @@ func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
 }
 
 func getPosts(w http.ResponseWriter, r *http.Request) {
-	m, parseErr := url.ParseQuery(r.URL.RawQuery)
-	if parseErr != nil {
+	m, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Println(parseErr)
+		log.Print(err)
 		return
 	}
 	maxCreatedAt := m.Get("max_created_at")
@@ -519,22 +514,22 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, terr := time.Parse(ISO8601_FORMAT, maxCreatedAt)
-	if terr != nil {
-		fmt.Println(terr)
+	t, err := time.Parse(ISO8601Format, maxCreatedAt)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
 	results := []Post{}
-	rerr := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601_FORMAT))
-	if rerr != nil {
-		fmt.Println(rerr)
+	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601Format))
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
-	posts, merr := makePosts(results, getCSRFToken(r), false)
-	if merr != nil {
-		fmt.Println(merr)
+	posts, err := makePosts(results, getCSRFToken(r), false)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
@@ -561,15 +556,15 @@ func getPostsID(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	rerr := db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
-	if rerr != nil {
-		fmt.Println(rerr)
+	err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
-	posts, merr := makePosts(results, getCSRFToken(r), true)
-	if merr != nil {
-		fmt.Println(merr)
+	posts, err := makePosts(results, getCSRFToken(r), true)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
@@ -608,8 +603,8 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, header, ferr := r.FormFile("file")
-	if ferr != nil {
+	file, header, err := r.FormFile("file")
+	if err != nil {
 		session := getSession(r)
 		session.Values["notice"] = "画像が必須です"
 		session.Save(r, w)
@@ -638,9 +633,10 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	filedata, rerr := ioutil.ReadAll(file)
-	if rerr != nil {
-		fmt.Println(rerr.Error())
+	filedata, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Print(err)
+		return
 	}
 
 	if len(filedata) > UploadLimit {
@@ -653,26 +649,25 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
-	result, eerr := db.Exec(
+	result, err := db.Exec(
 		query,
 		me.ID,
 		mime,
 		filedata,
 		r.FormValue("body"),
 	)
-	if eerr != nil {
-		fmt.Println(eerr.Error())
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
-	pid, lerr := result.LastInsertId()
-	if lerr != nil {
-		fmt.Println(lerr.Error())
+	pid, err := result.LastInsertId()
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
-	return
 }
 
 func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -684,9 +679,9 @@ func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 
 	post := Post{}
-	derr := db.Get(&post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
-	if derr != nil {
-		fmt.Println(derr.Error())
+	err = db.Get(&post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	if err != nil {
+		log.Print(err)
 		return
 	}
 
@@ -698,7 +693,8 @@ func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", post.Mime)
 		_, err := w.Write(post.Imgdata)
 		if err != nil {
-			fmt.Println(err.Error())
+			log.Print(err)
+			return
 		}
 		return
 	}
@@ -718,14 +714,18 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postID, ierr := strconv.Atoi(r.FormValue("post_id"))
-	if ierr != nil {
-		fmt.Println("post_idは整数のみです")
+	postID, err := strconv.Atoi(r.FormValue("post_id"))
+	if err != nil {
+		log.Print("post_idは整数のみです")
 		return
 	}
 
 	query := "INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)"
-	db.Exec(query, postID, me.ID, r.FormValue("comment"))
+	_, err = db.Exec(query, postID, me.ID, r.FormValue("comment"))
+	if err != nil {
+		log.Print(err)
+		return
+	}
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }
@@ -745,7 +745,7 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 	users := []User{}
 	err := db.Select(&users, "SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC")
 	if err != nil {
-		fmt.Println(err)
+		log.Print(err)
 		return
 	}
 
@@ -778,7 +778,12 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 
 	query := "UPDATE `users` SET `del_flg` = ? WHERE `id` = ?"
 
-	r.ParseForm()
+	err := r.ParseForm()
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
 	for _, id := range r.Form["uid[]"] {
 		db.Exec(query, 1, id)
 	}
