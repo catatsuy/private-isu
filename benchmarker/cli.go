@@ -53,6 +53,8 @@ func (cli *CLI) Run(args []string) int {
 		target   string
 		userdata string
 
+		benchmarkTimeout time.Duration
+
 		version bool
 		debug   bool
 	)
@@ -66,6 +68,8 @@ func (cli *CLI) Run(args []string) int {
 
 	flags.StringVar(&userdata, "userdata", "", "userdata directory")
 	flags.StringVar(&userdata, "u", "", "userdata directory")
+
+	flags.DurationVar(&benchmarkTimeout, "benchmark-timeout", BenchmarkTimeout, "benchmark timeout")
 
 	flags.BoolVar(&version, "version", false, "Print version information and quit.")
 
@@ -130,7 +134,7 @@ func (cli *CLI) Run(args []string) int {
 	loginScenarioCh := makeChanBool(2)
 	banScenarioCh := makeChanBool(1)
 
-	timeoutCh := time.After(BenchmarkTimeout)
+	timeoutCh := time.After(benchmarkTimeout)
 
 L:
 	for {
