@@ -25,8 +25,8 @@ func checkHTML(f func(*goquery.Document) error) func(io.Reader) error {
 
 // 1ページに表示される画像にリクエストする
 // TODO: 画像には並列リクエストするべきでは？
-func loadImages(s *checker.Session, imageUrls []string) {
-	for _, url := range imageUrls {
+func loadImages(s *checker.Session, imageURLs []string) {
+	for _, url := range imageURLs {
 		imgReq := checker.NewAssetAction(url, &checker.Asset{})
 		imgReq.Description = "投稿画像を読み込めること"
 		imgReq.Play(s)
@@ -34,15 +34,15 @@ func loadImages(s *checker.Session, imageUrls []string) {
 }
 
 func extractImages(doc *goquery.Document) []string {
-	imageUrls := []string{}
+	imageURLs := []string{}
 
 	doc.Find("img.isu-image").Each(func(_ int, selection *goquery.Selection) {
 		if url, ok := selection.Attr("src"); ok {
-			imageUrls = append(imageUrls, url)
+			imageURLs = append(imageURLs, url)
 		}
 	}).Length()
 
-	return imageUrls
+	return imageURLs
 }
 
 func extractPostLinks(doc *goquery.Document) []string {
@@ -87,12 +87,12 @@ func loadAssets(s *checker.Session) {
 // インデックスにリクエストして「もっと見る」を最大10ページ辿る
 // WaitAfterTimeout秒たったら問答無用で打ち切る
 func indexMoreAndMoreScenario(s *checker.Session) {
-	var imageUrls []string
+	var imageURLs []string
 	start := time.Now()
 
 	imagePerPageChecker := checkHTML(func(doc *goquery.Document) error {
-		imageUrls = extractImages(doc)
-		if len(imageUrls) < PostsPerPage {
+		imageURLs = extractImages(doc)
+		if len(imageURLs) < PostsPerPage {
 			return errors.New("1ページに表示される画像の数が足りません")
 		}
 		return nil
@@ -108,13 +108,13 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 	}
 
 	loadAssets(s)
-	loadImages(s, imageUrls)
+	loadImages(s, imageURLs)
 
 	offset := util.RandomNumber(10) // 10は適当。URLをバラけさせるため
 	for i := 0; i < 10; i++ {       // 10ページ辿る
 		maxCreatedAt := time.Date(2016, time.January, 2, 11, 46, 21-PostsPerPage*i+offset, 0, time.FixedZone("Asia/Tokyo", 9*60*60))
 
-		imageUrls = []string{}
+		imageURLs = []string{}
 		posts := checker.NewAction("GET", "/posts?max_created_at="+url.QueryEscape(maxCreatedAt.Format(time.RFC3339)))
 		posts.Description = "インデックスページの「もっと見る」が表示できること"
 		posts.CheckFunc = imagePerPageChecker
@@ -123,9 +123,9 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 			return
 		}
 
-		loadImages(s, imageUrls)
+		loadImages(s, imageURLs)
 
-		if time.Now().Sub(start) > WaitAfterTimeout {
+		if time.Since(start) > WaitAfterTimeout {
 			break
 		}
 	}
@@ -134,12 +134,12 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 // インデックスページを5回表示するだけ（負荷かける用）
 // WaitAfterTimeout秒たったら問答無用で打ち切る
 func loadIndexScenario(s *checker.Session) {
-	var imageUrls []string
+	var imageURLs []string
 	start := time.Now()
 
 	imagePerPageChecker := checkHTML(func(doc *goquery.Document) error {
-		imageUrls = extractImages(doc)
-		if len(imageUrls) < PostsPerPage {
+		imageURLs = extractImages(doc)
+		if len(imageURLs) < PostsPerPage {
 			return errors.New("1ページに表示される画像の数が足りません")
 		}
 		return nil
@@ -155,7 +155,7 @@ func loadIndexScenario(s *checker.Session) {
 	}
 
 	loadAssets(s)
-	loadImages(s, imageUrls)
+	loadImages(s, imageURLs)
 
 	for i := 0; i < 4; i++ {
 		// あとの4回はDOMをパースしない。トップページをキャッシュして超高速に返されたとき対策
@@ -168,9 +168,9 @@ func loadIndexScenario(s *checker.Session) {
 		}
 
 		loadAssets(s)
-		loadImages(s, imageUrls) // 画像は初回と同じものにリクエスト投げる
+		loadImages(s, imageURLs) // 画像は初回と同じものにリクエスト投げる
 
-		if time.Now().Sub(start) > WaitAfterTimeout {
+		if time.Since(start) > WaitAfterTimeout {
 			break
 		}
 	}
@@ -179,14 +179,14 @@ func loadIndexScenario(s *checker.Session) {
 // /@:account_name のページにアクセスして投稿ページをいくつか開いていく
 // WaitAfterTimeout秒たったら問答無用で打ち切る
 func userAndPostPageScenario(s *checker.Session, accountName string) {
-	var imageUrls []string
+	var imageURLs []string
 	var postLinks []string
 	start := time.Now()
 
 	userPage := checker.NewAction("GET", "/@"+accountName)
 	userPage.Description = "ユーザーページ"
 	userPage.CheckFunc = checkHTML(func(doc *goquery.Document) error {
-		imageUrls = extractImages(doc)
+		imageURLs = extractImages(doc)
 		postLinks = extractPostLinks(doc)
 		return nil
 	})
@@ -196,14 +196,14 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 	}
 
 	loadAssets(s)
-	loadImages(s, imageUrls)
+	loadImages(s, imageURLs)
 
 	for _, link := range postLinks {
 		postPage := checker.NewAction("GET", link)
 		postPage.Description = "投稿単体ページが表示できること"
 		postPage.CheckFunc = checkHTML(func(doc *goquery.Document) error {
-			imageUrls = extractImages(doc)
-			if len(imageUrls) < 1 {
+			imageURLs = extractImages(doc)
+			if len(imageURLs) < 1 {
 				return errors.New("投稿単体ページに投稿画像が表示されていません")
 			}
 			return nil
@@ -214,9 +214,9 @@ func userAndPostPageScenario(s *checker.Session, accountName string) {
 		}
 
 		loadAssets(s)
-		loadImages(s, imageUrls)
+		loadImages(s, imageURLs)
 
-		if time.Now().Sub(start) > WaitAfterTimeout {
+		if time.Since(start) > WaitAfterTimeout {
 			break
 		}
 	}
@@ -286,7 +286,7 @@ func commentScenario(s *checker.Session, me user, accountName string, sentence s
 // 簡略化のために画像や静的ファイルへのアクセスはスキップする
 func postImageScenario(s *checker.Session, me user, image *checker.Asset, sentence string) {
 	var csrfToken string
-	var imageUrls []string
+	var imageURLs []string
 	var ok bool
 
 	login := checker.NewAction("POST", "/login")
@@ -319,8 +319,8 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 		"csrf_token": csrfToken,
 	}
 	postImage.CheckFunc = checkHTML(func(doc *goquery.Document) error {
-		imageUrls = extractImages(doc)
-		if len(imageUrls) < 1 {
+		imageURLs = extractImages(doc)
+		if len(imageURLs) < 1 {
 			return errors.New("投稿した画像が表示されていません")
 		}
 		return nil
@@ -331,7 +331,7 @@ func postImageScenario(s *checker.Session, me user, image *checker.Asset, senten
 		return
 	}
 
-	getImage := checker.NewAssetAction(imageUrls[0], image)
+	getImage := checker.NewAssetAction(imageURLs[0], image)
 	getImage.Description = "投稿した画像と一致すること"
 	getImage.Play(s)
 }
@@ -434,7 +434,7 @@ func cannotPostWrongCSRFTokenScenario(s *checker.Session, me user, image *checke
 // ログインすると右上にアカウント名が出て、ログインしないとアカウント名が出ない
 // 画像のキャッシュにSet-Cookieを含んでいた場合、/にアカウント名が含まれる
 func loginScenario(s *checker.Session, me user) {
-	var imageUrls []string
+	var imageURLs []string
 
 	login := checker.NewAction("POST", "/login")
 	login.ExpectedLocation = `^/$`
@@ -445,7 +445,7 @@ func loginScenario(s *checker.Session, me user) {
 	}
 	login.CheckFunc = checkHTML(func(doc *goquery.Document) error {
 
-		imageUrls = extractImages(doc)
+		imageURLs = extractImages(doc)
 
 		name := doc.Find(`.isu-account-name`).Text()
 		if name == "" {
@@ -461,14 +461,14 @@ func loginScenario(s *checker.Session, me user) {
 	}
 
 	loadAssets(s)
-	loadImages(s, imageUrls) // この画像へのアクセスでSet-Cookieされてたら失敗する
+	loadImages(s, imageURLs) // この画像へのアクセスでSet-Cookieされてたら失敗する
 
 	logout := checker.NewAction("GET", "/logout")
 	logout.ExpectedLocation = `^/$`
 	logout.Description = "ログアウトするとユーザー名が表示されないこと"
 	logout.CheckFunc = checkHTML(func(doc *goquery.Document) error {
 
-		imageUrls = extractImages(doc)
+		imageURLs = extractImages(doc)
 
 		name := doc.Find(`.isu-account-name`).Text()
 		if name != "" {
@@ -482,13 +482,13 @@ func loginScenario(s *checker.Session, me user) {
 	}
 
 	loadAssets(s)
-	loadImages(s, imageUrls)
+	loadImages(s, imageURLs)
 }
 
 // 新規登録→画像投稿→banされる
 func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Asset, sentence string) {
 	var csrfToken string
-	var imageUrls []string
+	var imageURLs []string
 	var userID string
 	var ok bool
 	accountName := util.RandomLUNStr(25)
@@ -529,20 +529,20 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		"csrf_token": csrfToken,
 	}
 	postImage.CheckFunc = checkHTML(func(doc *goquery.Document) error {
-		imageUrls = extractImages(doc)
-		if len(imageUrls) < 1 {
+		imageURLs = extractImages(doc)
+		if len(imageURLs) < 1 {
 			return errors.New("投稿した画像が表示されていません")
 		}
 		return nil
 	})
 
-	if len(imageUrls) < 1 {
+	if len(imageURLs) < 1 {
 		return // このケースは上のCheckFuncの中で既にエラーにしてある
 	}
 
-	imageUrl := imageUrls[0]
+	imageURL := imageURLs[0]
 
-	getImage := checker.NewAssetAction(imageUrl, image)
+	getImage := checker.NewAssetAction(imageURL, image)
 	getImage.Description = "投稿した画像と一致することを確認"
 	err = getImage.Play(s1)
 	if err != nil {
@@ -557,9 +557,9 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 		"password":     admin.Password,
 	}
 	login.CheckFunc = checkHTML(func(doc *goquery.Document) error {
-		imageUrls = extractImages(doc)
-		for _, url := range imageUrls {
-			if url == imageUrl {
+		imageURLs = extractImages(doc)
+		for _, url := range imageURLs {
+			if url == imageURL {
 				return nil // 投稿した画像が正しく表示されている
 			}
 		}
@@ -604,9 +604,9 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 	index := checker.NewAction("GET", "/")
 	index.Description = "トップページに禁止ユーザーの画像が表示されていないこと"
 	index.CheckFunc = checkHTML(func(doc *goquery.Document) error {
-		imageUrls = extractImages(doc)
-		for _, url := range imageUrls {
-			if url == imageUrl {
+		imageURLs = extractImages(doc)
+		for _, url := range imageURLs {
+			if url == imageURL {
 				return errors.New("禁止ユーザーの画像が表示されています")
 			}
 		}

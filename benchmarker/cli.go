@@ -102,7 +102,7 @@ func (cli *CLI) Run(args []string) int {
 	initReq := <-initialize
 
 	if !initReq {
-		fmt.Println(outputResultJson(false, []string{"初期化リクエストに失敗しました"}))
+		fmt.Println(outputResultJSON(false, []string{"初期化リクエストに失敗しました"}))
 
 		return ExitCodeError
 	}
@@ -118,7 +118,7 @@ func (cli *CLI) Run(args []string) int {
 	banScenario(checker.NewSession(), checker.NewSession(), randomUser(users), randomUser(adminUsers), randomImage(images), randomSentence(sentences))
 
 	if score.GetInstance().GetFails() > 0 {
-		fmt.Println(outputResultJson(false, score.GetFailErrorsStringSlice()))
+		fmt.Println(outputResultJSON(false, score.GetFailErrorsStringSlice()))
 		return ExitCodeError
 	}
 
@@ -181,20 +181,19 @@ L:
 
 	time.Sleep(WaitAfterTimeout)
 
-	msgs := []string{}
-
+	var msgs []string
 	if !debug {
 		msgs = score.GetFailErrorsStringSlice()
 	} else {
 		msgs = score.GetFailRawErrorsStringSlice()
 	}
 
-	fmt.Println(outputResultJson(true, msgs))
+	fmt.Println(outputResultJSON(true, msgs))
 
 	return ExitCodeOK
 }
 
-func outputResultJson(pass bool, messages []string) string {
+func outputResultJSON(pass bool, messages []string) string {
 	output := Output{
 		Pass:     pass,
 		Score:    score.GetInstance().GetScore(),
@@ -210,7 +209,7 @@ func outputResultJson(pass bool, messages []string) string {
 
 // 主催者に連絡して欲しいエラー
 func outputNeedToContactUs(message string) {
-	outputResultJson(false, []string{"！！！主催者に連絡してください！！！", message})
+	outputResultJSON(false, []string{"！！！主催者に連絡してください！！！", message})
 }
 
 func makeChanBool(len int) chan bool {
