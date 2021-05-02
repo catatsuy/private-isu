@@ -52,7 +52,7 @@ cd ../..
 
 cd benchmarker
 make
-./bin/benchmarker -t "localhost:8080" -u $PWD/userdata
+./bin/benchmarker -t "http://localhost:8080" -u $PWD/userdata
 ```
 
 ## 他の言語実装

@@ -50,24 +50,33 @@ func NewSession() *Session {
 }
 
 func SetTargetHost(host string) (string, error) {
-	parsedURL, err := url.Parse(host)
-
+	parsedURL, err := urlParse(host)
 	if err != nil {
 		return "", err
 	}
 
-	targetHost = ""
+	targetHost = parsedURL.Host
+	return targetHost, nil
+}
 
-	// 完璧にチェックするのは難しい
-	if parsedURL.Scheme == "http" {
-		targetHost += parsedURL.Host
-	} else if parsedURL.Scheme != "" && parsedURL.Scheme != "https" {
-		targetHost += parsedURL.Scheme + ":" + parsedURL.Opaque
-	} else {
-		return "", fmt.Errorf("不正なホスト名です")
+func urlParse(ref string) (*url.URL, error) {
+	u, err := url.Parse(ref)
+	if err != nil {
+		return nil, err
 	}
 
-	return targetHost, nil
+	if u.Host == "" {
+		return nil, fmt.Errorf("host is empty")
+	}
+
+	if !(u.Scheme == "" || u.Scheme == "http") {
+		return nil, fmt.Errorf("use only http")
+	}
+
+	return &url.URL{
+		Scheme: "http",
+		Host:   u.Host,
+	}, nil
 }
 
 func (s *Session) NewRequest(method, uri string, body io.Reader) (*http.Request, error) {
