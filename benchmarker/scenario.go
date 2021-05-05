@@ -64,7 +64,7 @@ func loadAssets(s *checker.Session) {
 	a.Play(s)
 
 	a = checker.NewAssetAction("js/timeago.min.js", &checker.Asset{MD5: "f2d4c53400d0a46de704f5a97d6d04fb"})
-	a.Description = "jqueryが読み込めること"
+	a.Description = "timeago.min.jsが読み込めること"
 	a.Play(s)
 
 	a = checker.NewAssetAction("/js/main.js", &checker.Asset{MD5: "9c309fed7e360c57a705978dab2c68ad"})
