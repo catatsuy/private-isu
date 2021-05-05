@@ -63,19 +63,11 @@ func loadAssets(s *checker.Session) {
 	a.Description = "faviconが読み込めること"
 	a.Play(s)
 
-	a = checker.NewAssetAction("js/jquery-2.2.0.js", &checker.Asset{MD5: "56f1d01ee4bb68d1572cfd60755cf67a"})
+	a = checker.NewAssetAction("js/timeago.min.js", &checker.Asset{MD5: "f2d4c53400d0a46de704f5a97d6d04fb"})
 	a.Description = "jqueryが読み込めること"
 	a.Play(s)
 
-	a = checker.NewAssetAction("js/jquery.timeago.js", &checker.Asset{MD5: "fb592cf6f07c6ba8c65fb7922de011d4"})
-	a.Description = "jquery.timeago.jsが読み込めること"
-	a.Play(s)
-
-	a = checker.NewAssetAction("js/jquery.timeago.ja.js", &checker.Asset{MD5: "8deed411d62b6ab593b82e2448ec8d7b"})
-	a.Description = "jquery.timeago.ja.jsが読み込めること"
-	a.Play(s)
-
-	a = checker.NewAssetAction("/js/main.js", &checker.Asset{MD5: "be25132ce51abdd99b4b0127da278624"})
+	a = checker.NewAssetAction("/js/main.js", &checker.Asset{MD5: "9c309fed7e360c57a705978dab2c68ad"})
 	a.Description = "main.jsが読み込めること"
 	a.Play(s)
 
