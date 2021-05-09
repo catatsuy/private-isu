@@ -53,3 +53,35 @@
       copy: src=../files/etc/php/7.0/fpm/pool.d/www.conf dest=/etc/php/7.0/fpm/pool.d/www.conf owner=root mode=644
     - name: stop php-fpm
       service: name=php7.0-fpm state=stopped enabled=yes
+
+# install java8 and sbt
+- hosts: guests:extras
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: Apt add bintray and jessie-backports
+      apt_repository: repo="{{item}}"
+      with_items:
+        - deb http://http.debian.net/debian jessie-backports main
+        - deb https://dl.bintray.com/sbt/debian /
+      tags: sbt
+    - name: Apt add key
+      apt_key:
+        keyserver: hkp://keyserver.ubuntu.com:80
+        id: 2EE0EA64E40A89B84B2DF73499E82A75642AC823
+      tags: sbt
+    - name: Install jre
+      apt:
+        update_cache: yes
+        default_release: jessie-backports
+        name: "{{item}}"
+      with_items:
+        - openjdk-8-jre-headless
+        - ca-certificates-java
+      tags: sbt
+    - name: Install jdk and sbt
+      apt: name="{{item}}"
+      with_items:
+        - openjdk-8-jdk
+        - sbt
+      tags: sbt

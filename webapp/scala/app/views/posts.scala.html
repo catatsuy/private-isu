@@ -1,0 +1,7 @@
+@(postResults: Seq[PostResult])(implicit session: Session)
+
+<div class="isu-posts">
+    @postResults.map { p =>
+        @post(p)
+    }
+</div>
