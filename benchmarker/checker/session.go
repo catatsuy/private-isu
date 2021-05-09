@@ -166,15 +166,6 @@ func (s *Session) NewFileUploadRequest(uri string, params map[string]string, par
 	return req, err
 }
 
-func (s *Session) RefreshClient() {
-	jar, _ := cookiejar.New(&cookiejar.Options{})
-	s.Transport = &http.Transport{}
-	s.Client = &http.Client{
-		Transport: s.Transport,
-		Jar:       jar,
-	}
-}
-
 func (s *Session) SendRequest(req *http.Request) (*http.Response, error) {
 	req.Header.Set("User-Agent", UserAgent)
 
