@@ -9,5 +9,5 @@ require (
 	github.com/gorilla/sessions v1.2.1
 	github.com/jmoiron/sqlx v1.3.3
 	github.com/memcachier/mc v2.0.1+incompatible // indirect
-	github.com/zenazn/goji v1.0.1
+	goji.io v2.0.2+incompatible
 )
