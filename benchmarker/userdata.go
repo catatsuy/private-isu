@@ -80,8 +80,6 @@ func prepareUserdata(userdata string) ([]user, []user, []user, []string, []*chec
 			imgType = "image/png"
 		} else if strings.HasSuffix(img, "gif") {
 			imgType = "image/gif"
-		} else {
-			// TODO: 警告した方が良い？
 		}
 
 		images = append(images, &checker.Asset{
