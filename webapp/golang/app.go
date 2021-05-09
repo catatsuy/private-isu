@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	crand "crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -23,8 +24,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
-	"github.com/zenazn/goji"
-	"github.com/zenazn/goji/web"
+	goji "goji.io"
+	"goji.io/pat"
+	"goji.io/pattern"
 )
 
 var (
@@ -417,10 +419,11 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	}{posts, me, getCSRFToken(r), getFlash(w, r, "notice")})
 }
 
-func getAccountName(c web.C, w http.ResponseWriter, r *http.Request) {
+func getAccountName(w http.ResponseWriter, r *http.Request) {
+	accountName := pat.Param(r, "accountName")
 	user := User{}
-	err := db.Get(&user, "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0", c.URLParams["accountName"])
 
+	err := db.Get(&user, "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0", accountName)
 	if err != nil {
 		log.Print(err)
 		return
@@ -548,8 +551,9 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	)).Execute(w, posts)
 }
 
-func getPostsID(c web.C, w http.ResponseWriter, r *http.Request) {
-	pid, err := strconv.Atoi(c.URLParams["id"])
+func getPostsID(w http.ResponseWriter, r *http.Request) {
+	pidStr := pat.Param(r, "id")
+	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
@@ -670,8 +674,8 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 }
 
-func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
-	pidStr := c.URLParams["id"]
+func getImage(w http.ResponseWriter, r *http.Request) {
+	pidStr := pat.Param(r, "id")
 	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -685,7 +689,7 @@ func getImage(c web.C, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ext := c.URLParams["ext"]
+	ext := pat.Param(r, "ext")
 
 	if ext == "jpg" && post.Mime == "image/jpeg" ||
 		ext == "png" && post.Mime == "image/png" ||
@@ -791,6 +795,31 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/banned", http.StatusFound)
 }
 
+type RegexpPattern struct {
+	regexp *regexp.Regexp
+}
+
+func Regexp(reg *regexp.Regexp) *RegexpPattern {
+	return &RegexpPattern{regexp: reg}
+}
+
+func (reg *RegexpPattern) Match(r *http.Request) *http.Request {
+	ctx := r.Context()
+	uPath := pattern.Path(ctx)
+	if reg.regexp.MatchString(uPath) {
+		values := reg.regexp.FindStringSubmatch(uPath)
+		keys := reg.regexp.SubexpNames()
+
+		for i := 1; i < len(keys); i++ {
+			ctx = context.WithValue(ctx, pattern.Variable(keys[i]), values[i])
+		}
+
+		return r.WithContext(ctx)
+	}
+
+	return nil
+}
+
 func main() {
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
@@ -829,21 +858,24 @@ func main() {
 	}
 	defer db.Close()
 
-	goji.Get("/initialize", getInitialize)
-	goji.Get("/login", getLogin)
-	goji.Post("/login", postLogin)
-	goji.Get("/register", getRegister)
-	goji.Post("/register", postRegister)
-	goji.Get("/logout", getLogout)
-	goji.Get("/", getIndex)
-	goji.Get(regexp.MustCompile(`^/@(?P<accountName>[a-zA-Z]+)$`), getAccountName)
-	goji.Get("/posts", getPosts)
-	goji.Get("/posts/:id", getPostsID)
-	goji.Post("/", postIndex)
-	goji.Get("/image/:id.:ext", getImage)
-	goji.Post("/comment", postComment)
-	goji.Get("/admin/banned", getAdminBanned)
-	goji.Post("/admin/banned", postAdminBanned)
-	goji.Get("/*", http.FileServer(http.Dir("../public")))
-	goji.Serve()
+	mux := goji.NewMux()
+
+	mux.HandleFunc(pat.Get("/initialize"), getInitialize)
+	mux.HandleFunc(pat.Get("/login"), getLogin)
+	mux.HandleFunc(pat.Post("/login"), postLogin)
+	mux.HandleFunc(pat.Get("/register"), getRegister)
+	mux.HandleFunc(pat.Post("/register"), postRegister)
+	mux.HandleFunc(pat.Get("/logout"), getLogout)
+	mux.HandleFunc(pat.Get("/"), getIndex)
+	mux.HandleFunc(pat.Get("/posts"), getPosts)
+	mux.HandleFunc(pat.Get("/posts/:id"), getPostsID)
+	mux.HandleFunc(pat.Post("/"), postIndex)
+	mux.HandleFunc(pat.Get("/image/:id.:ext"), getImage)
+	mux.HandleFunc(pat.Post("/comment"), postComment)
+	mux.HandleFunc(pat.Get("/admin/banned"), getAdminBanned)
+	mux.HandleFunc(pat.Post("/admin/banned"), postAdminBanned)
+	mux.HandleFunc(Regexp(regexp.MustCompile(`^/@(?P<accountName>[a-zA-Z]+)$`)), getAccountName)
+	mux.Handle(pat.Get("/*"), http.FileServer(http.Dir("../public")))
+
+	log.Fatal(http.ListenAndServe(":8000", mux))
 }
