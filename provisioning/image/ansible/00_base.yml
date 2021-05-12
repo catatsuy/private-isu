@@ -3,10 +3,6 @@
   become: yes
   gather_facts: no
   tasks:
-    - apt_key: keyserver=keyserver.ubuntu.com id=9D6D8F6BC857C906
-    - apt_key: keyserver=keyserver.ubuntu.com id=AA8E81B4331F7F50
-    - apt_key: keyserver=keyserver.ubuntu.com id=7638D0442B90D010
-    - apt_key: keyserver=keyserver.ubuntu.com id=CBF8D6FD518E17E1
     - apt: autoclean=yes
     - apt: update_cache=yes
     - apt: upgrade=dist
