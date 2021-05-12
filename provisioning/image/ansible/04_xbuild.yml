@@ -29,27 +29,18 @@
   become: yes
   gather_facts: no
   tasks:
-    - name: Apt add Dotdeb jessie repository
-      apt_repository: repo="{{item}}"
-      with_items:
-          - deb http://packages.dotdeb.org jessie all
-          - deb-src http://packages.dotdeb.org jessie all
-      tags: php7
-    - name: Apt install Dotdeb key
-      apt_key: url=http://www.dotdeb.org/dotdeb.gpg
-      tags: php7
     - name: Apt update
       apt: update_cache=yes
       tags: php7
     - name: PHP7 install
       apt: name="{{item}}"
       with_items:
-        - php7.0-cli
-        - php7.0-fpm
-        - php7.0-mysql
-        - php7.0-memcached
+        - php7.2-cli
+        - php7.2-fpm
+        - php7.2-mysql
+        - php-memcached
       tags: php7
     - name: copy www.conf (php-fpm)
-      copy: src=../files/etc/php/7.0/fpm/pool.d/www.conf dest=/etc/php/7.0/fpm/pool.d/www.conf owner=root mode=644
+      copy: src=../files/etc/php/7.2/fpm/pool.d/www.conf dest=/etc/php/7.2/fpm/pool.d/www.conf owner=root mode=644
     - name: stop php-fpm
-      service: name=php7.0-fpm state=stopped enabled=yes
+      service: name=php7.2-fpm state=stopped enabled=yes

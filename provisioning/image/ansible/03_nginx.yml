@@ -5,7 +5,7 @@
   tasks:
     - apt: name=nginx
     - name: start nginx
-      service: name=nginx state=running enabled=yes
+      service: name=nginx state=started enabled=yes
       notify: restart nginx
     - name: clean nginx
       file: path=/etc/nginx/sites-available/default state=absent

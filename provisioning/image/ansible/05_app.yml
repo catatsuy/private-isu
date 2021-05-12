@@ -32,3 +32,4 @@
         repo=file:///home/isucon/repos/private_isu.git
         dest=/home/isucon/private_isu
         update=yes
+        force=yes

@@ -45,4 +45,4 @@
     - name: node app (systemd)
       copy: src=../files/etc/systemd/system/isu-node.service dest=/etc/systemd/system/isu-node.service owner=root mode=644
     - name: default application selection
-      service: name=isu-ruby state=running enabled=true
+      service: name=isu-ruby state=started enabled=true
