@@ -3,7 +3,6 @@
   become: yes
   gather_facts: no
   tasks:
-    - copy: src=../files/etc/apt/sources.list dest=/etc/apt/sources.list owner=root mode=644
     - apt_key: keyserver=keyserver.ubuntu.com id=9D6D8F6BC857C906
     - apt_key: keyserver=keyserver.ubuntu.com id=AA8E81B4331F7F50
     - apt_key: keyserver=keyserver.ubuntu.com id=7638D0442B90D010
