@@ -29,6 +29,8 @@
   become: yes
   gather_facts: no
   tasks:
+    - name: Apt add public key
+      apt_key: id=E9C74FEEA2098A6E keyserver=keyserver.ubuntu.com
     - name: Apt add Dotdeb jessie repository
       apt_repository: repo="{{item}}"
       with_items:
