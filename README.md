@@ -19,6 +19,10 @@
 * [manual.md](/manual.md)は当日マニュアル。一部社内イベントを意識した記述があるので注意すること。
 * [public_manual.md](/public_manual.md) は事前公開レギュレーション
 
+## OS
+
+Ubuntu 20.04
+
 ## 起動方法
 
 ### ベンチマーカー
