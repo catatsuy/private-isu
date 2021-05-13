@@ -19,7 +19,7 @@
     - apt: name=zlib1g-dev state=present
     - apt: name=libncurses5-dev state=present
     - apt: name=libffi-dev state=present
-    - apt: name=libgdbm5 state=present
+    - apt: name=libgdbm6 state=present
     - apt: name=libgdbm-dev state=present
     - apt: name=libmysqlclient-dev state=present
     - apt: name=libpq-dev state=present
@@ -28,7 +28,7 @@
     - apt: name=libpng-dev state=present
     - apt: name=libmcrypt4 state=present
     - apt: name=libmcrypt-dev state=present
-    - apt: name=libtidy5 state=present
+    - apt: name=libtidy5deb1 state=present
     - apt: name=libtidy-dev state=present
     - apt: name=libxml2-dev state=present
     - apt: name=libxslt1-dev state=present
