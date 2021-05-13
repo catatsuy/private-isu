@@ -76,7 +76,7 @@ type Comment struct {
 
 func init() {
 	memcacheClient := memcache.New("localhost:11211")
-	store = gsm.NewMemcacheStore(memcacheClient, "isucogram_", []byte("sendagaya"))
+	store = gsm.NewMemcacheStore(memcacheClient, "iscogram_", []byte("sendagaya"))
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
