@@ -35,12 +35,12 @@
     - name: PHP7 install
       apt: name="{{item}}"
       with_items:
-        - php7.2-cli
-        - php7.2-fpm
-        - php7.2-mysql
+        - php7.4-cli
+        - php7.4-fpm
+        - php7.4-mysql
         - php-memcached
       tags: php7
     - name: copy www.conf (php-fpm)
-      copy: src=../files/etc/php/7.2/fpm/pool.d/www.conf dest=/etc/php/7.2/fpm/pool.d/www.conf owner=root mode=644
+      copy: src=../files/etc/php/7.4/fpm/pool.d/www.conf dest=/etc/php/7.4/fpm/pool.d/www.conf owner=root mode=644
     - name: stop php-fpm
-      service: name=php7.2-fpm state=stopped enabled=yes
+      service: name=php7.4-fpm state=stopped enabled=yes
