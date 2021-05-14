@@ -20,8 +20,8 @@ module Isuconp
           db: {
             host: ENV['ISUCONP_DB_HOST'] || 'localhost',
             port: ENV['ISUCONP_DB_PORT'] && ENV['ISUCONP_DB_PORT'].to_i,
-            username: ENV['ISUCONP_DB_USER'] || 'root',
-            password: ENV['ISUCONP_DB_PASSWORD'],
+            username: ENV['ISUCONP_DB_USER'] || 'isucon',
+            password: ENV['ISUCONP_DB_PASSWORD'] || 'isucon',
             database: ENV['ISUCONP_DB_NAME'] || 'isuconp',
           },
         }

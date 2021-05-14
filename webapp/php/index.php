@@ -29,8 +29,8 @@ $config = [
         'db' => [
             'host' => $_ENV['ISUCONP_DB_HOST'] ?? 'localhost',
             'port' => $_ENV['ISUCONP_DB_PORT'] ?? 3306,
-            'username' => $_ENV['ISUCONP_DB_USER'] ?? 'root',
-            'password' => $_ENV['ISUCONP_DB_PASSWORD'] ?? null,
+            'username' => $_ENV['ISUCONP_DB_USER'] ?? 'isucon',
+            'password' => $_ENV['ISUCONP_DB_PASSWORD'] ?? 'isucon',
             'database' => $_ENV['ISUCONP_DB_NAME'] ?? 'isuconp',
         ]
     ]

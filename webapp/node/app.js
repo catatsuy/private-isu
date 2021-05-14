@@ -20,8 +20,8 @@ const UPLOAD_LIMIT = 10 * 1024 * 1024 // 10mb
 const db = mysql.createPool({
   host: process.env.ISUCONP_DB_HOST || 'localhost',
   port: process.env.ISUCONP_DB_PORT || 3306,
-  user: process.env.ISUCONP_DB_USER || 'root',
-  password: process.env.ISUCONP_DB_PASSWORD,
+  user: process.env.ISUCONP_DB_USER || 'isucon',
+  password: process.env.ISUCONP_DB_PASSWORD || 'isucon',
   database: process.env.ISUCONP_DB_NAME || 'isuconp',
   connectionLimit: 1,
   charset: 'utf8mb4'
