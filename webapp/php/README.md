@@ -11,8 +11,8 @@ php -S localhost:8080 -t ../public app.php
 ```
 
 # Run in php-fpm
-
-```
-php-fpm -f config/php-fpm.conf
-nginx -c config/nginx.conf
+```bash
+$ sudo systemctl start php7.4-fpm
+$ sudo cp /etc/nginx/sites-available/isucon-php.conf /etc/nginx/sites-enabled/isucon.conf 
+$ sudo systemctl restart nginx
 ```
