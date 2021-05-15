@@ -5,7 +5,7 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -632,7 +632,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	filedata, err := ioutil.ReadAll(file)
+	filedata, err := io.ReadAll(file)
 	if err != nil {
 		log.Print(err)
 		return
