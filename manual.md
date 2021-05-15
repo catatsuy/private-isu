@@ -13,12 +13,12 @@
 
 はじめに以下の操作を行い、問題なく動くかを確認して下さい。
 
-### 2. 起動したEC2インスタンスに `admin` ユーザで SSH ログインする
+### 2. 起動したEC2インスタンスに `ubuntu` ユーザで SSH ログインする
 
 例:
 
 ```
-ssh -i <設定した鍵ファイル> admin@xx.xx.xx.xx
+ssh -i <設定した鍵ファイル> ubuntu@xx.xx.xx.xx
 ```
 
 ログイン後に`isucon`ユーザーでログインできるようにすることをおすすめします。
@@ -81,10 +81,10 @@ $ sudo systemctl stop isu-ruby
 $ sudo rm /etc/nginx/sites-enabled/isucon.conf
 $ sudo ln -s /etc/nginx/sites-available/isucon-php.conf /etc/nginx/sites-enabled/
 $ sudo systemctl reload nginx
-$ sudo systemctl start php7.0-fpm
+$ sudo systemctl start php7.4-fpm
 ```
 
-php-fpmの設定については、/etc/php/7.0/fpm/以下にあります。
+php-fpmの設定については、/etc/php/7.4/fpm/以下にあります。
 
 #### Goへの切り替え方
 
@@ -128,7 +128,7 @@ $ sudo journalctl -f -u isu-node
 
 3306番ポートでMySQLが起動しています。初期状態では以下のユーザが設定されています。
 
-  * ユーザ名: `root`, パスワードなし
+  * ユーザ名: `isucon`, パスワード: `isucon`
 
 ### memcached
 
