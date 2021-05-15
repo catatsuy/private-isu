@@ -90,14 +90,14 @@ func dbInitialize() {
 }
 
 func tryLogin(accountName, password string) *User {
-	u := &User{}
-	err := db.Get(u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
+	u := User{}
+	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
 	if err != nil {
 		return nil
 	}
 
 	if calculatePasshash(u.AccountName, password) == u.Passhash {
-		return u
+		return &u
 	} else {
 		return nil
 	}
