@@ -38,9 +38,6 @@ const (
 	postsPerPage  = 20
 	ISO8601Format = "2006-01-02T15:04:05-07:00"
 	UploadLimit   = 10 * 1024 * 1024 // 10mb
-
-	// CSRF Token error
-	StatusUnprocessableEntity = 422
 )
 
 type User struct {
@@ -603,7 +600,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.FormValue("csrf_token") != getCSRFToken(r) {
-		w.WriteHeader(StatusUnprocessableEntity)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -714,7 +711,7 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.FormValue("csrf_token") != getCSRFToken(r) {
-		w.WriteHeader(StatusUnprocessableEntity)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -776,7 +773,7 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.FormValue("csrf_token") != getCSRFToken(r) {
-		w.WriteHeader(StatusUnprocessableEntity)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
