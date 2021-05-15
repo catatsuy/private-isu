@@ -3,10 +3,8 @@ package main
 import (
 	"context"
 	crand "crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"html/template"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -251,10 +249,10 @@ func getCSRFToken(r *http.Request) string {
 
 func secureRandomStr(b int) string {
 	k := make([]byte, b)
-	if _, err := io.ReadFull(crand.Reader, k); err != nil {
-		panic("error reading from random source: " + err.Error())
+	if _, err := crand.Read(k); err != nil {
+		panic(err)
 	}
-	return hex.EncodeToString(k)
+	return fmt.Sprintf("%x", k)
 }
 
 func getTemplPath(filename string) string {
