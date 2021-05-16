@@ -1,5 +1,16 @@
 # isucon portal
 
+### require
+
+* Redis
+* Sidekiq
+
+```
+apt install -y libmysqlclient-dev
+apt install -y sqlite3
+apt install -y redis
+```
+
 ## Development
 
 ### Portal webapp
@@ -17,10 +28,16 @@ And open `http://localhost:3000`
 
 ## Run in production
 
-### require
+### asset:precompile
 
-* Redis
-* Sidekiq
-* MySQL
+```
+bundle exec rails assets:precompile
+```
+
+### Sidekiq
+
+```
+bundle exec sidekiq
+```
 
 FIXME:

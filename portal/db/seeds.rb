@@ -6,12 +6,8 @@
 #   cities = City.create([{ name: 'Chicago' }, { name: 'Copenhagen' }])
 #   Mayor.create(name: 'Emanuel', city: cities.first)
 
-User.create([
-    { name: 'foo', password: 'hogehoge', email: 'foo@foobar.local'},
-    { name: 'bar', password: 'hogehoge', email: 'bar@foobar.local'}
-])
 Team.create([
-  { name: 'あんこうチーム', users: [User.find(1)], app_host: 'localhost:8080' },
-  { name: 'カメさんチーム', users: [User.find(2)], app_host: 'localhost:8080' }
+  { name: 'あんこうチーム', users: [User.create(name: 'foo', password: 'hogehoge', email: 'foo@foobar.local')], app_host: 'localhost:8080' },
+  { name: 'カメさんチーム', users: [User.create(name: 'bar', password: 'hogehoge', email: 'bar@foobar.local')], app_host: 'localhost:8080' }
 ])
 

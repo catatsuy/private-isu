@@ -14,10 +14,12 @@
 //= require jquery_ujs
 //= require turbolinks
 //= require bootstrap-sprockets
+//= require chartkick
+//= require Chart.bundle
 //= require_tree .
-$(function() {
+$(function () {
   'use strict';
-  $('.expand-message').on('click', function() {
+  $('.expand-message').on('click', function () {
     var $this = $(this);
     var msg = $this.attr('data-message');
     $this.removeClass('clickable');
@@ -25,10 +27,3 @@ $(function() {
     $this.off();
   });
 });
-
-Highcharts.setOptions({
-  global: {
-    useUTC: false,
-  }
-});
-
