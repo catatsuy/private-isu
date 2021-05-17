@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	targetHost string
+	targetHost *url.URL
 )
 
 type Session struct {
@@ -49,13 +49,13 @@ func NewSession() *Session {
 	return w
 }
 
-func SetTargetHost(host string) (string, error) {
+func SetTargetHost(host string) (*url.URL, error) {
 	parsedURL, err := urlParse(host)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	targetHost = parsedURL.Host
+	targetHost = parsedURL
 	return targetHost, nil
 }
 
@@ -69,12 +69,12 @@ func urlParse(ref string) (*url.URL, error) {
 		return nil, fmt.Errorf("host is empty")
 	}
 
-	if !(u.Scheme == "" || u.Scheme == "http") {
-		return nil, fmt.Errorf("use only http")
+	if u.Scheme == "" {
+		u.Scheme = "http"
 	}
 
 	return &url.URL{
-		Scheme: "http",
+		Scheme: u.Scheme,
 		Host:   u.Host,
 	}, nil
 }
@@ -87,11 +87,11 @@ func (s *Session) NewRequest(method, uri string, body io.Reader) (*http.Request,
 	}
 
 	if parsedURL.Scheme == "" {
-		parsedURL.Scheme = "http"
+		parsedURL.Scheme = targetHost.Scheme
 	}
 
 	if parsedURL.Host == "" {
-		parsedURL.Host = targetHost
+		parsedURL.Host = targetHost.Host
 	}
 
 	req, err := http.NewRequest(method, parsedURL.String(), body)
@@ -108,20 +108,6 @@ func escapeQuotes(s string) string {
 }
 
 func (s *Session) NewFileUploadRequest(uri string, params map[string]string, paramName string, asset *Asset) (*http.Request, error) {
-	parsedURL, err := url.Parse(uri)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if parsedURL.Scheme == "" {
-		parsedURL.Scheme = "http"
-	}
-
-	if parsedURL.Host == "" {
-		parsedURL.Host = targetHost
-	}
-
 	file, err := os.Open(asset.Path)
 	if err != nil {
 		return nil, err
@@ -154,6 +140,12 @@ func (s *Session) NewFileUploadRequest(uri string, params map[string]string, par
 	err = writer.Close()
 	if err != nil {
 		return nil, err
+	}
+
+	parsedURL := &url.URL{
+		Scheme: targetHost.Scheme,
+		Host:   targetHost.Host,
+		Path:   uri,
 	}
 
 	req, err := http.NewRequest("POST", parsedURL.String(), body)
