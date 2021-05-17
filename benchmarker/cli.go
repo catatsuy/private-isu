@@ -236,15 +236,15 @@ func randomSentence(sentences []string) string {
 	return sentences[util.RandomNumber(len(sentences))]
 }
 
-func setupInitialize(targetHost string, initialize chan bool) {
-	go func(targetHost string) {
+func setupInitialize(targetHost *url.URL, initialize chan bool) {
+	go func(targetHost *url.URL) {
 		client := &http.Client{
 			Timeout: InitializeTimeout,
 		}
 
 		parsedURL := &url.URL{
-			Scheme: "http",
-			Host:   targetHost,
+			Scheme: targetHost.Scheme,
+			Host:   targetHost.Host,
 			Path:   "/initialize",
 		}
 		req, err := http.NewRequest("GET", parsedURL.String(), nil)
