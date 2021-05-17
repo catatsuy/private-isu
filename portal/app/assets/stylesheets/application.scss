@@ -1,0 +1,57 @@
+/*
+ * This is a manifest file that'll be compiled into application.css, which will include all the files
+ * listed below.
+ *
+ * Any CSS and SCSS file within this directory, lib/assets/stylesheets, vendor/assets/stylesheets,
+ * or any plugin's vendor/assets/stylesheets directory can be referenced here using a relative path.
+ *
+ * You're free to add application-wide styles to this file and they'll appear at the bottom of the
+ * compiled file so the styles you add here take precedence over styles defined in any styles
+ * defined in the other CSS/SCSS files in this directory. It is generally better to create a new
+ * file per style scope.
+ *
+ */
+@import "bootstrap-sprockets";
+@import "bootstrap";
+
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  text-decoration: underline;
+}
+
+.job-exec-status {
+  font-weight: bold;
+  color: #ffffff;
+  weight: 20px;
+  height: 20px;
+  padding: 5px;
+  margin: 0 5px;
+}
+
+.job-running {
+  animation-duration: 1s;
+  animation-name: blink;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+@keyframes blink {
+  from {
+    background-color: rgba(1, 104, 179, 0.5);
+  }
+  to {
+    background-color: rgba(1, 104, 179, 1);
+  }
+}
+
+.job-waiting {
+  background-color: #e8e6f3;
+}
+
+.job-my-team {
+  color: gold;
+}

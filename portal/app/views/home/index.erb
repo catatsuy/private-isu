@@ -1,0 +1,61 @@
+
+<h1>Portal</h1>
+
+<h3>ベンチマークの実行状況</h3>
+
+<p>数字はキューの順番です。</p>
+<p>現在実行中のベンチマークは青く点滅します。</p>
+<p>自分のチームの順番は黄色く表示されます。</p>
+
+<% @jobs.each.with_index do |j,i| %>
+  <span class="job-exec-status <%= j.status == 'Running' ? 'job-running' : 'job-waiting' %> <%= current_user.team_id == j.team_id ? 'job-my-team' : 'job-other-team' %>"><%= sprintf("%02d", i+1) %></span>
+<% end %>
+
+<div>
+  <% if current_user.team.jobs.any?(&:enqueued?) %>
+    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block disabled', disabled: true %>
+  <% else %>
+    <%= button_to 'Run Benchmarker', jobs_path, method: :post, class: 'btn btn-primary btn-lg center-block' %>
+  <% end %>
+</div>
+
+<h3>各チームのスコア</h3>
+
+<div>
+  <%= line_chart @chart_data %>
+</div>
+
+<h3>トップスコア</h3>
+
+<div>
+  <%= bar_chart @ordered_score %>
+</div>
+
+<h3>あなたのチームのスコア</h3>
+
+<% unless @my_scores.empty? %>
+  <table class="table">
+    <tr>
+      <th>時刻</th>
+      <th>PASS/FAIL</th>
+      <th>スコア</th>
+      <th style="width: 500px;">メッセージ</th>
+    </tr>
+    <% @my_scores.each do |score| %>
+      <tr>
+        <td><%= score.created_at.in_time_zone('Tokyo').strftime('%H:%M:%S') %></td>
+        <td><%= score.pass ? 'PASS' : 'FAIL' %></td>
+        <td><%= score.score %></td>
+        <td>
+          <% if score.message.length > 20 %>
+          <span class="clickable expand-message" data-message="<%= score.message %>">
+            <%= score.message.slice(0, 20) + '...' %>
+          </span>
+          <% else %>
+          <span><%= score.message %></span>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </table>
+<% end %>
