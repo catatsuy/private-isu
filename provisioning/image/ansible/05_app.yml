@@ -21,6 +21,10 @@
       file: path=/home/isucon/repos/private_isu.git/ansible state=absent
     - name: clean benchmarker
       file: path=/home/isucon/repos/private_isu.git/benchmarker state=absent
+    - name: clean e2etest
+      file: path=/home/isucon/repos/private_isu.git/e2etest state=absent
+    - name: clean portal
+      file: path=/home/isucon/repos/private_isu.git/portal state=absent
     - name: clean provisioning
       file: path=/home/isucon/repos/private_isu.git/provisioning state=absent
     - name: clean provisioning

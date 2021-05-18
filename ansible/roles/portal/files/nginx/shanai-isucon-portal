@@ -1,0 +1,17 @@
+upstream isucon {
+    server 127.0.0.1:8080;
+}
+
+server {
+    listen 80;
+    server_name _;
+
+    root /var/www/isucon_portal/current/public;
+
+    include /etc/nginx/proxy_params;
+
+    try_files $uri @puma;
+    location @puma {
+        proxy_pass http://isucon;
+    }
+}

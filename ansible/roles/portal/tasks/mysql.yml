@@ -1,0 +1,23 @@
+---
+- name: install mysql
+  apt: name=mysql-server state=latest default_release=jessie update_cache=yes
+
+- name: start mysql
+  service: name=mysql state=running enabled=yes
+
+- name: copy my.cnf
+  copy: src=mysql/my.cnf dest=/etc/mysql/my.cnf
+  notify: reload mysql
+
+- name: setup mysql db
+  shell: mysql -uroot --default-character-set=utf8mb4 -e 'CREATE DATABASE IF NOT EXISTS {{ mysql_db }}'
+
+- name: setup mysql user
+  shell: |
+    mysql -uroot -e "GRANT ALL PRIVILEGES ON {{ mysql_db }}.* TO '{{ mysql_user }}'@'localhost' IDENTIFIED BY '{{ mysql_pass }}'"
+    mysql -uroot -e "GRANT ALL PRIVILEGES ON {{ mysql_db }}.* TO '{{ mysql_user }}'@'%' IDENTIFIED BY '{{ mysql_pass }}'"
+    mysql -uroot -e "FLUSH PRIVILEGES"
+
+- name: copy my.cnf
+  copy: src=mysql/my.cnf dest=/etc/mysql/my.cnf
+  notify: restart mysql
