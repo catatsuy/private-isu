@@ -1,0 +1,18 @@
+---
+- name: install redis
+  apt: name=redis-server state=latest update_cache=yes
+
+- name: start redis
+  service: name=redis-server state=running enabled=yes
+
+- name: require password
+  lineinfile: dest=/etc/redis/redis.conf line="requirepass {{ redis_pass }}" state=present
+  notify: reload redis
+
+- name: unbind 127.0.0.1
+  lineinfile: dest=/etc/redis/redis.conf line="bind 127.0.0.1" state=absent
+  notify: restart redis
+
+- name: bind 0.0.0.0
+  lineinfile: dest=/etc/redis/redis.conf line="bind 0.0.0.0" state=present
+  notify: restart redis

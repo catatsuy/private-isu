@@ -1,0 +1,4 @@
+---
+- include: nginx.yml
+- include: redis.yml
+- include: mysql.yml

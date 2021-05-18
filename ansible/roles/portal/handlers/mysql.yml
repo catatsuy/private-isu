@@ -1,0 +1,3 @@
+---
+- name: restart mysql
+  shell: systemctl restart mysql.service

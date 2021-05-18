@@ -1,0 +1,19 @@
+---
+- name: install nginx
+  apt: name=nginx state=latest update_cache=yes
+
+- name: start nginx
+  service: name=nginx state=running enabled=yes
+  notify: restart nginx
+
+- name: delete default virtualhost setting
+  file: path=/etc/nginx/sites-enabled/default state=absent
+  notify: reload nginx
+
+- name: copy nginx config for shanai-isucon-portal
+  copy: src=nginx/shanai-isucon-portal dest=/etc/nginx/sites-available/shanai-isucon-portal owner=root group=root mode="u=rw,g=r,o=r"
+  notify: reload nginx
+
+- name: enable shanai-isucon-portal virtualhost
+  file: src=/etc/nginx/sites-available/shanai-isucon-portal dest=/etc/nginx/sites-enabled/shanai-isucon-portal state=link
+  notify: reload nginx
