@@ -5,3 +5,13 @@
   tasks:
     - apt: name=mysql-server
     - apt: name=memcached
+    - apt: name=python3-pymysql
+    - name: create mysql user
+      mysql_user:
+        login_user: root
+        name: isucon
+        password: isucon
+        priv: '*.*:ALL'
+        check_implicit_admin: yes
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
