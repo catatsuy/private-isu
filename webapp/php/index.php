@@ -1,6 +1,9 @@
 <?php
+use Psr\Http\Message\ResponseInterface;
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+use Slim\Factory\AppFactory;
+use DI\Container;
 
 require 'vendor/autoload.php';
 
@@ -23,19 +26,6 @@ if (is_file($file)) {
 const POSTS_PER_PAGE = 20;
 const UPLOAD_LIMIT = 10 * 1024 * 1024;
 
-$config = [
-    'settings' => [
-        'public_folder' => dirname(dirname(__DIR__)) . '/public',
-        'db' => [
-            'host' => $_SERVER['ISUCONP_DB_HOST'] ?? 'localhost',
-            'port' => $_SERVER['ISUCONP_DB_PORT'] ?? 3306,
-            'username' => $_SERVER['ISUCONP_DB_USER'] ?? 'root',
-            'password' => $_SERVER['ISUCONP_DB_PASSWORD'] ?? null,
-            'database' => $_SERVER['ISUCONP_DB_NAME'] ?? 'isuconp',
-        ],
-    ]
-];
-
 // memcached session
 ini_set('session.save_handler', 'memcached');
 ini_set('session.save_path', '127.0.0.1:11211');
@@ -43,34 +33,45 @@ ini_set('session.save_path', '127.0.0.1:11211');
 session_start();
 
 // dependency
-$app = new \Slim\App($config);
-$container = $app->getContainer();
-$container['db'] = function ($c) {
-    $config = $c['settings'];
+$container = new Container();
+$container->set('settings', function() {
+    return [
+        'public_folder' => dirname(dirname(__FILE__)) . '/public',
+        'db' => [
+            'host' => $_SERVER['ISUCONP_DB_HOST'] ?? 'localhost',
+            'port' => $_SERVER['ISUCONP_DB_PORT'] ?? 3306,
+            'username' => $_SERVER['ISUCONP_DB_USER'] ?? 'root',
+            'password' => $_SERVER['ISUCONP_DB_PASSWORD'] ?? null,
+            'database' => $_SERVER['ISUCONP_DB_NAME'] ?? 'isuconp',
+        ],
+    ];
+});
+$container->set('db', function ($c) {
+    $config = $c->get('settings');
     return new PDO(
         "mysql:dbname={$config['db']['database']};host={$config['db']['host']};port={$config['db']['port']};charset=utf8mb4",
         $config['db']['username'],
         $config['db']['password']
     );
-};
+});
 
-$container['view'] = function ($c) {
+$container->set('view', function ($c) {
     return new class(__DIR__ . '/views/') extends \Slim\Views\PhpRenderer {
-        public function render(\Psr\Http\Message\ResponseInterface $response, $template, array $data = []) {
+        public function render(\Psr\Http\Message\ResponseInterface $response, string $template, array $data = []): ResponseInterface {
             $data += ['view' => $template];
             return parent::render($response, 'layout.php', $data);
         }
     };
-};
+});
 
-$container['flash'] = function () {
+$container->set('flash', function () {
     return new \Slim\Flash\Messages;
-};
+});
 
-$container['helper'] = function ($c) {
+$container->set('helper', function ($c) {
     return new class($c) {
         public function __construct($c) {
-            $this->db = $c['db'];
+            $this->db = $c->get('db');
         }
 
         public function db() {
@@ -151,7 +152,10 @@ $container['helper'] = function ($c) {
         }
 
     };
-};
+});
+
+AppFactory::setContainer($container);
+$app = AppFactory::create();
 
 // ------- helper method for view
 
@@ -161,7 +165,7 @@ function escape_html($h) {
 
 function flash($key) {
     $flash = new \Slim\Flash\Messages;
-    return $flash->getMessage($key)[0];
+    return $flash->getMessage($key)[0] ?? null;
 }
 
 function redirect(Response $response, $location, $status) {
@@ -202,7 +206,7 @@ function calculate_passhash($account_name, $password) {
     return digest("{$password}:{$salt}");
 }
 
-// -------- 
+// --------
 
 $app->get('/initialize', function (Request $request, Response $response) {
     $this->get('helper')->db_initialize();
@@ -213,7 +217,7 @@ $app->get('/login', function (Request $request, Response $response) {
     if ($this->get('helper')->get_session_user() !== null) {
         return redirect($response, '/', 302);
     }
-    return $this->view->render($response, 'login.php', [
+    return $this->get('view')->render($response, 'login.php', [
         'me' => null
     ]);
 });
@@ -224,7 +228,7 @@ $app->post('/login', function (Request $request, Response $response) {
     }
 
     $db = $this->get('db');
-    $params = $request->getParams();
+    $params = $request->getParsedBody();
     $user = $this->get('helper')->try_login($params['account_name'], $params['password']);
 
     if ($user) {
@@ -233,7 +237,7 @@ $app->post('/login', function (Request $request, Response $response) {
         ];
         return redirect($response, '/', 302);
     } else {
-        $this->flash->addMessage('notice', 'アカウント名かパスワードが間違っています');
+        $this->get('flash')->addMessage('notice', 'アカウント名かパスワードが間違っています');
         return redirect($response, '/login', 302);
     }
 });
@@ -242,7 +246,7 @@ $app->get('/register', function (Request $request, Response $response) {
     if ($this->get('helper')->get_session_user() !== null) {
         return redirect($response, '/', 302);
     }
-    return $this->view->render($response, 'register.php', [
+    return $this->get('view')->render($response, 'register.php', [
         'me' => null
     ]);
 });
@@ -253,19 +257,19 @@ $app->post('/register', function (Request $request, Response $response) {
         return redirect($response, '/', 302);
     }
 
-    $params = $request->getParams();
+    $params = $request->getParsedBody();
     $account_name = $params['account_name'];
     $password = $params['password'];
 
     $validated = validate_user($account_name, $password);
     if (!$validated) {
-        $this->flash->addMessage('notice', 'アカウント名は3文字以上、パスワードは6文字以上である必要があります');
+        $this->get('flash')->addMessage('notice', 'アカウント名は3文字以上、パスワードは6文字以上である必要があります');
         return redirect($response, '/register', 302);
     }
 
     $user = $this->get('helper')->fetch_first('SELECT 1 FROM users WHERE `account_name` = ?', $account_name);
     if ($user) {
-        $this->flash->addMessage('notice', 'アカウント名がすでに使われています');
+        $this->get('flash')->addMessage('notice', 'アカウント名がすでに使われています');
         return redirect($response, '/register', 302);
     }
 
@@ -295,11 +299,11 @@ $app->get('/', function (Request $request, Response $response) {
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = $this->get('helper')->make_posts($results);
 
-    return $this->view->render($response, 'index.php', ['posts' => $posts, 'me' => $me]);
+    return $this->get('view')->render($response, 'index.php', ['posts' => $posts, 'me' => $me]);
 });
 
 $app->get('/posts', function (Request $request, Response $response) {
-    $params = $request->getParams();
+    $params = $request->getQueryParams();
     $max_created_at = $params['max_created_at'] ?? null;
     $db = $this->get('db');
     $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC');
@@ -307,7 +311,7 @@ $app->get('/posts', function (Request $request, Response $response) {
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = $this->get('helper')->make_posts($results);
 
-    return $this->view->render($response, 'posts.php', ['posts' => $posts]);
+    return $this->get('view')->render($response, 'posts.php', ['posts' => $posts]);
 });
 
 $app->get('/posts/{id}', function (Request $request, Response $response, $args) {
@@ -318,14 +322,15 @@ $app->get('/posts/{id}', function (Request $request, Response $response, $args) 
     $posts = $this->get('helper')->make_posts($results, ['all_comments' => true]);
 
     if (count($posts) == 0) {
-        return $response->withStatus(404)->write('404');
+        $response->getBody()->write('404');
+        return $response->withStatus(404);
     }
 
     $post = $posts[0];
 
     $me = $this->get('helper')->get_session_user();
 
-    return $this->view->render($response, 'post.php', ['post' => $post, 'me' => $me]);
+    return $this->get('view')->render($response, 'post.php', ['post' => $post, 'me' => $me]);
 });
 
 $app->post('/', function (Request $request, Response $response) {
@@ -335,9 +340,10 @@ $app->post('/', function (Request $request, Response $response) {
         return redirect($response, '/login', 302);
     }
 
-    $params = $request->getParams();
+    $params = $request->getParsedBody();
     if ($params['csrf_token'] !== session_id()) {
-        return $response->withStatus(422)->write('422');
+        $response->getBody()->write('422');
+        return $response->withStatus(422);
     }
 
     if ($_FILES['file']) {
@@ -350,12 +356,12 @@ $app->post('/', function (Request $request, Response $response) {
         } elseif (strpos($_FILES['file']['type'], 'gif') !== false) {
             $mime = 'image/gif';
         } else {
-            $this->flash->addMessage('notice', '投稿できる画像形式はjpgとpngとgifだけです');
+            $this->get('flash')->addMessage('notice', '投稿できる画像形式はjpgとpngとgifだけです');
             return redirect($response, '/', 302);
         }
 
         if (strlen(file_get_contents($_FILES['file']['tmp_name'])) > UPLOAD_LIMIT) {
-            $this->flash->addMessage('notice', 'ファイルサイズが大きすぎます');
+            $this->get('flash')->addMessage('notice', 'ファイルサイズが大きすぎます');
             return redirect($response, '/', 302);
         }
 
@@ -371,14 +377,14 @@ $app->post('/', function (Request $request, Response $response) {
         $pid = $db->lastInsertId();
         return redirect($response, "/posts/{$pid}", 302);
     } else {
-        $this->flash->addMessage('notice', '画像が必須です');
+        $this->get('flash')->addMessage('notice', '画像が必須です');
         return redirect($response, '/', 302);
     }
 });
 
 $app->get('/image/{id}.{ext}', function (Request $request, Response $response, $args) {
     if ($args['id'] == 0) {
-        return '';
+        return $response;
     }
 
     $post = $this->get('helper')->fetch_first('SELECT * FROM `posts` WHERE `id` = ?', $args['id']);
@@ -386,10 +392,11 @@ $app->get('/image/{id}.{ext}', function (Request $request, Response $response, $
     if (($args['ext'] == 'jpg' && $post['mime'] == 'image/jpeg') ||
         ($args['ext'] == 'png' && $post['mime'] == 'image/png') ||
         ($args['ext'] == 'gif' && $post['mime'] == 'image/gif')) {
-        return $response->withHeader('Content-Type', $post['mime'])
-                        ->write($post['imgdata']);
+        $response->getBody()->write($post['imgdata']);
+        return $response->withHeader('Content-Type', $post['mime']);
     }
-    return $response->withStatus(404)->write('404');
+    $response->getBody()->write('404');
+    return $response->withStatus(404);
 });
 
 $app->post('/comment', function (Request $request, Response $response) {
@@ -399,14 +406,16 @@ $app->post('/comment', function (Request $request, Response $response) {
         return redirect($response, '/login', 302);
     }
 
-    $params = $request->getParams();
+    $params = $request->getParsedBody();
     if ($params['csrf_token'] !== session_id()) {
-        return $response->withStatus(422)->write('422');
+        $response->getBody()->write('422');
+        return $response->withStatus(422);
     }
 
     // TODO: /\A[0-9]\Z/ か確認
     if (preg_match('/[0-9]+/', $params['post_id']) == 0) {
-        return $response->write('post_idは整数のみです');
+        $response->getBody()->write('post_idは整数のみです');
+        return $response;
     }
     $post_id = $params['post_id'];
 
@@ -429,7 +438,8 @@ $app->get('/admin/banned', function (Request $request, Response $response) {
     }
 
     if ($me['authority'] == 0) {
-        return $response->withStatus(403)->write('403');
+        $response->getBody()->write('403');
+        return $response->withStatus(403);
     }
 
     $db = $this->get('db');
@@ -437,7 +447,7 @@ $app->get('/admin/banned', function (Request $request, Response $response) {
     $ps->execute();
     $users = $ps->fetchAll(PDO::FETCH_ASSOC);
 
-    return $this->view->render($response, 'banned.php', ['users' => $users, 'me' => $me]);
+    return $this->get('view')->render($response, 'banned.php', ['users' => $users, 'me' => $me]);
 });
 
 $app->post('/admin/banned', function (Request $request, Response $response) {
@@ -448,12 +458,14 @@ $app->post('/admin/banned', function (Request $request, Response $response) {
     }
 
     if ($me['authority'] == 0) {
-        return $response->withStatus(403)->write('403');
+        $response->getBody()->write('403');
+        return $response->withStatus(403);
     }
 
-    $params = $request->getParams();
+    $params = $request->getParsedBody();
     if ($params['csrf_token'] !== session_id()) {
-        return $response->withStatus(422)->write('422');
+        $response->getBody()->write('422');
+        return $response->withStatus(422);
     }
 
     $db = $this->get('db');
@@ -471,7 +483,8 @@ $app->get('/@{account_name}', function (Request $request, Response $response, $a
     $user = $this->get('helper')->fetch_first('SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', $args['account_name']);
 
     if ($user === false) {
-        return $response->withStatus(404)->write('404');
+        $response->getBody()->write('404');
+        return $response->withStatus(404);
     }
 
     $ps = $db->prepare('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC');
@@ -494,7 +507,7 @@ $app->get('/@{account_name}', function (Request $request, Response $response, $a
 
     $me = $this->get('helper')->get_session_user();
 
-    return $this->view->render($response, 'user.php', ['posts' => $posts, 'user' => $user, 'post_count' => $post_count, 'comment_count' => $comment_count, 'commented_count'=> $commented_count, 'me' => $me]);
+    return $this->get('view')->render($response, 'user.php', ['posts' => $posts, 'user' => $user, 'post_count' => $post_count, 'comment_count' => $comment_count, 'commented_count'=> $commented_count, 'me' => $me]);
 });
 
 $app->run();
