@@ -1,0 +1,16 @@
+[Unit]
+Description=The PHP 7.4 FastCGI Process Manager
+Documentation=man:php-fpm7.4(8)
+After=network.target
+
+[Service]
+Type=notify
+ExecStart=/usr/sbin/php-fpm7.4 --nodaemonize --fpm-config /etc/php/7.4/fpm/php-fpm.conf
+ExecStartPost=-/usr/lib/php/php-fpm-socket-helper install /run/php/php-fpm.sock /etc/php/7.4/fpm/pool.d/www.conf 74
+ExecStopPost=-/usr/lib/php/php-fpm-socket-helper remove /run/php/php-fpm.sock /etc/php/7.4/fpm/pool.d/www.conf 74
+ExecReload=/bin/kill -USR2 $MAINPID
+EnvironmentFile=/home/isucon/env.sh
+
+[Install]
+WantedBy=multi-user.target
+

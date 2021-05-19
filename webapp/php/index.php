@@ -27,12 +27,12 @@ $config = [
     'settings' => [
         'public_folder' => dirname(dirname(__DIR__)) . '/public',
         'db' => [
-            'host' => $_ENV['ISUCONP_DB_HOST'] ?? 'localhost',
-            'port' => $_ENV['ISUCONP_DB_PORT'] ?? 3306,
-            'username' => $_ENV['ISUCONP_DB_USER'] ?? 'root',
-            'password' => $_ENV['ISUCONP_DB_PASSWORD'] ?? null,
-            'database' => $_ENV['ISUCONP_DB_NAME'] ?? 'isuconp',
-        ]
+            'host' => $_SERVER['ISUCONP_DB_HOST'] ?? 'localhost',
+            'port' => $_SERVER['ISUCONP_DB_PORT'] ?? 3306,
+            'username' => $_SERVER['ISUCONP_DB_USER'] ?? 'root',
+            'password' => $_SERVER['ISUCONP_DB_PASSWORD'] ?? null,
+            'database' => $_SERVER['ISUCONP_DB_NAME'] ?? 'isuconp',
+        ],
     ]
 ];
 

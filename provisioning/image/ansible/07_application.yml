@@ -44,5 +44,9 @@
       copy: src=../files/etc/systemd/system/isu-go.service dest=/etc/systemd/system/isu-go.service owner=root mode=644
     - name: node app (systemd)
       copy: src=../files/etc/systemd/system/isu-node.service dest=/etc/systemd/system/isu-node.service owner=root mode=644
+    - name: php app (systemd)
+      copy: src=../files/etc/systemd/system/php7.4-fpm.service dest=/etc/systemd/system/php7.4-fpm.service owner=root mode=644
+    - name: reload daemon config
+      shell: systemctl daemon-reload
     - name: default application selection
       service: name=isu-ruby state=started enabled=true
