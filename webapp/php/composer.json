@@ -2,6 +2,8 @@
     "require": {
         "slim/slim": "^4.7",
         "slim/php-view": "^3.1",
-        "slim/flash": "^0.4.0"
+        "slim/flash": "^0.4.0",
+        "slim/psr7": "^1.4",
+        "php-di/php-di": "^6.3"
     }
 }
