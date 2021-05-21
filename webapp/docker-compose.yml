@@ -11,6 +11,7 @@ services:
       - app
 
   app:
+    cpus: 1
     mem_limit: 1g
     build: ruby/ # Go実装の場合は golang/
     environment:
@@ -24,10 +25,11 @@ services:
       - mysql
       - memcached
     volumes:
-      - ./public:/public
+      - ./public:/home/public
     init: true
 
   mysql:
+    cpus: 1
     mem_limit: 1g
     image: mysql:8.0.25
     environment:
