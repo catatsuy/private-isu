@@ -1,4 +1,4 @@
 all: app
 
-app: *.go
+app: *.go go.*
 	go build -o app
