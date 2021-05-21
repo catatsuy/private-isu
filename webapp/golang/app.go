@@ -70,7 +70,11 @@ type Comment struct {
 }
 
 func init() {
-	memcacheClient := memcache.New("localhost:11211")
+	memdAddr := os.Getenv("ISUCONP_MEMCACHED_ADDRESS")
+	if memdAddr == "" {
+		memdAddr = "localhost:11211"
+	}
+	memcacheClient := memcache.New(memdAddr)
 	store = gsm.NewMemcacheStore(memcacheClient, "iscogram_", []byte("sendagaya"))
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
@@ -870,7 +874,7 @@ func main() {
 	mux.HandleFunc(pat.Get("/admin/banned"), getAdminBanned)
 	mux.HandleFunc(pat.Post("/admin/banned"), postAdminBanned)
 	mux.HandleFunc(Regexp(regexp.MustCompile(`^/@(?P<accountName>[a-zA-Z]+)$`)), getAccountName)
-	mux.Handle(pat.Get("/*"), http.FileServer(http.Dir("../public")))
+	mux.Handle(pat.Get("/*"), http.FileServer(http.Dir("../../public")))
 
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }
