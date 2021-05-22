@@ -22,7 +22,7 @@ const (
 	FailThreshold     = 5
 	InitializeTimeout = time.Duration(10) * time.Second
 	BenchmarkTimeout  = 60 * time.Second
-	WaitAfterTimeout  = 10
+	WaitAfterTimeout  = 10 * time.Second
 
 	PostsPerPage = 20
 )
@@ -54,6 +54,7 @@ func (cli *CLI) Run(args []string) int {
 		userdata string
 
 		benchmarkTimeout time.Duration
+		waitAfterTimeout time.Duration
 
 		version bool
 		debug   bool
@@ -70,6 +71,7 @@ func (cli *CLI) Run(args []string) int {
 	flags.StringVar(&userdata, "u", "", "userdata directory")
 
 	flags.DurationVar(&benchmarkTimeout, "benchmark-timeout", BenchmarkTimeout, "benchmark timeout")
+	flags.DurationVar(&waitAfterTimeout, "wait-after-timeout", WaitAfterTimeout, "wait after timeout")
 
 	flags.BoolVar(&version, "version", false, "Print version information and quit.")
 
@@ -183,7 +185,7 @@ L:
 		}
 	}
 
-	time.Sleep(WaitAfterTimeout)
+	time.Sleep(waitAfterTimeout)
 
 	var msgs []string
 	if !debug {
