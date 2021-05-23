@@ -44,14 +44,6 @@ func NewSession() *Session {
 		Transport: w.Transport,
 		Jar:       jar,
 		Timeout:   time.Duration(10) * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if req.Method == http.MethodGet {
-				// POST からのリダイレクト GET で content-type: mutilpart/form-data を付けると
-				// Rack が EOFError で死ぬのでヘッダを消しておく
-				req.Header.Del("Content-Type")
-			}
-			return nil
-		},
 	}
 
 	return w
