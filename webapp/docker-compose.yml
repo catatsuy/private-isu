@@ -1,0 +1,48 @@
+version: '2.2'
+services:
+  nginx:
+    image: nginx:1.20.0
+    volumes:
+      - ./etc/nginx/conf.d:/etc/nginx/conf.d
+      - ./public:/public
+    ports:
+      - "80:80"
+    links:
+      - app
+
+  app:
+    cpus: 1
+    mem_limit: 1g
+    build: ruby/ # Go実装の場合は golang/
+    environment:
+      ISUCONP_DB_HOST: mysql
+      ISUCONP_DB_PORT: 3306
+      ISUCONP_DB_USER: root
+      ISUCONP_DB_PASSWORD: root
+      ISUCONP_DB_NAME: isuconp
+      ISUCONP_MEMCACHED_ADDRESS: memcached:11211
+    links:
+      - mysql
+      - memcached
+    volumes:
+      - ./public:/home/public
+    init: true
+
+  mysql:
+    cpus: 1
+    mem_limit: 1g
+    image: mysql:8.0.25
+    environment:
+      - "TZ=Asia/Tokyo"
+      - "MYSQL_ROOT_PASSWORD=root"
+    volumes:
+      - mysql:/var/lib/mysql
+      - ./etc/mysql/conf.d:/etc/mysql/conf.d
+    ports:
+      - "3306:3306"
+
+  memcached:
+    image: memcached:1.6.9
+
+volumes:
+  mysql:

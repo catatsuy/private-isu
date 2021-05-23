@@ -1,4 +1,4 @@
 all: app
 
-app: *.go
+app: *.go go.mod go.sum
 	go build -o app
