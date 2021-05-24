@@ -37,3 +37,4 @@
     - apt: name=curl state=present
     # for php --with-openssl
     - apt: name=pkg-config
+    - apt: name=acl

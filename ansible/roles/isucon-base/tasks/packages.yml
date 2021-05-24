@@ -1,4 +1,17 @@
 
+- name: Add node.js GPG key
+  apt_key:
+    url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+    state: present
+
+- name: Add node.js repository
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+  with_items:
+    - "deb https://deb.nodesource.com/node_14.x focal main"
+    - "deb-src https://deb.nodesource.com/node_14.x focal main"
+
 - name: Install essential packages
   apt: name={{ item }} state=latest
   with_items:
@@ -7,4 +20,4 @@
     - nodejs-legacy
     - vim
     - git
-
+    - acl

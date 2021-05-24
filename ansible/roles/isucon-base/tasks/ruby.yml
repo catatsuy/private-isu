@@ -35,7 +35,7 @@
     - zlib1g-dev
     - libncurses5-dev
     - libffi-dev
-    - libgdbm3
+    - libgdbm6
     - libgdbm-dev
 
 - name: Install ruby-build as rbenv plugin
@@ -55,7 +55,7 @@
   become: yes
   become_user: "{{ rbenv_user }}"
   shell: ". ~/.profile && rbenv install {{ rbenv_ruby_version }}"
-  when: rbenv_check_install|failed
+  when: rbenv_check_install is failed
 
 - name: Check if version is the default ruby version
   become: yes
@@ -69,7 +69,7 @@
   become: yes
   become_user: "{{ rbenv_user }}"
   shell: ". ~/.profile && rbenv global {{ rbenv_ruby_version }}"
-  when: rbenv_check_default|failed
+  when: rbenv_check_default is failed
 
 - name: install bundler
   become: yes
