@@ -20,6 +20,8 @@
     - command: /home/isucon/.xbuild/node-install v4.4.3 /home/isucon/.local/node
       args:
         creates: /home/isucon/.local/node/bin/node
+      tags:
+        - nodejs
     # golang
     - command: /home/isucon/.xbuild/go-install 1.16.3 /home/isucon/.local/go
       args:
