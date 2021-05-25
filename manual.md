@@ -137,7 +137,7 @@ $ sudo journalctl -f -u isu-node
 
 ## ルール詳細
 
-https://gist.github.com/catatsuy/d607f514abbf125e1599ba722ce6942b
+[社内ISUCON 当日レギュレーション](/public_manual.md)
 
 なお、当日レギュレーションと本マニュアルの記述に矛盾がある場合、本マニュアルの記述が優先されます。
 
