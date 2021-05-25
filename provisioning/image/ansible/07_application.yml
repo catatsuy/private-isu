@@ -33,6 +33,8 @@
   tasks:
     - name: npm install
       shell: cd /home/isucon/private_isu/webapp/node; bash -lc "npm install"
+  tags:
+    - nodejs
 
 - hosts: guests:extras
   become: yes
@@ -44,6 +46,8 @@
       copy: src=../files/etc/systemd/system/isu-go.service dest=/etc/systemd/system/isu-go.service owner=root mode=644
     - name: node app (systemd)
       copy: src=../files/etc/systemd/system/isu-node.service dest=/etc/systemd/system/isu-node.service owner=root mode=644
+      tags:
+        - nodejs
     - name: php app (systemd)
       copy: src=../files/etc/systemd/system/php7.4-fpm.service dest=/etc/systemd/system/php7.4-fpm.service owner=root mode=644
     - name: reload daemon config
