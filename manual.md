@@ -2,10 +2,13 @@
 
 ## 当日の流れ
 
-  * 12:30 競技開始
-  * 19:00 競技終了
+ * 10:30 開始
+ * 17:30 終了・結果発表
+ * 18:00 問題解説・質問タイム
+ * 19:00 終了
 
 ## ポータルサイト
+https://mackerel.io/orgs/PRTIMES/services/TIMES-ISUCON?metrics=service#period=30m 
 
 上記リンクを開いてください。計測ツールで測定したスコアはこのポータルに送られ、集計結果を見ることができます。
 
@@ -13,27 +16,41 @@
 
 はじめに以下の操作を行い、問題なく動くかを確認して下さい。
 
-### 2. 起動したEC2インスタンスに `ubuntu` ユーザで SSH ログインする
+### 1. 主催者からSSH秘密鍵を受け取り、`~/.ssh/times-isucon.pem` に配置する
+```
+vi ~/.ssh/times-isucon.pem
+chmod 600 ~/.ssh/times-isucon.pem
+```
+
+### 2. EC2インスタンスに `isucon` ユーザで SSH ログインする
 
 例:
 
 ```
-ssh -i <設定した鍵ファイル> ubuntu@xx.xx.xx.xx
+ssh -i ~/.ssh/times-isucon.pem isucon@xx.xx.xx.xx
 ```
-
-ログイン後に`isucon`ユーザーでログインできるようにすることをおすすめします。
 
 ### 3. アプリケーションの動作を確認
 
-EC2インスタンスのパブリックIPアドレスにブラウザでアクセスし、動作を確認してください。以下の画面が表示されるはずです。
+EC2インスタンスのパブリックIPアドレスにブラウザでアクセスし、動作を確認してください。
 
 例として、「アカウント名」は `mary`、 「パスワード」は `marymary` を入力することでログインが行えます。
 
 ブラウザでアクセスできない場合、主催者に確認してください。
 
-### 4. 負荷走行を実行
+### 4. ベンチマーカーを実行
 
-この操作後、ポータルにて、あなたのチームのスコアが反映されているか確認して下さい。
+EC2インスタンスにSSHログインして以下のコマンドを実行し、ベンチマーカーを実行してください。
+(`APIキー`の部分は主催者から受け取ったAPIキーで置き換えてください。)
+```
+curl -X POST https://f2cx3ti5rh.execute-api.ap-northeast-1.amazonaws.com/async --header 'x-api-key:APIキー'
+```
+
+ベンチマーカーは非同期で実行され、約1分でSlackの`#pj_times-isucon_2021_score`チャンネルに結果が通知されます。
+
+ベンチマーカーの実行が完了したら、ポータルサイトにスコアが反映されていることを確認してください。 
+
+https://mackerel.io/orgs/PRTIMES/services/TIMES-ISUCON?metrics=service#period=30m
 
 ### ディレクトリ構成
 
@@ -50,7 +67,7 @@ EC2インスタンスのパブリックIPアドレスにブラウザでアクセ
 
 ### 参考実装の言語切り替え方法
 
-参考実装の言語はRuby, PHPが用意されており、初期状態ではRubyの実装が起動しています。
+参考実装の言語はRuby, PHP, Goが用意されており、初期状態ではRubyの実装が起動しています。
 
 80番ポートでアクセスできるので、ブラウザから動作確認をすることができます。
 
@@ -101,25 +118,6 @@ $ sudo systemctl start isu-go
 
 ```
 $ sudo journalctl -f -u isu-go
-```
-
-などで見ることができます。
-
-#### node.jsへの切り替え方
-
-起動する実装をnode.jsに切り替えるには、以下の操作を行います。
-
-```
-$ sudo systemctl stop isu-ruby
-$ sudo systemctl start isu-node
-```
-
-プログラムの詳しい起動方法は、 /etc/systemd/system/isu-node.service を参照してください。
-
-エラーなどの出力については、
-
-```
-$ sudo journalctl -f -u isu-node
 ```
 
 などで見ることができます。
