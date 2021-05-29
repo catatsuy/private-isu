@@ -10,7 +10,7 @@
 ## ディレクトリ構成
 
 ```
-├── ansible      # ベンチマーカー・portal用ansible（非推奨）
+├── ansible_old  # ベンチマーカー・portal用ansible（非推奨）
 ├── benchmarker  # ベンチマーカーなどが依存するパッケージのソースコード
 ├── portal       # portal（非推奨）
 ├── provisioning # 競技者用インスタンスセットアップ用ansible
