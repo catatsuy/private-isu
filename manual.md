@@ -78,10 +78,12 @@ $ sudo systemctl restart isu-ruby
 
 ```
 $ sudo systemctl stop isu-ruby
+$ sudo systemctl disable isu-ruby
 $ sudo rm /etc/nginx/sites-enabled/isucon.conf
 $ sudo ln -s /etc/nginx/sites-available/isucon-php.conf /etc/nginx/sites-enabled/
 $ sudo systemctl reload nginx
 $ sudo systemctl start php7.4-fpm
+$ sudo systemctl enable php7.4-fpm
 ```
 
 php-fpmの設定については、/etc/php/7.4/fpm/以下にあります。
@@ -92,7 +94,9 @@ php-fpmの設定については、/etc/php/7.4/fpm/以下にあります。
 
 ```
 $ sudo systemctl stop isu-ruby
+$ sudo systemctl disable isu-ruby
 $ sudo systemctl start isu-go
+$ sudo systemctl enable isu-go
 ```
 
 プログラムの詳しい起動方法は、 /etc/systemd/system/isu-go.service を参照してください。
@@ -111,7 +115,9 @@ $ sudo journalctl -f -u isu-go
 
 ```
 $ sudo systemctl stop isu-ruby
+$ sudo systemctl disable isu-ruby
 $ sudo systemctl start isu-node
+$ sudo systemctl enable isu-node
 ```
 
 プログラムの詳しい起動方法は、 /etc/systemd/system/isu-node.service を参照してください。
