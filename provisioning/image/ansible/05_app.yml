@@ -37,3 +37,5 @@
         dest=/home/isucon/private_isu
         update=yes
         force=yes
+    - name: remove .git
+      file: path=/home/isucon/private_isu/.git state=absent
