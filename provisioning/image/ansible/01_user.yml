@@ -9,7 +9,4 @@
     - group: name=wheel
     - user: name=isucon groups=wheel shell=/bin/bash
     - copy: src=../files/etc/profile.d/bashrc dest=/home/isucon/.profile owner=isucon mode=755
-    - name: create .ssh
-      file: path=/home/isucon/.ssh/ state=directory owner=isucon group=isucon mode=755
-    - copy: src=../files/home/isucon/.ssh/authorized_keys dest=/home/isucon/.ssh/authorized_keys owner=isucon mode=755
     - lineinfile: dest=/etc/sudoers state=present regexp='^%wheel ALL\=' line='%wheel ALL=(ALL) NOPASSWD:ALL' validate='visudo -cf %s'

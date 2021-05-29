@@ -22,7 +22,7 @@
   gather_facts: no
   tasks:
     - name: download composer.phar
-      get_url: url=http://getcomposer.org/composer.phar dest=/home/isucon/private_isu/webapp/php/composer.phar force=1 mode=755
+      get_url: url=https://getcomposer.org/composer.phar dest=/home/isucon/private_isu/webapp/php/composer.phar force=1 mode=755
     - name: composer install
       shell: cd /home/isucon/private_isu/webapp/php; bash -lc "./composer.phar install"
 
@@ -49,7 +49,10 @@
       tags:
         - nodejs
     - name: php app (systemd)
-      copy: src=../files/etc/systemd/system/php7.4-fpm.service dest=/etc/systemd/system/php7.4-fpm.service owner=root mode=644
+      lineinfile:
+        path: /lib/systemd/system/php7.4-fpm.service
+        line: 'EnvironmentFile=/home/isucon/env.sh'
+        insertafter: 'ExecReload=.*'
     - name: reload daemon config
       shell: systemctl daemon-reload
     - name: default application selection

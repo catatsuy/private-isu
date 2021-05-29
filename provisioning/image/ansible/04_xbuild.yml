@@ -23,7 +23,7 @@
       tags:
         - nodejs
     # golang
-    - command: /home/isucon/.xbuild/go-install 1.16.3 /home/isucon/.local/go
+    - command: /home/isucon/.xbuild/go-install 1.16.4 /home/isucon/.local/go
       args:
         creates: /home/isucon/.local/go/bin/go
 
@@ -45,4 +45,4 @@
     - name: copy www.conf (php-fpm)
       copy: src=../files/etc/php/7.4/fpm/pool.d/www.conf dest=/etc/php/7.4/fpm/pool.d/www.conf owner=root mode=644
     - name: stop php-fpm
-      service: name=php7.4-fpm state=stopped enabled=yes
+      service: name=php7.4-fpm state=stopped enabled=no
