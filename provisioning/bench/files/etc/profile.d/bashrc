@@ -1,0 +1,6 @@
+#!/bin/bash
+if [ -f /etc/bashrc ]; then
+  . /etc/bashrc
+fi
+
+export PATH=/home/isucon/.local/go/bin:$PATH

@@ -4,4 +4,4 @@
   gather_facts: no
   tasks:
     - name: build benchmarker
-      shell: 'cd /home/isucon/private_isu.git/benchmarker ; make'
+      shell: bash -lc 'cd /home/isucon/private_isu.git/benchmarker ; make'
