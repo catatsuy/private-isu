@@ -7,6 +7,6 @@
     - apt: update_cache=yes
     - apt: upgrade=dist
     - apt: name=golang state=present
-    - apt: name=make state=present
+    - apt: name=build-essential state=present
     - apt: name=unzip state=present
     - apt: name=acl state=present
