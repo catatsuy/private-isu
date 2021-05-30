@@ -32,8 +32,8 @@ Ubuntu 20.04
 Node.jsのセットアップはskipしているので、Ruby/PHP/Goのみ利用可能。
 
 ```
-AMI ID: ami-015566fb060e04f36
-AMI Name: catatsuy_private_isu_202105
+AMI ID: ami-01d454481527ddc3d
+AMI Name: catatsuy_private_isu_20210530
 ```
 
 メモリが1GBに制限されるため、`c4.large`などコンピューティング最適化インスタンスで一番小さいインスタンスでの利用を推奨。
