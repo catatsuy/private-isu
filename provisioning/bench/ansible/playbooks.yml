@@ -1,0 +1,6 @@
+---
+- include: 00_base.yml
+- include: 01_user.yml
+- include: 02_bench.yml
+- include: 03_userdata.yml
+- include: 04_build.yml

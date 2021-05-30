@@ -1,0 +1,7 @@
+- hosts: bench
+  become: yes
+  become_user: isucon
+  gather_facts: no
+  tasks:
+    - name: build benchmarker
+      shell: 'cd /home/isucon/private_isu/benchmarker ; make'

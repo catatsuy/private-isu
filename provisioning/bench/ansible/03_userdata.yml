@@ -1,0 +1,7 @@
+- hosts: bench
+  become: yes
+  become_user: isucon
+  gather_facts: no
+  tasks:
+    - name: create userdata
+      unarchive: src=https://github.com/catatsuy/private-isu/releases/download/img/img.zip dest=/home/isucon/private_isu/benchmarker/userdata remote_src=yes
