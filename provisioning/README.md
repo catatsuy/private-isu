@@ -5,7 +5,7 @@
 image/ansible以下に入っているplaybookを順番に実行。
 
 ```
-$ ansible-playbook -i hosts image/ansible/*.yml --skip-tags nodejs
+$ ansible-playbook -i hosts image/ansible/playbooks.yml --skip-tags nodejs
 ```
 
 ## bench

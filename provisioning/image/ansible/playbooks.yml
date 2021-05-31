@@ -1,0 +1,10 @@
+---
+- include: 00_base.yml
+- include: 01_user.yml
+- include: 02_mysql.yml
+- include: 03_nginx.yml
+- include: 04_xbuild.yml
+- include: 05_app.yml
+- include: 06_createdb.yml
+- include: 07_application.yml
+- include: 08_grub.yml
