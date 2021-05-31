@@ -4,7 +4,7 @@
   gather_facts: no
   tasks:
     - name: change timezone to JST
-      shell: cp -p /usr/share/zoneinfo/Japan /etc/localtime
+      shell: cp -p /usr/share/zoneinfo/Japan /etc/localtime || true
     - group: name=wheel
     - user: name=isucon groups=wheel shell=/bin/bash
     - copy: src=../files/etc/profile.d/bashrc dest=/home/isucon/.profile owner=isucon mode=755
