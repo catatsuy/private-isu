@@ -1,0 +1,11 @@
+---
+- hosts: bench
+  become: yes
+  gather_facts: no
+  tasks:
+    - apt: autoclean=yes
+    - apt: update_cache=yes
+    - apt: upgrade=dist
+    - apt: name=build-essential state=present
+    - apt: name=unzip state=present
+    - apt: name=acl state=present

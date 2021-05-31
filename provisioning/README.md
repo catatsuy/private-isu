@@ -1,9 +1,19 @@
 # 競技用インスタンスのセットアップ方法
 
+## webapp
+
 image/ansible以下に入っているplaybookを順番に実行。
 
 ```
 $ ansible-playbook -i hosts image/ansible/*.yml --skip-tags nodejs
+```
+
+## bench
+
+bench/ansible以下に入っているplaybookを順番に実行。
+
+```
+$ ansible-playbook -i hosts bench/ansible/playbooks.yml
 ```
 
 ## ssh config の例

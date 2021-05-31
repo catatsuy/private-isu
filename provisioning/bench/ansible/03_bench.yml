@@ -1,0 +1,12 @@
+---
+- hosts: bench
+  become: yes
+  become_user: isucon
+  gather_facts: no
+  tasks:
+    - name: clean private_isu.git
+      file: path=/home/isucon/private_isu.git state=absent
+    - name: clone repos
+      git:
+        repo=https://github.com/catatsuy/private-isu.git
+        dest=/home/isucon/private_isu.git
