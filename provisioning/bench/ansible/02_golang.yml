@@ -1,0 +1,12 @@
+---
+- hosts: bench
+  become: yes
+  gather_facts: no
+  tasks:
+    - name: mkdir /usr/local/go
+      file: path=/usr/local/go state=directory
+    - name: download go binary
+      unarchive:
+        src=https://golang.org/dl/go1.16.4.linux-amd64.tar.gz
+        dest=/usr/local/
+        remote_src=yes

@@ -1,7 +1,7 @@
 ---
 - include: 00_base.yml
 - include: 01_user.yml
-- include: 02_xbuild.yml
+- include: 02_golang.yml
 - include: 03_bench.yml
 - include: 04_userdata.yml
 - include: 05_build.yml

@@ -3,4 +3,4 @@ if [ -f /etc/bashrc ]; then
   . /etc/bashrc
 fi
 
-export PATH=/home/isucon/.local/go/bin:$PATH
+export PATH=/usr/local/go/bin:$PATH
