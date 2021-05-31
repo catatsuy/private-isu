@@ -1,8 +1,14 @@
 - hosts: guests:extras
-#- hosts: extras
+  #- hosts: extras
   gather_facts: no
   become: yes
   tasks:
-    - copy: src=../files/etc/default/grub dest=/etc/default/grub owner=root mode=644
+    - lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX="mem='
+        line: GRUB_CMDLINE_LINUX="mem=1G"
+        insertafter: "^GRUB_CMDLINE_LINUX"
+      notify: update-grub2
+  handlers:
     - name: update-grub2
       shell: update-grub2
