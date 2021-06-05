@@ -45,7 +45,11 @@ Ubuntu 20.04
 
 * 競技者用インスタンスはメモリが1GBに制限されるため、`c4.large`などコンピューティング最適化インスタンスで一番小さいインスタンスでの利用を推奨
 * ベンチマーカー用インスタンスはコンピューティング最適化インスタンスでそれなりのスペックでの利用を推奨
-  * `/home/isucon/private_isu.git/benchmarker/bin/benchmarker`を実行すればベンチマークが実行できる
+  * 以下のコマンドでベンチマーカーが実行できる
+
+```sh
+/home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://<target IP>
+```
 
 ### 適当に手元で試す
 
