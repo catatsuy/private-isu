@@ -19,7 +19,12 @@ $ ansible-playbook -i hosts bench/ansible/playbooks.yml
 ## ssh config の例
 
 ```
-Host shanai-isucon-app-01
+Host isu-app
+  IdentityFile ~/.ssh/xxx.pem
+  HostName xxx.xxx.xxx.xxx
+  User ubuntu
+
+Host isu-bench
   IdentityFile ~/.ssh/xxx.pem
   HostName xxx.xxx.xxx.xxx
   User ubuntu
