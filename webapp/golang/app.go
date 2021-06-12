@@ -174,7 +174,7 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 	}
 }
 
-func makePosts(results []Post, CSRFToken string, allComments bool) ([]Post, error) {
+func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, error) {
 	var posts []Post
 
 	for _, p := range results {
@@ -212,7 +212,7 @@ func makePosts(results []Post, CSRFToken string, allComments bool) ([]Post, erro
 			return nil, err
 		}
 
-		p.CSRFToken = CSRFToken
+		p.CSRFToken = csrfToken
 
 		if p.User.DelFlg == 0 {
 			posts = append(posts, p)
