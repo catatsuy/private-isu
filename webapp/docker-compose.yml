@@ -13,7 +13,8 @@ services:
   app:
     cpus: 1
     mem_limit: 1g
-    build: ruby/ # Go実装の場合は golang/
+    # Go実装の場合は golang/ PHP実装の場合は php/
+    build: ruby/
     environment:
       ISUCONP_DB_HOST: mysql
       ISUCONP_DB_PORT: 3306
@@ -38,6 +39,7 @@ services:
     volumes:
       - mysql:/var/lib/mysql
       - ./etc/mysql/conf.d:/etc/mysql/conf.d
+      - ./sql:/docker-entrypoint-initdb.d
     ports:
       - "3306:3306"
 

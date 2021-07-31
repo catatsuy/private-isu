@@ -82,6 +82,25 @@ make
 
 他にもVagrantや一部の言語はDocker Composeも用意している
 
+### Docker Compose
+
+```sh
+cd webapp/sql
+curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
+bunzip2 dump.sql.bz2
+
+cd ..
+docker-compose up
+```
+
+デフォルトはRubyのため、他言語にする場合はappのbuildを変更する必要がある。PHPはそれに加えて以下の作業が必要。
+
+```sh
+cd webapp/etc
+mv nginx/conf.d/default.conf nginx/conf.d/default.conf.org
+mv nginx/conf.d/php.conf.org nginx/conf.d/php.conf
+```
+
 ### 競技用インスタンスのセットアップ方法
 
 自分で立ち上げたい人向け。`provisioning/`ディレクトリ以下参照。

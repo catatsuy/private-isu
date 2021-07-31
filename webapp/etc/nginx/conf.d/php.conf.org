@@ -1,0 +1,20 @@
+server {
+    listen 80;
+
+    client_max_body_size 10m;
+    root /public;
+
+    location / {
+        try_files $uri /index.php$is_args$args;
+    }
+
+    # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+    location ~ \.php {
+        #fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /var/www/html/$fastcgi_script_name;
+        fastcgi_param SCRIPT_NAME $fastcgi_script_name;
+        fastcgi_index index.php;
+        fastcgi_pass app:9000;
+    }
+}
