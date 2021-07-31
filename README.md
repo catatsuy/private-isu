@@ -54,7 +54,8 @@ Ubuntu 20.04
 
 ### 適当に手元で試す
 
-ベンチマーカーはGoとuserdataがあれば動かせる。以下の手順で実行できる。
+* アプリケーションは各言語の開発環境とMySQL・memcachedがインストールされていれば動くはず
+* ベンチマーカーはGoの開発環境とuserdataがあれば動く
 
 ```sh
 curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
@@ -78,6 +79,8 @@ make
 # Output
 # {"pass":true,"score":1710,"success":1434,"fail":0,"messages":[]}
 ```
+
+他にもVagrantや一部の言語はDocker Composeも用意している
 
 ### 競技用インスタンスのセットアップ方法
 
