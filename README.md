@@ -80,7 +80,7 @@ make
 # {"pass":true,"score":1710,"success":1434,"fail":0,"messages":[]}
 ```
 
-他にもVagrantや一部の言語はDocker Composeも用意している
+他にもVagrantやDocker Composeも用意している
 
 ### Docker Compose
 
