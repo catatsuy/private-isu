@@ -15,3 +15,4 @@ portal/tmp
 /portal/log/*
 !/portal/log/.keep
 /portal/tmp
+.vagrant
