@@ -93,7 +93,7 @@ cd ..
 docker-compose up
 ```
 
-デフォルトはRubyのため、他言語にする場合はappのbuildを変更する必要がある。PHPはそれに加えて以下の作業が必要。
+デフォルトはRubyのため、他言語にする場合は`docker-compose.yml`ファイル内のappのbuildを変更する必要がある。PHPはそれに加えて以下の作業が必要。
 
 ```sh
 cd webapp/etc
