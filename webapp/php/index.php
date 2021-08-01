@@ -167,11 +167,6 @@ function escape_html($h) {
     return htmlspecialchars($h, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 }
 
-function flash($key) {
-    $flash = new \Slim\Flash\Messages;
-    return $flash->getMessage($key)[0] ?? null;
-}
-
 function redirect(Response $response, $location, $status) {
     return $response->withStatus($status)->withHeader('Location', $location);
 }
@@ -222,7 +217,8 @@ $app->get('/login', function (Request $request, Response $response) {
         return redirect($response, '/', 302);
     }
     return $this->get('view')->render($response, 'login.php', [
-        'me' => null
+        'me' => null,
+        'flash' => $this->get('flash')->getFirstMessage('notice'),
     ]);
 });
 
@@ -251,7 +247,8 @@ $app->get('/register', function (Request $request, Response $response) {
         return redirect($response, '/', 302);
     }
     return $this->get('view')->render($response, 'register.php', [
-        'me' => null
+        'me' => null,
+        'flash' => $this->get('flash')->getFirstMessage('notice'),
     ]);
 });
 
@@ -303,7 +300,11 @@ $app->get('/', function (Request $request, Response $response) {
     $results = $ps->fetchAll(PDO::FETCH_ASSOC);
     $posts = $this->get('helper')->make_posts($results);
 
-    return $this->get('view')->render($response, 'index.php', ['posts' => $posts, 'me' => $me]);
+    return $this->get('view')->render($response, 'index.php', [
+        'posts' => $posts,
+        'me' => $me,
+        'flash' => $this->get('flash')->getFirstMessage('notice'),
+    ]);
 });
 
 $app->get('/posts', function (Request $request, Response $response) {

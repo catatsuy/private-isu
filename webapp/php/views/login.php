@@ -2,9 +2,9 @@
   <h1>ログイン</h1>
 </div>
 
-<? if (flash('notice')): ?>
+<? if ($flash): ?>
 <div id="notice-message" class="alert alert-danger">
-  <?= escape_html(flash('notice')) ?>
+  <?= escape_html($flash) ?>
 </div>
 <? endif ?>
 
