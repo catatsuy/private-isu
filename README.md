@@ -52,10 +52,14 @@ Ubuntu 20.04
 /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://<target IP>
 ```
 
-### 適当に手元で試す
+### 手元で動かす
+
+__いずれの手順もディスク容量が十分にあるマシン上で行うこと__
 
 * アプリケーションは各言語の開発環境とMySQL・memcachedがインストールされていれば動くはず
 * ベンチマーカーはGoの開発環境とuserdataがあれば動く
+
+#### MacやLinux上で適当に動かす
 
 ```sh
 curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
@@ -80,9 +84,9 @@ make
 # {"pass":true,"score":1710,"success":1434,"fail":0,"messages":[]}
 ```
 
-他にもVagrantやDocker Composeも用意している
+#### Docker Compose
 
-### Docker Compose
+アプリケーションは以下の手順で実行できる。dump.sqlを配置しないとMySQLに初期データがimportされないので注意。
 
 ```sh
 cd webapp/sql
@@ -124,6 +128,10 @@ Linuxの場合は`host.docker.internal`が使用できないので、`ip a`し�
     inet6 fe80::42:caff:fe63:c59/64 scope link
        valid_lft forever preferred_lft forever
 ```
+
+#### Vagrant
+
+`vagrant up`すればprovisioningが実行される。
 
 ### 競技用インスタンスのセットアップ方法
 
