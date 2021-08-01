@@ -10,9 +10,9 @@
       <input type="hidden" name="csrf_token" value="<?= escape_html(session_id()); ?>">
       <input type="submit" name="submit" value="submit">
     </div>
-    <?php if (flash('notice')): ?>
+    <?php if ($flash): ?>
     <div id="notice-message" class="alert alert-danger">
-      <?= escape_html(flash('notice')); ?>
+      <?= escape_html($flash); ?>
     </div>
     <?php endif ?>
   </form>
