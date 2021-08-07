@@ -8,15 +8,16 @@ Vagrant.configure("2") do |config|
 
   config.vm.define "app" do |app|
     app.vm.hostname = "app"
-    app.vm.network "forwarded_port", guest: 80, host: 8080
+    app.vm.network "forwarded_port", guest: 80, host: 8000
     app.vm.provider "virtualbox" do |vb|
       vb.cpus = 2
-      vb.memory = 3584
+      vb.memory = 1500
     end
 
     app.vm.provision "ansible" do |ansible|
       ansible.verbose = "v"
       ansible.playbook = "./provisioning/image/ansible/playbooks.yml"
+      ansible.skip_tags = "nodejs"
 
       ansible.groups = {
         "guests"  => ["app"]
