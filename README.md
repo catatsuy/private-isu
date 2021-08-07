@@ -136,7 +136,7 @@ Linuxの場合は`host.docker.internal`が使用できないので、`ip a`し�
 
 #### Vagrant
 
-`vagrant up`すればprovisioningが実行される。
+手元にansibleをインストールして`vagrant up`すればprovisioningが実行される。
 
 benchからappのIPアドレスを指定して負荷をかける。
 
