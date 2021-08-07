@@ -50,7 +50,8 @@ Ubuntu 20.04
   * 以下のコマンドでベンチマーカーが実行できる
 
 ```sh
-/home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://<target IP>
+$ sudo su - isucon
+$ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://<target IP>
 ```
 
 ### 手元で動かす
@@ -59,8 +60,11 @@ __いずれの手順もディスク容量が十分にあるマシン上で行う
 
 * アプリケーションは各言語の開発環境とMySQL・memcachedがインストールされていれば動くはず
 * ベンチマーカーはGoの開発環境とuserdataがあれば動く
+* Dockerとvagrantはメモリが潤沢なマシンで実行すること
 
 #### MacやLinux上で適当に動かす
+
+MySQLとmemcachedを起動した上で以下の手順を実行。
 
 ```sh
 curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
@@ -133,6 +137,26 @@ Linuxの場合は`host.docker.internal`が使用できないので、`ip a`し�
 #### Vagrant
 
 `vagrant up`すればprovisioningが実行される。
+
+benchからappのIPアドレスを指定して負荷をかける。
+
+```shell
+# appのIPアドレスを調べる
+$ vagrant ssh app
+$ ip a
+
+3: enp0s8: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:37:2b:2c brd ff:ff:ff:ff:ff:ff
+    inet 172.28.128.6/24 brd 172.28.128.255 scope global dynamic enp0s8
+       valid_lft 444sec preferred_lft 444sec
+    inet6 fe80::a00:27ff:fe37:2b2c/64 scope link
+       valid_lft forever preferred_lft forever
+
+# benchで負荷をかける
+$ vagrant ssh bench
+$ sudo su - isucon
+$ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://172.28.128.6
+```
 
 ### 競技用インスタンスのセットアップ方法
 
