@@ -54,6 +54,8 @@ $ sudo su - isucon
 $ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://<target IP>
 ```
 
+最初はRuby実装が起動しているので、他の言語を使用する場合は[manual.md](/manual.md)を見て作業すること。
+
 ### 手元で動かす
 
 __いずれの手順もディスク容量が十分にあるマシン上で行うこと__
@@ -64,7 +66,7 @@ __いずれの手順もディスク容量が十分にあるマシン上で行う
 
 #### MacやLinux上で適当に動かす
 
-MySQLとmemcachedを起動した上で以下の手順を実行。
+MySQLとmemcachedを起動した上で以下の手順を実行。Ruby実装以外は各言語で読み替えること。
 
 ```sh
 curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
@@ -158,7 +160,9 @@ $ sudo su - isucon
 $ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://172.28.128.6
 ```
 
-### 競技用インスタンスのセットアップ方法
+最初はRuby実装が起動しているので、他の言語を使用する場合は[manual.md](/manual.md)を見て作業すること。
+
+### 競技者用・ベンチマーカーインスタンスのセットアップ方法
 
 自分で立ち上げたい人向け。`provisioning/`ディレクトリ以下参照。
 
