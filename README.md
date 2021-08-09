@@ -32,6 +32,13 @@ Ubuntu 20.04
 
 ## 起動方法
 
+* Ruby/Go/PHPの3言語が用意されており、デフォルトはRubyが起動する
+  * Node.jsは現状メンテナンスされていない
+  * AMI・Vagrantで他の言語の実装を動かす場合は[manual.md](/manual.md)を参考にする
+* AMI・Docker Compose・Vagrantが用意されている
+  * 手元で適当に動かすことも難しくない
+  * Ansibleを動かせば、他の環境でも動くはず
+
 ### AMI
 
 セキュリティのアップデートなどは行わないので自己責任で利用してください。Node.jsのセットアップはskipしているので、Ruby/PHP/Goのみ利用可能。
