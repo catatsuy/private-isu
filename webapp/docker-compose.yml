@@ -1,7 +1,7 @@
 version: '2.2'
 services:
   nginx:
-    image: nginx:1.20.0
+    image: nginx:1.20
     volumes:
       - ./etc/nginx/conf.d:/etc/nginx/conf.d
       - ./public:/public
@@ -32,9 +32,11 @@ services:
   mysql:
     cpus: 1
     mem_limit: 1g
-    image: mysql:8.0.25
+    image: mysql/mysql-server:8.0
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       - "TZ=Asia/Tokyo"
+      - "MYSQL_ROOT_HOST=%"
       - "MYSQL_ROOT_PASSWORD=root"
     volumes:
       - mysql:/var/lib/mysql
@@ -44,7 +46,7 @@ services:
       - "3306:3306"
 
   memcached:
-    image: memcached:1.6.9
+    image: memcached:1.6
 
 volumes:
   mysql:
