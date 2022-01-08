@@ -112,7 +112,7 @@ curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sq
 bunzip2 dump.sql.bz2
 
 cd ..
-docker-compose up
+docker compose up
 ```
 
 デフォルトはRubyのため、他言語にする場合は`docker-compose.yml`ファイル内のappのbuildを変更する必要がある。PHPはそれに加えて以下の作業が必要。
