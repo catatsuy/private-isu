@@ -33,7 +33,6 @@ services:
     cpus: 1
     mem_limit: 1g
     image: mysql/mysql-server:8.0
-    command: --default-authentication-plugin=mysql_native_password
     environment:
       - "TZ=Asia/Tokyo"
       - "MYSQL_ROOT_HOST=%"
