@@ -1,7 +1,8 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    dalli (2.7.11)
+    connection_pool (2.2.5)
+    dalli (3.2.0)
     foreman (0.87.2)
     kgio (2.11.3)
     multi_json (1.15.0)
@@ -35,6 +36,7 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
+  connection_pool
   dalli
   foreman
   mysql2
