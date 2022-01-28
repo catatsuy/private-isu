@@ -7,4 +7,3 @@
 - include: 05_app.yml
 - include: 06_createdb.yml
 - include: 07_application.yml
-- include: 08_grub.yml
