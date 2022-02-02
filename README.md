@@ -77,7 +77,10 @@ __いずれの手順もディスク容量が十分にあるマシン上で行う
 
 #### MacやLinux上で適当に動かす
 
-MySQLとmemcachedを起動した上で以下の手順を実行。Ruby実装以外は各言語で読み替えること。
+MySQLとmemcachedを起動した上で以下の手順を実行。
+
+* Ruby実装以外は各言語実装の動かし方を各自調べること
+* MySQLのrootユーザーのパスワードが設定されていない前提になっているので、設定されている場合は適宜読み替えること
 
 ```sh
 curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
