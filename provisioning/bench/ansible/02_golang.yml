@@ -7,6 +7,6 @@
       file: path=/usr/local/go state=directory
     - name: download go binary
       unarchive:
-        src=https://golang.org/dl/go1.16.5.linux-amd64.tar.gz
+        src=https://golang.org/dl/go1.17.7.linux-amd64.tar.gz
         dest=/usr/local/
         remote_src=yes
