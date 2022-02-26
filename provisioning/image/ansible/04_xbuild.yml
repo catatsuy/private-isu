@@ -10,12 +10,9 @@
         dest=/home/isucon/.xbuild
         update=yes
     # ruby
-    - command: /home/isucon/.xbuild/ruby-install 2.7.3 /home/isucon/.local/ruby
+    - command: /home/isucon/.xbuild/ruby-install 3.1.1 /home/isucon/.local/ruby
       args:
         creates: /home/isucon/.local/ruby/bin/ruby
-    - command: /.local/ruby/bin/gem install bundler
-      args:
-        creates: /home/isucon/.local/ruby/bin/bundle
     # node
     - command: /home/isucon/.xbuild/node-install v4.4.3 /home/isucon/.local/node
       args:
@@ -23,7 +20,7 @@
       tags:
         - nodejs
     # golang
-    - command: /home/isucon/.xbuild/go-install 1.16.4 /home/isucon/.local/go
+    - command: /home/isucon/.xbuild/go-install 1.17.7 /home/isucon/.local/go
       args:
         creates: /home/isucon/.local/go/bin/go
 
