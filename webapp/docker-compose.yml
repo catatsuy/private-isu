@@ -1,7 +1,7 @@
 version: '2.2'
 services:
   nginx:
-    image: nginx:1.20
+    image: nginx:1.21
     volumes:
       - ./etc/nginx/conf.d:/etc/nginx/conf.d
       - ./public:/public
