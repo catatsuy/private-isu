@@ -9,6 +9,6 @@
     "express-session": "1.17.2",
     "multer": "1.4.4",
     "mysql": "2.18.1",
-    "promise-mysql": "5.1.0"
+    "promise-mysql": "5.2.0"
   }
 }
