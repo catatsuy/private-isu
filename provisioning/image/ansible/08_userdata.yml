@@ -1,4 +1,4 @@
-- hosts: bench
+- hosts: guests:extras
   become: yes
   become_user: isucon
   gather_facts: no
