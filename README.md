@@ -175,6 +175,15 @@ $ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/priva
 
 最初はRuby実装が起動しているので、他の言語を使用する場合は[manual.md](/manual.md)を見て作業すること。
 
+#### cloud-init を利用して環境を構築する
+
+matsuuさんの[cloud-initに対応した環境でISUCONの過去問を構築するためのcloud-config集](https://github.com/matsuu/cloud-init-isucon/)を利用して競技者用・ベンチマーカーインスタンスの構築ができます。
+
+cloud-initに対応した環境、例えばAWS、Azure、Google Cloud、Oracle Cloud、さくらのクラウド、Multipass、VMwareなど、クラウドからローカルまで幅広く環境構築が可能です。
+
+https://github.com/matsuu/cloud-init-isucon/tree/main/private-isu
+
+
 ### 競技者用・ベンチマーカーインスタンスのセットアップ方法
 
 自分で立ち上げたい人向け。`provisioning/`ディレクトリ以下参照。
