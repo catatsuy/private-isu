@@ -24,6 +24,13 @@ webappとbenchmaker両方含むall in oneなインスタンスをセットアッ
 $ ansible-playbook -i hosts image/ansible/playbooks.yml --skip-tags nodejs　-e 'allinone=True'
 ```
 
+同梱したbenchmarkerを動作させるには以下のようにします。
+
+```sh
+$ sudo su - isucon
+$ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_isu/benchmarker/userdata -t http://<target IP>
+```
+
 ## ssh config の例
 
 ```
