@@ -1,6 +1,6 @@
 ---
 - hosts: guests:extras
-#- hosts: extras
+  #- hosts: extras
   become: yes
   become_user: isucon
   gather_facts: no
@@ -12,8 +12,7 @@
     - name: clean private_isu.git
       file: path=/home/isucon/repos/private_isu.git state=absent
     - name: clone repos
-      git:
-        repo=https://github.com/catatsuy/private-isu.git
+      git: repo=https://github.com/catatsuy/private-isu.git
         dest=/home/isucon/repos/private_isu.git
     - name: remove .git
       file: path=/home/isucon/repos/private_isu.git/.git state=absent
@@ -21,6 +20,7 @@
       file: path=/home/isucon/repos/private_isu.git/ansible_old state=absent
     - name: clean benchmarker
       file: path=/home/isucon/repos/private_isu.git/benchmarker state=absent
+      when: allinone is not defined or not allinone
     - name: clean portal
       file: path=/home/isucon/repos/private_isu.git/portal state=absent
     - name: clean provisioning
@@ -32,8 +32,7 @@
     - name: git init
       shell: "cd /home/isucon/repos/private_isu.git/ && git init && git add . && git config --global user.email 'test@example.com' && git config --global user.name 'admin' && git commit -m 'Initial commit'"
     - name: create working copy
-      git:
-        repo=file:///home/isucon/repos/private_isu.git
+      git: repo=file:///home/isucon/repos/private_isu.git
         dest=/home/isucon/private_isu
         update=yes
         force=yes

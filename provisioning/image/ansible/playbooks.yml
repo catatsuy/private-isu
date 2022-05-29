@@ -7,3 +7,5 @@
 - import_playbook: 05_app.yml
 - import_playbook: 06_createdb.yml
 - import_playbook: 07_application.yml
+- import_playbook: 08_userdata.yml
+- import_playbook: 09_build_benchmarker.yml

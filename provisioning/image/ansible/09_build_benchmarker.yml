@@ -1,0 +1,8 @@
+- hosts: guests:extras
+  become: yes
+  become_user: isucon
+  gather_facts: no
+  tasks:
+    - name: build benchmarker
+      shell: bash -lc 'cd /home/isucon/private_isu/benchmarker ; make'
+      when: allinone is defined and allinone

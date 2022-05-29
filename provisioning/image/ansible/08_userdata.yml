@@ -1,0 +1,16 @@
+- hosts: guests:extras
+  become: yes
+  gather_facts: no
+  tasks:
+    - apt: name=unzip state=present
+      when: allinone is defined and allinone
+
+- hosts: guests:extras
+  become: yes
+  become_user: isucon
+  gather_facts: no
+  tasks:
+    - name: create userdata
+      tags: userdata
+      ansible.builtin.unarchive: src=https://github.com/catatsuy/private-isu/releases/download/img/img.zip dest=/home/isucon/private_isu/benchmarker/userdata remote_src=yes
+      when: allinone is defined and allinone
