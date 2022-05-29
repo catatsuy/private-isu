@@ -1,6 +1,17 @@
-# 社内ISUCON 改
+# private-isu
 
-2016年に作成した社内ISUCONリポジトリを2021年に手直ししました。
+「[ISUCON](https://isucon.net)」は、LINE株式会社の商標または登録商標です。
+
+本リポジトリが書籍の題材になりました。詳しくは以下のURLをご覧ください。
+
+* [達人が教えるWebパフォーマンスチューニング 〜ISUCONから学ぶ高速化の実践：書籍案内｜技術評論社](https://gihyo.jp/book/2022/978-4-297-12846-3)
+* [tatsujin-web-performance/tatsujin-web-performance: 達人が教えるWebパフォーマンスチューニング〜ISUCONから学ぶ高速化の実践](https://github.com/tatsujin-web-performance/tatsujin-web-performance)
+
+ハッシュタグ： `#ISUCON本`
+
+## タイムライン
+
+2016年に作成した社内ISUCONリポジトリを2021年に手直ししました。2022年に書籍の題材になりました。
 
 ［2016年開催時のブログ］
 
@@ -14,8 +25,6 @@
 ［2021年開催時のブログ］
 
 * 社内ISUCON “TIMES-ISUCON” を開催しました！ | PR TIMES 開発者ブログ https://developers.prtimes.jp/2021/06/04/times-isucon-1/
-
-「[ISUCON](https://isucon.net)」は、LINE株式会社の商標または登録商標です。
 
 ## ディレクトリ構成
 
@@ -32,7 +41,7 @@
 
 ## OS
 
-Ubuntu 20.04
+Ubuntu 20.04 / 22.04
 
 ## 起動方法
 
