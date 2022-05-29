@@ -38,6 +38,7 @@
 
 - hosts: guests:extras
   become: yes
+  gather_facts: yes
   tasks:
     - copy: src=../files/home/isucon/env.sh dest=/home/isucon/env.sh owner=isucon mode=644
     - name: ruby (systemd)
@@ -49,8 +50,15 @@
       tags:
         - nodejs
     - name: php app (systemd)
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "20.04"
       lineinfile:
         path: /lib/systemd/system/php7.4-fpm.service
+        line: 'EnvironmentFile=/home/isucon/env.sh'
+        insertafter: 'ExecReload=.*'
+    - name: php app (systemd)
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "22.04"
+      lineinfile:
+        path: /lib/systemd/system/php8.1-fpm.service
         line: 'EnvironmentFile=/home/isucon/env.sh'
         insertafter: 'ExecReload=.*'
     - name: reload daemon config
