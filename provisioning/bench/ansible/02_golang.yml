@@ -5,8 +5,16 @@
   tasks:
     - name: mkdir /usr/local/go
       file: path=/usr/local/go state=directory
+    - name: check uname
+      shell: uname -s | tr [A-Z] [a-z]
+      register: uname_res
+      check_mode: no
+    - name: check arch
+      command: dpkg --print-architecture
+      register: arch_res
+      check_mode: no
     - name: download go binary
       unarchive:
-        src=https://golang.org/dl/go1.17.7.linux-amd64.tar.gz
+        src="https://golang.org/dl/go1.17.7.{{ uname_res.stdout }}-{{ arch_res.stdout }}.tar.gz"
         dest=/usr/local/
         remote_src=yes
