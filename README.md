@@ -45,17 +45,10 @@ Ubuntu 20.04
 
 ### AMI
 
-セキュリティのアップデートなどは行わないので自己責任で利用してください。Node.jsのセットアップはskipしているので、Ruby/PHP/Goのみ利用可能。
+セキュリティのアップデートなどは行わないので自己責任で利用してください。Node.jsのセットアップはskipしているので、Ruby/PHP/Goのみ利用可能。OSはUbuntu 20.04。
 
-以下のAMI IDで起動する。リージョンは『Asia Pacific (Tokyo)』。
-
-| 用途           |        AMI ID         |              AMI name               | 推奨インスタンスタイプ |
-| -------------- | :-------------------: | :---------------------------------: | ---------------------- |
-| 競技者用       | ami-0912fb32e811b9b72 |    catatsuy_private_isu_20220226    | c4.large               |
-| ベンチマーカー | ami-0e0d605d5f45cdb72 | catatsuy_private_isu_bench_20220226 | c5.xlarge              |
-
-* `c4.large`などコンピューティング最適化インスタンスで一番小さいインスタンスでの利用を推奨
 * 競技者用インスタンスはSecurity groupで80番ポートを公開する必要がある
+  * Network settingsで「Allow HTTP traffic from the internet」にチェックを入れてもよい
 * ベンチマーカー用インスタンスはコンピューティング最適化インスタンスでそれなりのスペックでの利用を推奨
   * 以下のコマンドでベンチマーカーが実行できる
 
@@ -65,6 +58,22 @@ $ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/priva
 ```
 
 最初はRuby実装が起動しているので、他の言語を使用する場合は[manual.md](/manual.md)を見て作業すること。
+
+以下のAMI IDで起動する。リージョンは『Asia Pacific (Tokyo)』。
+
+x86_64:
+
+| 用途           |        AMI ID         |                 AMI name                  | 推奨インスタンスタイプ |
+| -------------- | :-------------------: | :---------------------------------------: | ---------------------- |
+| 競技者用       | ami-0b37d5c92add6d0d5 |    catatsuy_private_isu_amd64_20220529    | c4.large               |
+| ベンチマーカー | ami-024cfcacc753fa53e | catatsuy_private_isu_bench_amd64_20220529 | c5.xlarge              |
+
+arm64:
+
+| 用途           |        AMI ID         |                 AMI name                  | 推奨インスタンスタイプ |
+| -------------- | :-------------------: | :---------------------------------------: | ---------------------- |
+| 競技者用       | ami-06c591d563bfd1665 |    catatsuy_private_isu_arm64_20220529    | c6g.large              |
+| ベンチマーカー | ami-035922e4d248319af | catatsuy_private_isu_bench_arm64_20220529 | c6g.xlarge             |
 
 ### 手元で動かす
 
