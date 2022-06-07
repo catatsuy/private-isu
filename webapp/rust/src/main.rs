@@ -10,7 +10,19 @@ use actix_web::{
 #[actix_web::main]
 async fn main() -> io::Result<()> {
     let host = env::var("ISUCONP_DB_HOST").unwrap_or("localhost".to_string());
-    let port = env::var("ISUCONP_DB_PORT").unwrap_or("3306".to_string());
+    let port: u32 = env::var("ISUCONP_DB_PORT")
+        .unwrap_or("3306".to_string())
+        .parse()
+        .unwrap_or(3306);
+
+    let user = env::var("ISUCONP_DB_USER").unwrap_or("root".to_string());
+    let password = env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD");
+    let dbname = env::var("ISUCONP_DB_NAME").unwrap_or("isuconp".to_string());
+
+    let dsn = format!(
+        "{}:{}@tcp({}:{})/{}?charset=utf8mb4&parseTime=true&loc=Local",
+        &user, &password, &host, &port, &dbname
+    );
 
     HttpServer::new(move || {
         App::new()
