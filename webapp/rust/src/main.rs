@@ -1,4 +1,4 @@
-use std::io;
+use std::{env, io};
 
 use actix_cors::Cors;
 use actix_web::{
@@ -9,6 +9,9 @@ use actix_web::{
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
+    let host = env::var("ISUCONP_DB_HOST").unwrap_or("localhost".to_string());
+    let port = env::var("ISUCONP_DB_PORT").unwrap_or("3306".to_string());
+
     HttpServer::new(move || {
         App::new()
             .wrap(middleware::Logger::default())
