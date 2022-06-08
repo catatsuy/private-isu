@@ -16,6 +16,7 @@ use simplelog::{
     ColorChoice, CombinedLogger, ConfigBuilder, SharedLogger, TermLogger, TerminalMode, WriteLogger,
 };
 use sqlx::{MySql, Pool};
+use tinytemplate::TinyTemplate;
 
 async fn db_initialize(pool: &Pool<MySql>) -> anyhow::Result<()> {
     sqlx::query!("DELETE FROM users WHERE id > 1000")
@@ -47,6 +48,61 @@ async fn get_initialize(pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
         log::error!("{:?}", &e);
     }
     Ok(HttpResponse::Ok().finish())
+}
+
+async fn get_login(tmpl: web::Data<TinyTemplate<'_>>) -> Result<HttpResponse> {
+    todo!();
+
+    Ok(HttpResponse::Ok().finish())
+}
+
+async fn post_login() -> Result<HttpResponse> {
+    todo!();
+    Ok(HttpResponse::Ok().finish())
+}
+
+async fn get_register() -> Result<HttpResponse> {
+    todo!()
+}
+
+async fn post_register() -> Result<HttpResponse> {
+    todo!()
+}
+
+async fn get_logout() -> Result<HttpResponse> {
+    todo!()
+}
+
+async fn get_index() -> Result<HttpResponse> {
+    todo!()
+}
+
+async fn get_posts() -> Result<HttpResponse> {
+    todo!()
+}
+
+async fn get_posts_id() -> Result<HttpResponse> {
+    todo!()
+}
+
+async fn post_index() -> Result<HttpResponse> {
+    todo!()
+}
+
+async fn get_image() -> Result<HttpResponse> {
+    todo!()
+}
+
+async fn post_comment() -> Result<HttpResponse> {
+    todo!()
+}
+
+async fn get_admin_banned() -> Result<HttpResponse> {
+    todo!()
+}
+
+async fn post_admin_banned() -> Result<HttpResponse> {
+    todo!()
 }
 
 fn init_logger<P: AsRef<Path>>(log_path: Option<P>) {
@@ -116,6 +172,10 @@ async fn main() -> io::Result<()> {
         .unwrap();
 
     HttpServer::new(move || {
+        let mut tt = TinyTemplate::new();
+        tt.add_template("layout.html", LAYOUT).unwrap();
+        tt.add_template("login.html", LOGIN).unwrap();
+
         App::new()
             .wrap(middleware::Logger::default())
             .wrap(if cfg!(debug_assertions) {
@@ -124,6 +184,7 @@ async fn main() -> io::Result<()> {
                 Cors::default().supports_credentials()
             })
             .app_data(Data::new(db.clone()))
+            .app_data(web::Data::new(tt))
             .service(web::resource("/initialize").route(web::get().to(get_initialize)))
             .service(
                 web::resource("/test").to(|req: HttpRequest| match *req.method() {
@@ -143,3 +204,6 @@ async fn main() -> io::Result<()> {
     .run()
     .await
 }
+
+static LAYOUT: &str = include_str!("../templates/layout.html");
+static LOGIN: &str = include_str!("../templates/login.html");

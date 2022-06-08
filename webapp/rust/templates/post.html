@@ -1,0 +1,35 @@
+<div class="isu-post" id="pid_{{ .ID }}" data-created-at="{{.CreatedAt.Format "2006-01-02T15:04:05-07:00"}}">
+  <div class="isu-post-header">
+    <a href="/@{{.User.AccountName}} " class="isu-post-account-name">{{ .User.AccountName }}</a>
+    <a href="/posts/{{.ID}}" class="isu-post-permalink">
+      <time class="timeago" datetime="{{.CreatedAt.Format "2006-01-02T15:04:05-07:00"}}"></time>
+    </a>
+  </div>
+  <div class="isu-post-image">
+    <img src="{{imageURL .}}" class="isu-image">
+  </div>
+  <div class="isu-post-text">
+    <a href="/@{{.User.AccountName}}" class="isu-post-account-name">{{ .User.AccountName }}</a>
+    {{ .Body }}
+  </div>
+  <div class="isu-post-comment">
+    <div class="isu-post-comment-count">
+      comments: <b>{{ .CommentCount }}</b>
+    </div>
+
+    {{ range .Comments }}
+    <div class="isu-comment">
+      <a href="/@{{.User.AccountName}}" class="isu-comment-account-name">{{.User.AccountName}}</a>
+      <span class="isu-comment-text">{{.Comment}}</span>
+    </div>
+    {{ end }}
+    <div class="isu-comment-form">
+      <form method="post" action="/comment">
+        <input type="text" name="comment">
+        <input type="hidden" name="post_id" value="{{.ID}}">
+        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <input type="submit" name="submit" value="submit">
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,28 @@
+{{ define "content" }}
+<div class="isu-submit">
+  <form method="post" action="/" enctype="multipart/form-data">
+    <div class="isu-form">
+      <input type="file" name="file" value="file">
+    </div>
+    <div class="isu-form">
+      <textarea name="body"></textarea>
+    </div>
+    <div class="form-submit">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <input type="submit" name="submit" value="submit">
+    </div>
+    {{if .Flash}}
+    <div id="notice-message" class="alert alert-danger">
+      {{.Flash}}
+    </div>
+    {{end}}
+  </form>
+</div>
+
+{{ template "posts.html" .Posts }}
+
+<div id="isu-post-more">
+  <button id="isu-post-more-btn">もっと見る</button>
+  <img class="isu-loading-icon" src="/img/ajax-loader.gif">
+</div>
+{{ end }}
