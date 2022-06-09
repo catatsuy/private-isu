@@ -96,6 +96,11 @@ async fn post_login() -> Result<HttpResponse> {
 
 #[get("/register")]
 async fn get_register() -> Result<HttpResponse> {
+    // TODO:
+    // if isLogin(getSessionUser(r)) {
+    // 	http.Redirect(w, r, "/", http.StatusFound)
+    // 	return
+    // }
     todo!()
 }
 
