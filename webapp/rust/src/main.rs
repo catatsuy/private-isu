@@ -11,7 +11,7 @@ use actix_web::{
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Result,
 };
-use anyhow::Context;
+use anyhow::{bail, Context};
 use chrono::{DateTime, FixedOffset, Local, Utc};
 use derive_more::Constructor;
 use handlebars::{to_json, Handlebars};
@@ -78,7 +78,13 @@ async fn get_initialize(pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().finish())
 }
 
-async fn get_session_user(uid: i32, pool: &Pool<MySql>) -> anyhow::Result<Option<User>> {
+async fn get_session_user(session: &Session, pool: &Pool<MySql>) -> anyhow::Result<Option<User>> {
+    let uid = match session.get::<i32>("user_id") {
+        Ok(Some(uid)) => uid,
+        Err(e) => bail!("Failed to get_session_user {}", &e),
+        _ => return Ok(None),
+    };
+
     let user = sqlx::query_as!(User, "SELECT * FROM `users` WHERE `id` = ?", &uid)
         .fetch_optional(pool)
         .await
@@ -124,15 +130,8 @@ async fn get_register(
     pool: Data<Pool<MySql>>,
     handlebars: Data<Handlebars<'_>>,
 ) -> Result<HttpResponse> {
-    log::debug!("get register");
-    let uid = match session.get::<i32>("user_id") {
-        Ok(Some(uid)) => uid,
-        Err(_e) => 0,
-        _ => 0,
-    };
-    log::debug!("uid {}", uid);
-
-    match get_session_user(uid, pool.as_ref()).await {
+    log::debug!("call get_register");
+    match get_session_user(&session, pool.as_ref()).await {
         Ok(user) => {
             if is_login(user.as_ref()) {
                 return Ok(HttpResponse::Found()
