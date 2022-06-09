@@ -14,19 +14,19 @@
         <h1><a href="/">Iscogram</a></h1>
       </div>
       <div class="isu-header-menu">
-        {{ if eq .Me.ID 0}}
+        {{#if (eq id 0)}}
         <div><a href="/login">ログイン</a></div>
-        {{ else }}
-        <div><a href="/@{{.Me.AccountName}}"><span class="isu-account-name">{{.Me.AccountName}}</span>さん</a></div>
-        {{ if eq .Me.Authority 1 }}
+        {{else}}
+        <div><a href="/{{account_name}}"><span class="isu-account-name">{{account_name}}</span>さん</a></div>
+        {{#if (eq authority 1)}}
         <div><a href="/admin/banned">管理者用ページ</a></div>
-        {{ end }}
+        {{/if}}
         <div><a href="/logout">ログアウト</a></div>
-        {{ end }}
+        {{/if}}
       </div>
     </div>
 
-    {{ template "content" . }}
+    {{> login}}
   </div>
   <script src="/js/timeago.min.js"></script>
   <script src="/js/main.js"></script>
