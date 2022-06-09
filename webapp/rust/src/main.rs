@@ -74,6 +74,8 @@ async fn get_login(tmpl: web::Data<TinyTemplate<'_>>) -> Result<HttpResponse> {
         );
 
         let json = serde_json::to_value(user).unwrap();
+
+        tmpl.render(template, context)
     };
 
     Ok(HttpResponse::Ok().finish())
