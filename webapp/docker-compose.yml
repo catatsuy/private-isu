@@ -47,5 +47,11 @@ services:
   memcached:
     image: memcached:1.6
 
+  redis:
+    image: redis:7.0.0
+    restart: always
+    ports:
+      - 6379:6379
+
 volumes:
   mysql:

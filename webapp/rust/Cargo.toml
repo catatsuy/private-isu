@@ -7,10 +7,12 @@ version = "0.1.0"
 
 [dependencies]
 actix-cors = "0.6.1"
+actix-redis = "0.10.0"
+actix-session = "0.5.0"
 actix-web = "4.0.1"
 
+handlebars = {version = "4.3.0", features = ["dir_source"]}
 sqlx = {version = "0.5.13", features = ["runtime-actix-native-tls", "mysql", "chrono", "uuid"]}
-tinytemplate = "1.1"
 
 anyhow = "1.0.57"
 chrono = "0.4.19"

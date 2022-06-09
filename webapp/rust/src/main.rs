@@ -1,9 +1,10 @@
 use std::{env, io, path::Path, time::Duration};
 
 use actix_cors::Cors;
+use actix_redis::RedisSession;
 use actix_web::{
     cookie::time::UtcOffset,
-    error,
+    error, get,
     http::{Method, StatusCode},
     middleware,
     web::{self, Data},
@@ -12,13 +13,13 @@ use actix_web::{
 use anyhow::Context;
 use chrono::{FixedOffset, Local, Utc};
 use derive_more::Constructor;
+use handlebars::{to_json, Handlebars};
 use log::LevelFilter;
 use serde::{Deserialize, Serialize};
 use simplelog::{
     ColorChoice, CombinedLogger, ConfigBuilder, SharedLogger, TermLogger, TerminalMode, WriteLogger,
 };
 use sqlx::{MySql, Pool};
-use tinytemplate::TinyTemplate;
 
 #[derive(Debug, Serialize, Deserialize, Constructor)]
 struct User {
@@ -55,6 +56,7 @@ async fn db_initialize(pool: &Pool<MySql>) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[get("/initialize")]
 async fn get_initialize(pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
     if let Err(e) = db_initialize(&pool).await {
         log::error!("{:?}", &e);
@@ -62,21 +64,29 @@ async fn get_initialize(pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().finish())
 }
 
-async fn get_login(tmpl: web::Data<TinyTemplate<'_>>) -> Result<HttpResponse> {
+#[get("/login")]
+async fn get_login(handlebars: Data<Handlebars<'_>>) -> Result<HttpResponse> {
     let body = {
         let user = User::new(
             0,
             "test".to_string(),
             "pass".to_string(),
-            999,
+            0,
             500,
             "datetime".to_string(),
         );
 
-        let json = serde_json::to_value(user).unwrap();
-    };
+        let mut json = serde_json::to_value(user).unwrap();
+        let map = json.as_object_mut().unwrap();
+        map.insert("flash".to_string(), to_json("notice"));
+        map.insert("parent".to_string(), to_json("layout"));
+        log::debug!("{:?}", &map);
 
-    Ok(HttpResponse::Ok().finish())
+        handlebars.render("login", map).unwrap()
+    };
+    log::debug!("{:?}", &body);
+
+    Ok(HttpResponse::Ok().body(body))
 }
 
 async fn post_login() -> Result<HttpResponse> {
@@ -84,6 +94,7 @@ async fn post_login() -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().finish())
 }
 
+#[get("/register")]
 async fn get_register() -> Result<HttpResponse> {
     todo!()
 }
@@ -174,16 +185,20 @@ async fn main() -> io::Result<()> {
     let port: u32 = env::var("ISUCONP_DB_PORT")
         .unwrap_or("3306".to_string())
         .parse()
-        .unwrap_or(3306);
+        .unwrap();
 
     let user = env::var("ISUCONP_DB_USER").unwrap_or("root".to_string());
-    let password = env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD");
+    // let password = env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD");
+    let password = env::var("ISUCONP_DB_PASSWORD").unwrap_or("root".to_string());
     let dbname = env::var("ISUCONP_DB_NAME").unwrap_or("isuconp".to_string());
+
+    let redis_url = env::var("ISUCONP_REDIS_URL").unwrap_or("localhost:6379".to_string());
 
     let dsn = format!(
         "{}:{}@tcp({}:{})/{}?charset=utf8mb4&parseTime=true&loc=Local",
         &user, &password, &host, &port, &dbname
     );
+    let dsn = "mysql://root:root@localhost:3306/isuconp".to_string();
 
     let num_cpus = num_cpus::get();
 
@@ -194,10 +209,13 @@ async fn main() -> io::Result<()> {
         .await
         .unwrap();
 
+    let private_key = actix_web::cookie::Key::generate();
+
     HttpServer::new(move || {
-        let mut tt = TinyTemplate::new();
-        tt.add_template("layout.html", LAYOUT).unwrap();
-        tt.add_template("login.html", LOGIN).unwrap();
+        let mut handlebars = Handlebars::new();
+        handlebars
+            .register_templates_directory(".html", "./static")
+            .unwrap();
 
         App::new()
             .wrap(middleware::Logger::default())
@@ -206,9 +224,11 @@ async fn main() -> io::Result<()> {
             } else {
                 Cors::default().supports_credentials()
             })
+            .wrap(RedisSession::new(redis_url, private_key.master()))
             .app_data(Data::new(db.clone()))
-            .app_data(web::Data::new(tt))
-            .service(web::resource("/initialize").route(web::get().to(get_initialize)))
+            .app_data(Data::new(handlebars))
+            .service(get_initialize)
+            .service(get_login)
             .service(
                 web::resource("/test").to(|req: HttpRequest| match *req.method() {
                     Method::GET => HttpResponse::Ok(),
