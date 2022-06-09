@@ -14,6 +14,7 @@ tinytemplate = "1.1"
 
 anyhow = "1.0.57"
 chrono = "0.4.19"
+derive_more = "0.99.17"
 log = "0.4.17"
 num_cpus = "1.13.1"
 serde = {version = "1.0.137", features = ["derive"]}

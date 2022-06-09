@@ -10,13 +10,25 @@ use actix_web::{
     App, HttpRequest, HttpResponse, HttpServer, Result,
 };
 use anyhow::Context;
-use chrono::{FixedOffset, Utc};
+use chrono::{FixedOffset, Local, Utc};
+use derive_more::Constructor;
 use log::LevelFilter;
+use serde::{Deserialize, Serialize};
 use simplelog::{
     ColorChoice, CombinedLogger, ConfigBuilder, SharedLogger, TermLogger, TerminalMode, WriteLogger,
 };
 use sqlx::{MySql, Pool};
 use tinytemplate::TinyTemplate;
+
+#[derive(Debug, Serialize, Deserialize, Constructor)]
+struct User {
+    id: i32,
+    account_name: String,
+    passhash: String,
+    authority: i32,
+    del_flg: i32,
+    created_at: String,
+}
 
 async fn db_initialize(pool: &Pool<MySql>) -> anyhow::Result<()> {
     sqlx::query!("DELETE FROM users WHERE id > 1000")
@@ -51,7 +63,18 @@ async fn get_initialize(pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
 }
 
 async fn get_login(tmpl: web::Data<TinyTemplate<'_>>) -> Result<HttpResponse> {
-    todo!();
+    let body = {
+        let user = User::new(
+            0,
+            "test".to_string(),
+            "pass".to_string(),
+            999,
+            500,
+            "datetime".to_string(),
+        );
+
+        let json = serde_json::to_value(user).unwrap();
+    };
 
     Ok(HttpResponse::Ok().finish())
 }
