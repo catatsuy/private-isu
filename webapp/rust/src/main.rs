@@ -6,7 +6,7 @@ use actix_session::Session;
 use actix_web::{
     cookie::time::UtcOffset,
     error, get,
-    http::{Method, StatusCode},
+    http::{header, Method, StatusCode},
     middleware,
     web::{self, Data},
     App, HttpRequest, HttpResponse, HttpServer, Result,
@@ -35,8 +35,12 @@ struct User {
 impl Default for User {
     fn default() -> Self {
         Self {
+            id: Default::default(),
+            account_name: Default::default(),
+            passhash: Default::default(),
+            authority: Default::default(),
+            del_flg: Default::default(),
             created_at: Utc::now(),
-            ..Default::default()
         }
     }
 }
@@ -74,19 +78,21 @@ async fn get_initialize(pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().finish())
 }
 
-async fn get_session_user(session: &Session, pool: &Pool<MySql>) -> anyhow::Result<Option<User>> {
-    let uid = match session.get::<i32>("user_id") {
-        Ok(Some(uid)) => uid,
-        Err(e) => anyhow::bail!("Failed to session.get {}", &e),
-        _ => return Ok(None),
-    };
-
+async fn get_session_user(uid: i32, pool: &Pool<MySql>) -> anyhow::Result<Option<User>> {
     let user = sqlx::query_as!(User, "SELECT * FROM `users` WHERE `id` = ?", &uid)
         .fetch_optional(pool)
         .await
         .context("Failed to get_session_user")?;
+    log::debug!("query user");
 
     Ok(user)
+}
+
+fn is_login(u: Option<&User>) -> bool {
+    match u {
+        Some(u) => u.id != 0,
+        None => false,
+    }
 }
 
 #[get("/login")]
@@ -113,13 +119,45 @@ async fn post_login() -> Result<HttpResponse> {
 }
 
 #[get("/register")]
-async fn get_register() -> Result<HttpResponse> {
-    // TODO:
-    // if isLogin(getSessionUser(r)) {
-    // 	http.Redirect(w, r, "/", http.StatusFound)
-    // 	return
-    // }
-    todo!()
+async fn get_register(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    handlebars: Data<Handlebars<'_>>,
+) -> Result<HttpResponse> {
+    log::debug!("get register");
+    let uid = match session.get::<i32>("user_id") {
+        Ok(Some(uid)) => uid,
+        Err(_e) => 0,
+        _ => 0,
+    };
+    log::debug!("uid {}", uid);
+
+    match get_session_user(uid, pool.as_ref()).await {
+        Ok(user) => {
+            if is_login(user.as_ref()) {
+                return Ok(HttpResponse::Found()
+                    .insert_header((header::LOCATION, "/"))
+                    .finish());
+            }
+        }
+        Err(e) => log::error!("{:?}", &e),
+    };
+
+    log::debug!("render template");
+    let body = {
+        let user = User::default();
+
+        let mut json = serde_json::to_value(user).unwrap();
+        let map = json.as_object_mut().unwrap();
+        map.insert("flash".to_string(), to_json("notice"));
+        map.insert("parent".to_string(), to_json("layout"));
+        log::debug!("map {:?}", &map);
+
+        handlebars.render("register", map).unwrap()
+    };
+
+    log::debug!("return ok");
+    Ok(HttpResponse::Ok().body(body))
 }
 
 async fn post_register() -> Result<HttpResponse> {
@@ -252,6 +290,7 @@ async fn main() -> io::Result<()> {
             .app_data(Data::new(handlebars))
             .service(get_initialize)
             .service(get_login)
+            .service(get_register)
             .service(
                 web::resource("/test").to(|req: HttpRequest| match *req.method() {
                     Method::GET => HttpResponse::Ok(),
