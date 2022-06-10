@@ -16,6 +16,7 @@ use chrono::{DateTime, FixedOffset, Local, Utc};
 use derive_more::Constructor;
 use handlebars::{to_json, Handlebars};
 use log::LevelFilter;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use simplelog::{
     ColorChoice, CombinedLogger, ConfigBuilder, SharedLogger, TermLogger, TerminalMode, WriteLogger,
@@ -45,6 +46,11 @@ impl Default for User {
     }
 }
 
+struct RegisterForm {
+    account_name: String,
+    password: String,
+}
+
 async fn db_initialize(pool: &Pool<MySql>) -> anyhow::Result<()> {
     sqlx::query!("DELETE FROM users WHERE id > 1000")
         .execute(pool)
@@ -68,6 +74,10 @@ async fn db_initialize(pool: &Pool<MySql>) -> anyhow::Result<()> {
         .context("Failed to db_initialize")?;
 
     Ok(())
+}
+
+fn validate_user(accountName: &str, password: &str) -> bool {
+    Regex::new(#r"\A[0-9a-zA-Z_]{3,}\z").unwrap();
 }
 
 #[get("/initialize")]
@@ -159,7 +169,18 @@ async fn get_register(
     Ok(HttpResponse::Ok().body(body))
 }
 
-async fn post_register() -> Result<HttpResponse> {
+async fn post_register(session: Session, pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
+    match get_session_user(&session, pool.as_ref()).await {
+        Ok(user) => {
+            if is_login(user.as_ref()) {
+                return Ok(HttpResponse::Found()
+                    .insert_header((header::LOCATION, "/"))
+                    .finish());
+            }
+        }
+        Err(e) => log::error!("{:?}", &e),
+    };
+
     todo!()
 }
 
