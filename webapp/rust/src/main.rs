@@ -31,6 +31,7 @@ use simplelog::{
 };
 use sqlx::{MySql, Pool};
 
+const POSTS_PER_PAGE: usize = 20;
 static AGGREGATION_LOWER_CASE_NUM: Lazy<Vec<char>> = Lazy::new(|| {
     let mut az09 = Vec::new();
     for az in 'a' as u32..('z' as u32 + 1) {
@@ -66,8 +67,42 @@ impl Default for User {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, Constructor)]
+struct Post {
+    id: i32,
+    user_id: i32,
+    imgdata: Option<Vec<u8>>,
+    body: String,
+    mime: String,
+    created_at: chrono::DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Constructor)]
+struct GrantedInfoPost {
+    post: Post,
+    comment_count: i64,
+    comments: Vec<GrantedUserComment>,
+    user: User,
+    csrftoken: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Constructor)]
+struct Comment {
+    id: i32,
+    post_id: i32,
+    user_id: i32,
+    comment: String,
+    created_at: chrono::DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Constructor)]
+struct GrantedUserComment {
+    comment: Comment,
+    user: User,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
-struct RegisterParams {
+struct LoginRegisterParams {
     account_name: String,
     password: String,
 }
@@ -95,6 +130,27 @@ async fn db_initialize(pool: &Pool<MySql>) -> anyhow::Result<()> {
         .context("Failed to db_initialize")?;
 
     Ok(())
+}
+
+async fn try_login(account_name: &str, password: &str, pool: &Pool<MySql>) -> anyhow::Result<User> {
+    let user = sqlx::query_as!(
+        User,
+        "SELECT * FROM users WHERE account_name = ? AND del_flg = 0",
+        account_name
+    )
+    .fetch_optional(pool)
+    .await
+    .context("Failed to query try_login")?;
+
+    if let Some(user) = user {
+        if calculate_passhash(&user.account_name, password)? == user.passhash {
+            Ok(user)
+        } else {
+            bail!("Incorrect password");
+        }
+    } else {
+        bail!("User does not exist");
+    }
 }
 
 fn escapeshellarg(arg: &str) -> String {
@@ -169,6 +225,84 @@ fn get_flash(session: &Session, key: &str) -> Option<String> {
     }
 }
 
+async fn make_post(
+    results: Vec<Post>,
+    csrf_token: String,
+    all_comments: bool,
+    pool: &Pool<MySql>,
+) -> anyhow::Result<Vec<GrantedInfoPost>> {
+    let mut granted_info_posts = Vec::new();
+
+    for p in results {
+        let comment_count = sqlx::query!(
+            "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?",
+            p.id
+        )
+        .fetch_one(pool)
+        .await
+        .context("Failed to query comment_count")?
+        .count;
+
+        let mut comments = if !all_comments {
+            sqlx::query_as!(
+                Comment,
+                "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC",
+                p.id
+            )
+            .fetch_all(pool)
+            .await
+        } else {
+            sqlx::query_as!(
+                Comment,
+                "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC LIMIT 3",
+                p.id
+            )
+            .fetch_all(pool)
+            .await
+        }
+        .context("Failed to query comments")?;
+
+        let mut granted_comments = Vec::new();
+
+        for comment in comments {
+            let user = sqlx::query_as!(
+                User,
+                "SELECT * FROM `users` WHERE `id` = ?",
+                comment.user_id
+            )
+            .fetch_optional(pool)
+            .await
+            .context("Failed to query user")?
+            .context("Not found user")?;
+
+            granted_comments.push(GrantedUserComment::new(comment, user));
+        }
+
+        granted_comments.reverse();
+
+        let user = sqlx::query_as!(User, "SELECT * FROM `users` WHERE `id` = ?", p.user_id)
+            .fetch_optional(pool)
+            .await
+            .context("Failed to query user")?
+            .context("Not found user")?;
+
+        if user.del_flg == 0 {
+            granted_info_posts.push(GrantedInfoPost::new(
+                p,
+                comment_count,
+                granted_comments,
+                user,
+                csrf_token.clone(),
+            ))
+        }
+        if granted_info_posts.len() >= POSTS_PER_PAGE {
+            break;
+        }
+    }
+
+    Ok(granted_info_posts)
+}
+
 fn is_login(u: Option<&User>) -> bool {
     match u {
         Some(u) => u.id != 0,
@@ -191,13 +325,35 @@ fn secure_random_str(b: u32) -> String {
 }
 
 #[get("/login")]
-async fn get_login(handlebars: Data<Handlebars<'_>>) -> Result<HttpResponse> {
-    let body = {
-        let user = User::new(0, "test".to_string(), "pass".to_string(), 0, 0, Utc::now());
+async fn get_login(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    handlebars: Data<Handlebars<'_>>,
+) -> Result<HttpResponse> {
+    let user = match get_session_user(&session, pool.as_ref()).await {
+        Ok(user) => {
+            if is_login(user.as_ref()) {
+                return Ok(HttpResponse::Found()
+                    .insert_header((header::LOCATION, "/"))
+                    .finish());
+            }
 
+            if let Some(user) = user {
+                user
+            } else {
+                User::default()
+            }
+        }
+        Err(e) => {
+            log::error!("{:?}", &e);
+            User::default()
+        }
+    };
+
+    let body = {
         let mut json = serde_json::to_value(user).unwrap();
         let map = json.as_object_mut().unwrap();
-        map.insert("flash".to_string(), to_json("notice"));
+        map.insert("flash".to_string(), to_json(get_flash(&session, "notice")));
         map.insert("parent".to_string(), to_json("layout"));
         log::debug!("{:?}", &map);
 
@@ -208,9 +364,43 @@ async fn get_login(handlebars: Data<Handlebars<'_>>) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().body(body))
 }
 
-async fn post_login() -> Result<HttpResponse> {
-    todo!();
-    Ok(HttpResponse::Ok().finish())
+#[post("/login")]
+async fn post_login(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    params: Form<LoginRegisterParams>,
+) -> Result<HttpResponse> {
+    match get_session_user(&session, pool.as_ref()).await {
+        Ok(user) => {
+            if is_login(user.as_ref()) {
+                return Ok(HttpResponse::Found()
+                    .insert_header((header::LOCATION, "/"))
+                    .finish());
+            }
+        }
+        Err(e) => log::error!("{:?}", &e),
+    };
+
+    match try_login(&params.account_name, &params.password, pool.as_ref()).await {
+        Ok(user) => {
+            session.insert("user_id", user.id).unwrap();
+            session.insert("csrf_token", secure_random_str(32)).unwrap();
+
+            Ok(HttpResponse::Found()
+                .insert_header((header::LOCATION, "/"))
+                .finish())
+        }
+        Err(e) => {
+            log::error!("{:?}", &e);
+            session
+                .insert("notice", "アカウント名かパスワードが間違っています")
+                .unwrap();
+
+            Ok(HttpResponse::Found()
+                .insert_header((header::LOCATION, "/login"))
+                .finish())
+        }
+    }
 }
 
 #[get("/register")]
@@ -252,7 +442,7 @@ async fn get_register(
 async fn post_register(
     session: Session,
     pool: Data<Pool<MySql>>,
-    params: Form<RegisterParams>,
+    params: Form<LoginRegisterParams>,
 ) -> Result<HttpResponse> {
     match get_session_user(&session, pool.as_ref()).await {
         Ok(user) => {
@@ -343,12 +533,27 @@ async fn post_register(
         .finish())
 }
 
-async fn get_logout() -> Result<HttpResponse> {
-    todo!()
+#[get("/logout")]
+async fn get_logout(session: Session) -> Result<HttpResponse> {
+    session.remove("user_id").unwrap_or_default();
+
+    Ok(HttpResponse::Found()
+        .insert_header((header::LOCATION, "/"))
+        .finish())
 }
 
-async fn get_index() -> Result<HttpResponse> {
-    todo!()
+#[get("/")]
+async fn get_index(session: Session, pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
+    let results = match sqlx::query_as_unchecked!(Post,"SELECT `id`, `user_id`, `body`, `mime`, `created_at`, NULL AS imgdata FROM `posts` ORDER BY `created_at` DESC").fetch_all(pool.as_ref()).await {
+        Ok(results) => results,
+        Err(e) => {
+            log::error!("{:?}",&e);
+        return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    // TODO: fn make_posts
+    Ok(HttpResponse::Ok().finish())
 }
 
 async fn get_posts() -> Result<HttpResponse> {
@@ -469,8 +674,11 @@ async fn main() -> io::Result<()> {
             .app_data(Data::new(handlebars))
             .service(get_initialize)
             .service(get_login)
+            .service(post_login)
             .service(get_register)
             .service(post_register)
+            .service(get_logout)
+            .service(get_index)
             // .service(ResourceDef::new("/{tail}*").)
             .service(Files::new("/", "../public"))
             .service(
