@@ -1,4 +1,4 @@
-use std::{env, io, path::Path, time::Duration};
+use std::{any, env, io, path::Path, time::Duration};
 
 use actix_cors::Cors;
 use actix_redis::RedisSession;
@@ -7,21 +7,39 @@ use actix_web::{
     cookie::time::UtcOffset,
     error, get,
     http::{header, Method, StatusCode},
-    middleware,
+    middleware, post,
     web::{self, Data, Form},
     App, HttpRequest, HttpResponse, HttpServer, Result,
 };
 use anyhow::{bail, Context};
 use chrono::{DateTime, FixedOffset, Local, Utc};
 use derive_more::Constructor;
+use duct::cmd;
 use handlebars::{to_json, Handlebars};
 use log::LevelFilter;
+use once_cell::sync::Lazy;
+use rand::{
+    prelude::{SliceRandom, StdRng},
+    thread_rng, SeedableRng,
+};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use simplelog::{
     ColorChoice, CombinedLogger, ConfigBuilder, SharedLogger, TermLogger, TerminalMode, WriteLogger,
 };
 use sqlx::{MySql, Pool};
+
+static AGGREGATION_LOWER_CASE_NUM: Lazy<Vec<char>> = Lazy::new(|| {
+    let mut az09 = Vec::new();
+    for az in 'a' as u32..('z' as u32 + 1) {
+        az09.push(char::from_u32(az).unwrap());
+    }
+    for s09 in '0' as u32..('9' as u32 + 1) {
+        az09.push(char::from_u32(s09).unwrap());
+    }
+
+    az09
+});
 
 #[derive(Debug, Serialize, Deserialize, Constructor)]
 struct User {
@@ -46,6 +64,7 @@ impl Default for User {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 struct RegisterParams {
     account_name: String,
     password: String,
@@ -76,6 +95,25 @@ async fn db_initialize(pool: &Pool<MySql>) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn escapeshellarg(arg: &str) -> String {
+    format!("'{}'", arg.replace("'", "'\\''"))
+}
+
+fn digest(src: &str) -> anyhow::Result<String> {
+    let output = cmd!(
+        "/bin/bash",
+        "-c",
+        format!(
+            r#"printf "%s" "+{}+" | openssl dgst -sha512 | sed 's/^.*= //'"#,
+            escapeshellarg(src)
+        )
+    )
+    .read()
+    .context("Failed to cmd")?;
+
+    Ok(output.trim_end_matches("\n").to_string())
+}
+
 fn validate_user(account_name: &str, password: &str) -> bool {
     let name_regex = Regex::new(r"\A[0-9a-zA-Z_]{3,}\z").unwrap();
     let pass_regex = Regex::new(r"\A[0-9a-zA-Z_]{6,}\z").unwrap();
@@ -89,6 +127,14 @@ async fn get_initialize(pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
         log::error!("{:?}", &e);
     }
     Ok(HttpResponse::Ok().finish())
+}
+
+fn calculate_salt(account_name: &str) -> anyhow::Result<String> {
+    digest(account_name)
+}
+
+fn calculate_passhash(account_name: &str, password: &str) -> anyhow::Result<String> {
+    digest(&format!("{}:{}", password, calculate_salt(account_name)?))
 }
 
 async fn get_session_user(session: &Session, pool: &Pool<MySql>) -> anyhow::Result<Option<User>> {
@@ -112,6 +158,20 @@ fn is_login(u: Option<&User>) -> bool {
         Some(u) => u.id != 0,
         None => false,
     }
+}
+
+// goと違い文字数指定
+fn secure_random_str(b: u32) -> String {
+    let mut rng = StdRng::from_rng(thread_rng()).unwrap();
+
+    let mut rnd_str = Vec::new();
+    for _ in 0..b {
+        rnd_str.push(AGGREGATION_LOWER_CASE_NUM.choose(&mut rng).unwrap());
+    }
+
+    let rnd_str = rnd_str.iter().map(|c| *c).collect();
+
+    rnd_str
 }
 
 #[get("/login")]
@@ -172,6 +232,7 @@ async fn get_register(
     Ok(HttpResponse::Ok().body(body))
 }
 
+#[post("/register")]
 async fn post_register(
     session: Session,
     pool: Data<Pool<MySql>>,
@@ -196,14 +257,74 @@ async fn post_register(
         ) {
             log::error!("{:?}", &e);
             return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        } else {
+            return Ok(HttpResponse::Found()
+                .insert_header((header::LOCATION, "/register"))
+                .finish());
         }
-
-        return Ok(HttpResponse::Found()
-            .insert_header(((header::LOCATION, "/register")))
-            .finish());
     }
 
-    todo!()
+    let exists = match sqlx::query!(
+        "SELECT 1 AS _exists FROM users WHERE `account_name` = ?",
+        &params.account_name
+    )
+    .fetch_optional(pool.as_ref())
+    .await
+    {
+        Ok(exists) => exists,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    if let Some(_) = exists {
+        if let Err(e) = session.insert("notice", "アカウント名がすでに使われています")
+        {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        } else {
+            return Ok(HttpResponse::Found()
+                .insert_header((header::LOCATION, "/register"))
+                .finish());
+        }
+    }
+
+    let pass_hash = match calculate_passhash(&params.account_name, &params.password) {
+        Ok(p) => p,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+    let uid = match sqlx::query!(
+        "INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)",
+        &params.account_name,
+        pass_hash
+    )
+    .execute(pool.as_ref())
+    .await
+    {
+        Ok(r) => r.last_insert_id(),
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+    log::debug!("last insert id {}", &uid);
+
+    if let Err(e) = session.insert("user_id", uid) {
+        log::error!("{:?}", &e);
+        return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+    }
+    if let Err(e) = session.insert("csrf_token", secure_random_str(32)) {
+        log::error!("{:?}", &e);
+        return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+    }
+
+    Ok(HttpResponse::Found()
+        .insert_header((header::LOCATION, "/"))
+        .finish())
 }
 
 async fn get_logout() -> Result<HttpResponse> {
@@ -333,6 +454,7 @@ async fn main() -> io::Result<()> {
             .service(get_initialize)
             .service(get_login)
             .service(get_register)
+            .service(post_register)
             .service(
                 web::resource("/test").to(|req: HttpRequest| match *req.method() {
                     Method::GET => HttpResponse::Ok(),
