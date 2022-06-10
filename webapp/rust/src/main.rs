@@ -8,7 +8,7 @@ use actix_web::{
     error, get,
     http::{header, Method, StatusCode},
     middleware,
-    web::{self, Data},
+    web::{self, Data, Form},
     App, HttpRequest, HttpResponse, HttpServer, Result,
 };
 use anyhow::{bail, Context};
@@ -46,7 +46,7 @@ impl Default for User {
     }
 }
 
-struct RegisterForm {
+struct RegisterParams {
     account_name: String,
     password: String,
 }
@@ -76,8 +76,11 @@ async fn db_initialize(pool: &Pool<MySql>) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn validate_user(accountName: &str, password: &str) -> bool {
-    Regex::new(#r"\A[0-9a-zA-Z_]{3,}\z").unwrap();
+fn validate_user(account_name: &str, password: &str) -> bool {
+    let name_regex = Regex::new(r"\A[0-9a-zA-Z_]{3,}\z").unwrap();
+    let pass_regex = Regex::new(r"\A[0-9a-zA-Z_]{6,}\z").unwrap();
+
+    name_regex.is_match(account_name) && pass_regex.is_match(password)
 }
 
 #[get("/initialize")]
@@ -169,7 +172,11 @@ async fn get_register(
     Ok(HttpResponse::Ok().body(body))
 }
 
-async fn post_register(session: Session, pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
+async fn post_register(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    params: Form<RegisterParams>,
+) -> Result<HttpResponse> {
     match get_session_user(&session, pool.as_ref()).await {
         Ok(user) => {
             if is_login(user.as_ref()) {
@@ -180,6 +187,21 @@ async fn post_register(session: Session, pool: Data<Pool<MySql>>) -> Result<Http
         }
         Err(e) => log::error!("{:?}", &e),
     };
+
+    let validated = validate_user(&params.account_name, &params.password);
+    if !validated {
+        if let Err(e) = session.insert(
+            "notice",
+            "アカウント名は3文字以上、パスワードは6文字以上である必要があります",
+        ) {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+
+        return Ok(HttpResponse::Found()
+            .insert_header(((header::LOCATION, "/register")))
+            .finish());
+    }
 
     todo!()
 }
