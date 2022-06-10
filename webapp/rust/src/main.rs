@@ -153,6 +153,10 @@ async fn get_session_user(session: &Session, pool: &Pool<MySql>) -> anyhow::Resu
     Ok(user)
 }
 
+fn get_flash() -> String {
+    todo!()
+}
+
 fn is_login(u: Option<&User>) -> bool {
     match u {
         Some(u) => u.id != 0,
