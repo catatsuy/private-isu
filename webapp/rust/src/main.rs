@@ -1,10 +1,12 @@
 use std::{any, env, io, path::Path, time::Duration};
 
 use actix_cors::Cors;
+use actix_files::Files;
 use actix_redis::RedisSession;
 use actix_session::Session;
 use actix_web::{
     cookie::time::UtcOffset,
+    dev::ResourceDef,
     error, get,
     http::{header, Method, StatusCode},
     middleware, post,
@@ -153,8 +155,18 @@ async fn get_session_user(session: &Session, pool: &Pool<MySql>) -> anyhow::Resu
     Ok(user)
 }
 
-fn get_flash() -> String {
-    todo!()
+fn get_flash(session: &Session, key: &str) -> Option<String> {
+    match session.get(key) {
+        Ok(Some(value)) => {
+            session.remove(key);
+            value
+        }
+        Err(e) => {
+            log::error!("{:?}", &e);
+            None
+        }
+        _ => None,
+    }
 }
 
 fn is_login(u: Option<&User>) -> bool {
@@ -225,7 +237,7 @@ async fn get_register(
 
         let mut json = serde_json::to_value(user).unwrap();
         let map = json.as_object_mut().unwrap();
-        map.insert("flash".to_string(), to_json("notice"));
+        map.insert("flash".to_string(), to_json(get_flash(&session, "notice")));
         map.insert("parent".to_string(), to_json("layout"));
         log::debug!("map {:?}", &map);
 
@@ -459,6 +471,8 @@ async fn main() -> io::Result<()> {
             .service(get_login)
             .service(get_register)
             .service(post_register)
+            // .service(ResourceDef::new("/{tail}*").)
+            .service(Files::new("/", "../public"))
             .service(
                 web::resource("/test").to(|req: HttpRequest| match *req.method() {
                     Method::GET => HttpResponse::Ok(),
