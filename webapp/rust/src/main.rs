@@ -67,7 +67,7 @@ impl Default for User {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct RegisterParams {
+struct LoginRegisterParams {
     account_name: String,
     password: String,
 }
@@ -95,6 +95,27 @@ async fn db_initialize(pool: &Pool<MySql>) -> anyhow::Result<()> {
         .context("Failed to db_initialize")?;
 
     Ok(())
+}
+
+async fn try_login(account_name: &str, password: &str, pool: &Pool<MySql>) -> anyhow::Result<User> {
+    let user = sqlx::query_as!(
+        User,
+        "SELECT * FROM users WHERE account_name = ? AND del_flg = 0",
+        account_name
+    )
+    .fetch_optional(pool)
+    .await
+    .context("Failed to query try_login")?;
+
+    if let Some(user) = user {
+        if calculate_passhash(&user.account_name, password)? == user.passhash {
+            Ok(user)
+        } else {
+            bail!("Incorrect password");
+        }
+    } else {
+        bail!("User does not exist");
+    }
 }
 
 fn escapeshellarg(arg: &str) -> String {
@@ -208,9 +229,43 @@ async fn get_login(handlebars: Data<Handlebars<'_>>) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().body(body))
 }
 
-async fn post_login() -> Result<HttpResponse> {
-    todo!();
-    Ok(HttpResponse::Ok().finish())
+#[post("/login")]
+async fn post_login(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    params: Form<LoginRegisterParams>,
+) -> Result<HttpResponse> {
+    match get_session_user(&session, pool.as_ref()).await {
+        Ok(user) => {
+            if is_login(user.as_ref()) {
+                return Ok(HttpResponse::Found()
+                    .insert_header((header::LOCATION, "/"))
+                    .finish());
+            }
+        }
+        Err(e) => log::error!("{:?}", &e),
+    };
+
+    match try_login(&params.account_name, &params.password, pool.as_ref()).await {
+        Ok(user) => {
+            session.insert("user_id", user.id).unwrap();
+            session.insert("csrf_token", secure_random_str(32)).unwrap();
+
+            Ok(HttpResponse::Found()
+                .insert_header((header::LOCATION, "/"))
+                .finish())
+        }
+        Err(e) => {
+            log::error!("{:?}", &e);
+            session
+                .insert("notice", "アカウント名かパスワードが間違っています")
+                .unwrap();
+
+            Ok(HttpResponse::Found()
+                .insert_header((header::LOCATION, "/login"))
+                .finish())
+        }
+    }
 }
 
 #[get("/register")]
@@ -252,7 +307,7 @@ async fn get_register(
 async fn post_register(
     session: Session,
     pool: Data<Pool<MySql>>,
-    params: Form<RegisterParams>,
+    params: Form<LoginRegisterParams>,
 ) -> Result<HttpResponse> {
     match get_session_user(&session, pool.as_ref()).await {
         Ok(user) => {
@@ -469,6 +524,7 @@ async fn main() -> io::Result<()> {
             .app_data(Data::new(handlebars))
             .service(get_initialize)
             .service(get_login)
+            .service(post_login)
             .service(get_register)
             .service(post_register)
             // .service(ResourceDef::new("/{tail}*").)
