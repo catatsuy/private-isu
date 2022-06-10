@@ -212,13 +212,35 @@ fn secure_random_str(b: u32) -> String {
 }
 
 #[get("/login")]
-async fn get_login(handlebars: Data<Handlebars<'_>>) -> Result<HttpResponse> {
-    let body = {
-        let user = User::new(0, "test".to_string(), "pass".to_string(), 0, 0, Utc::now());
+async fn get_login(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    handlebars: Data<Handlebars<'_>>,
+) -> Result<HttpResponse> {
+    let user = match get_session_user(&session, pool.as_ref()).await {
+        Ok(user) => {
+            if is_login(user.as_ref()) {
+                return Ok(HttpResponse::Found()
+                    .insert_header((header::LOCATION, "/"))
+                    .finish());
+            }
 
+            if let Some(user) = user {
+                user
+            } else {
+                User::default()
+            }
+        }
+        Err(e) => {
+            log::error!("{:?}", &e);
+            User::default()
+        }
+    };
+
+    let body = {
         let mut json = serde_json::to_value(user).unwrap();
         let map = json.as_object_mut().unwrap();
-        map.insert("flash".to_string(), to_json("notice"));
+        map.insert("flash".to_string(), to_json(get_flash(&session, "notice")));
         map.insert("parent".to_string(), to_json("layout"));
         log::debug!("{:?}", &map);
 
