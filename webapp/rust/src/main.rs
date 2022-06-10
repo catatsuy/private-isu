@@ -310,6 +310,10 @@ fn is_login(u: Option<&User>) -> bool {
     }
 }
 
+fn get_csrf_token(session: &Session) -> Option<String> {
+    session.get("csrf_token").unwrap_or_default()
+}
+
 // goと違い文字数指定
 fn secure_random_str(b: u32) -> String {
     let mut rng = StdRng::from_rng(thread_rng()).unwrap();
@@ -548,11 +552,25 @@ async fn get_index(session: Session, pool: Data<Pool<MySql>>) -> Result<HttpResp
         Ok(results) => results,
         Err(e) => {
             log::error!("{:?}",&e);
-        return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
         }
     };
 
-    // TODO: fn make_posts
+    let csrf_token = if let Some(token) = get_csrf_token(&session) {
+        token
+    } else {
+        log::error!("token is None");
+        return Ok(HttpResponse::InternalServerError().finish());
+    };
+    let posts = match make_post(results, csrf_token, false, pool.as_ref()).await {
+        Ok(posts) => posts,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    // TODO: after golang 406 line
     Ok(HttpResponse::Ok().finish())
 }
 
