@@ -83,7 +83,7 @@ struct GrantedInfoPost {
     comment_count: i64,
     comments: Vec<GrantedUserComment>,
     user: User,
-    csrftoken: String,
+    csrf_token: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Constructor)]
@@ -547,7 +547,11 @@ async fn get_logout(session: Session) -> Result<HttpResponse> {
 }
 
 #[get("/")]
-async fn get_index(session: Session, pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
+async fn get_index(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    handlebars: Data<Handlebars<'_>>,
+) -> Result<HttpResponse> {
     let results = match sqlx::query_as_unchecked!(Post,"SELECT `id`, `user_id`, `body`, `mime`, `created_at`, NULL AS imgdata FROM `posts` ORDER BY `created_at` DESC").fetch_all(pool.as_ref()).await {
         Ok(results) => results,
         Err(e) => {

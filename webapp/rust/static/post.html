@@ -1,33 +1,33 @@
-<div class="isu-post" id="pid_{{id}}" data-created-at="{{.CreatedAt.Format " 2006-01-02T15:04:05-07:00"}}">
+<div class="isu-post" id="pid_{{id}}" data-created-at="{{created_at " 2006-01-02T15:04:05-07:00"}}">
   <div class="isu-post-header">
-    <a href="/@{{.User.AccountName}} " class="isu-post-account-name">{{ .User.AccountName }}</a>
-    <a href="/posts/{{.ID}}" class="isu-post-permalink">
-      <time class="timeago" datetime="{{.CreatedAt.Format " 2006-01-02T15:04:05-07:00"}}"></time>
+    <a href="/@{{user.account_name}} " class="isu-post-account-name">{{user.account_name}}</a>
+    <a href="/posts/{{id}}" class="isu-post-permalink">
+      <time class="timeago" datetime="{{created_at " 2006-01-02T15:04:05-07:00"}}"></time>
     </a>
   </div>
   <div class="isu-post-image">
     <img src="{{imageURL .}}" class="isu-image">
   </div>
   <div class="isu-post-text">
-    <a href="/@{{.User.AccountName}}" class="isu-post-account-name">{{ .User.AccountName }}</a>
-    {{ .Body }}
+    <a href="/@{{user.account_name}}" class="isu-post-account-name">{{user.account_name}}</a>
+    {{body}}
   </div>
   <div class="isu-post-comment">
     <div class="isu-post-comment-count">
-      comments: <b>{{ .CommentCount }}</b>
+      comments: <b>{{comment_count}}</b>
     </div>
 
-    {{ range .Comments }}
+    {{#each comments}}
     <div class="isu-comment">
-      <a href="/@{{.User.AccountName}}" class="isu-comment-account-name">{{.User.AccountName}}</a>
-      <span class="isu-comment-text">{{.Comment}}</span>
+      <a href="/@{{user.account_name}}" class="isu-comment-account-name">{{user.account_name}}</a>
+      <span class="isu-comment-text">{{comment.comment}}</span>
     </div>
-    {{ end }}
+    {{/each}}
     <div class="isu-comment-form">
       <form method="post" action="/comment">
         <input type="text" name="comment">
-        <input type="hidden" name="post_id" value="{{.ID}}">
-        <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+        <input type="hidden" name="post_id" value="{{id}}">
+        <input type="hidden" name="csrf_token" value="{{csrf_token}}">
         <input type="submit" name="submit" value="submit">
       </form>
     </div>
