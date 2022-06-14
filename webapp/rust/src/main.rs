@@ -303,6 +303,17 @@ async fn make_post(
     Ok(granted_info_posts)
 }
 
+fn image_url(p: &GrantedInfoPost) -> String {
+    let ext = match p.post.mime.as_str() {
+        "image/jpeg" => ".jpg",
+        "image/png" => ".png",
+        "image/gif" => ".gif",
+        _ => "",
+    };
+
+    format!("/image/{}{}", p.post.id, ext)
+}
+
 fn is_login(u: Option<&User>) -> bool {
     match u {
         Some(u) => u.id != 0,
