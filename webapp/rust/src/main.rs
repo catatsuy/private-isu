@@ -15,7 +15,10 @@ use actix_web::{
     cookie::time::UtcOffset,
     dev::ResourceDef,
     error, get,
-    http::{header, Method, StatusCode},
+    http::{
+        header::{self, ContentType},
+        Method, StatusCode,
+    },
     middleware, post,
     web::{self, Data, Form},
     App, HttpRequest, HttpResponse, HttpServer, Result,
@@ -79,7 +82,7 @@ impl Default for User {
 struct Post {
     id: i32,
     user_id: i32,
-    imgdata: Option<Vec<u8>>,
+    imgdata: Vec<u8>,
     body: String,
     mime: String,
     created_at: chrono::DateTime<Utc>,
@@ -391,13 +394,14 @@ async fn get_login(
     };
 
     let body = {
-        let mut json = serde_json::to_value(user).unwrap();
-        let map = json.as_object_mut().unwrap();
+        let mut map = Map::new();
+
+        map.insert("user".to_string(), to_json(user));
         map.insert("flash".to_string(), to_json(get_flash(&session, "notice")));
         map.insert("parent".to_string(), to_json("layout"));
         log::debug!("{:?}", &map);
 
-        handlebars.render("login", map).unwrap()
+        handlebars.render("login", &map).unwrap()
     };
     log::debug!("{:?}", &body);
 
@@ -465,13 +469,14 @@ async fn get_register(
     let body = {
         let user = User::default();
 
-        let mut json = serde_json::to_value(user).unwrap();
-        let map = json.as_object_mut().unwrap();
+        let mut map = Map::new();
+
+        map.insert("user".to_string(), to_json(user));
         map.insert("flash".to_string(), to_json(get_flash(&session, "notice")));
         map.insert("parent".to_string(), to_json("layout"));
         log::debug!("map {:?}", &map);
 
-        handlebars.render("register", map).unwrap()
+        handlebars.render("register", &map).unwrap()
     };
 
     log::debug!("return ok");
@@ -596,7 +601,7 @@ async fn get_index(
         }
     };
 
-    let results = match sqlx::query_as_unchecked!(Post,"SELECT `id`, `user_id`, `body`, `mime`, `created_at`, NULL AS imgdata FROM `posts` ORDER BY `created_at` DESC").fetch_all(pool.as_ref()).await {
+    let results = match sqlx::query_as!(Post,"SELECT `id`, `user_id`, `body`, `mime`, `created_at`, b'0' AS imgdata FROM `posts` ORDER BY `created_at` DESC").fetch_all(pool.as_ref()).await {
         Ok(results) => results,
         Err(e) => {
             log::error!("{:?}",&e);
@@ -621,9 +626,9 @@ async fn get_index(
 
     let body = {
         let mut map = Map::new();
-        let json = serde_json::to_value(posts).unwrap();
+        // let posts = serde_json::to_value(posts).unwrap();
         // let map = json.as_object_mut().unwrap();
-        map.insert("posts".to_string(), to_json(json.as_array()));
+        map.insert("posts".to_string(), to_json(posts));
         map.insert("user".to_string(), to_json(me));
         map.insert(
             "csrf_token".to_string(),
@@ -657,8 +662,53 @@ async fn post_index() -> Result<HttpResponse> {
     todo!()
 }
 
-async fn get_image() -> Result<HttpResponse> {
-    todo!()
+#[get("/image/{path}")]
+async fn get_image(path: web::Path<(String,)>, pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
+    let (pid, ext) = match path.0.rsplit_once(".") {
+        Some((pid, ext)) => {
+            let pid = match pid.parse::<u64>() {
+                Ok(pid) => pid,
+                Err(e) => {
+                    log::warn!("{:?}", &e);
+                    return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+                }
+            };
+            (pid, ext)
+        }
+        None => {
+            let e = "Invalid path";
+            log::warn!("{}", e);
+            return Ok(HttpResponse::InternalServerError().body(e));
+        }
+    };
+
+    let post = match sqlx::query_as!(Post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+        .fetch_optional(pool.as_ref())
+        .await
+    {
+        Ok(Some(post)) => post,
+        Err(e) => {
+            log::warn!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+        _ => {
+            return Ok(HttpResponse::InternalServerError().finish());
+        }
+    };
+
+    if ext == "jpg" && post.mime == "image/jpeg"
+        || ext == "png" && post.mime == "image/png"
+        || ext == "gif" && post.mime == "image/gif"
+    {}
+
+    let content_type = match (ext, post.mime.as_str()) {
+        ("jpg", "image/jpeg") | ("png", "image/png") | ("gif", "image/gif") => post.mime.as_str(),
+        _ => return Ok(HttpResponse::InternalServerError().finish()),
+    };
+
+    Ok(HttpResponse::Ok()
+        .content_type(content_type)
+        .body(post.imgdata))
 }
 
 async fn post_comment() -> Result<HttpResponse> {
@@ -772,6 +822,7 @@ async fn main() -> io::Result<()> {
             .service(post_register)
             .service(get_logout)
             .service(get_index)
+            .service(get_image)
             // .service(ResourceDef::new("/{tail}*").)
             .service(Files::new("/", "../public"))
             .service(
@@ -786,6 +837,3 @@ async fn main() -> io::Result<()> {
     .run()
     .await
 }
-
-static LAYOUT: &str = include_str!("../templates/layout.html");
-static LOGIN: &str = include_str!("../templates/login.html");
