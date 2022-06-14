@@ -758,7 +758,9 @@ async fn main() -> io::Result<()> {
             .wrap(if cfg!(debug_assertions) {
                 Cors::permissive()
             } else {
-                Cors::default().supports_credentials()
+                Cors::default()
+                    .supports_credentials()
+                    .allowed_origin("http://localhost")
             })
             .wrap(RedisSession::new(redis_url.clone(), private_key.master()))
             .app_data(Data::new(db.clone()))
