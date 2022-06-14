@@ -1,4 +1,11 @@
-use std::{any, env, io, path::Path, time::Duration};
+use std::{
+    any,
+    collections::HashMap,
+    env,
+    io::{self, Write},
+    path::Path,
+    time::Duration,
+};
 
 use actix_cors::Cors;
 use actix_files::Files;
@@ -17,7 +24,7 @@ use anyhow::{bail, Context};
 use chrono::{DateTime, FixedOffset, Local, Utc};
 use derive_more::Constructor;
 use duct::cmd;
-use handlebars::{to_json, Handlebars};
+use handlebars::{handlebars_helper, to_json, Handlebars};
 use log::LevelFilter;
 use once_cell::sync::Lazy;
 use rand::{
@@ -26,6 +33,7 @@ use rand::{
 };
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::Map;
 use simplelog::{
     ColorChoice, CombinedLogger, ConfigBuilder, SharedLogger, TermLogger, TerminalMode, WriteLogger,
 };
@@ -243,7 +251,7 @@ async fn make_post(
         .context("Failed to query comment_count")?
         .count;
 
-        let mut comments = if !all_comments {
+        let mut comments = if all_comments {
             sqlx::query_as!(
                 Comment,
                 "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC",
@@ -274,6 +282,7 @@ async fn make_post(
             .await
             .context("Failed to query user")?
             .context("Not found user")?;
+            log::debug!("comment user {:?}", &user);
 
             granted_comments.push(GrantedUserComment::new(comment, user));
         }
@@ -285,6 +294,7 @@ async fn make_post(
             .await
             .context("Failed to query user")?
             .context("Not found user")?;
+        log::debug!("user {:?}", &user);
 
         if user.del_flg == 0 {
             granted_info_posts.push(GrantedInfoPost::new(
@@ -303,16 +313,31 @@ async fn make_post(
     Ok(granted_info_posts)
 }
 
-fn image_url(p: &GrantedInfoPost) -> String {
+// fn image_url(p: &GrantedInfoPost) -> String {
+//     let ext = match p.post.mime.as_str() {
+//         "image/jpeg" => ".jpg",
+//         "image/png" => ".png",
+//         "image/gif" => ".gif",
+//         _ => "",
+//     };
+
+//     format!("/image/{}{}", p.post.id, ext)
+// }
+
+handlebars_helper!(image_url: |p: GrantedInfoPost| {
     let ext = match p.post.mime.as_str() {
-        "image/jpeg" => ".jpg",
-        "image/png" => ".png",
-        "image/gif" => ".gif",
-        _ => "",
-    };
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            "image/gif" => ".gif",
+            _ => "",
+        };
 
     format!("/image/{}{}", p.post.id, ext)
-}
+});
+
+handlebars_helper!(date_time_format: |create_at: DateTime<Utc>| {
+    create_at.format("%Y-%m-%dT%H:%M:%S-07:00").to_string()
+});
 
 fn is_login(u: Option<&User>) -> bool {
     match u {
@@ -563,6 +588,14 @@ async fn get_index(
     pool: Data<Pool<MySql>>,
     handlebars: Data<Handlebars<'_>>,
 ) -> Result<HttpResponse> {
+    let me = match get_session_user(&session, pool.as_ref()).await {
+        Ok(user) => user.unwrap_or_default(),
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
     let results = match sqlx::query_as_unchecked!(Post,"SELECT `id`, `user_id`, `body`, `mime`, `created_at`, NULL AS imgdata FROM `posts` ORDER BY `created_at` DESC").fetch_all(pool.as_ref()).await {
         Ok(results) => results,
         Err(e) => {
@@ -571,12 +604,13 @@ async fn get_index(
         }
     };
 
-    let csrf_token = if let Some(token) = get_csrf_token(&session) {
-        token
-    } else {
-        log::error!("token is None");
-        return Ok(HttpResponse::InternalServerError().finish());
-    };
+    let csrf_token = get_csrf_token(&session).unwrap_or_default();
+    // let csrf_token = if let Some(token) = get_csrf_token(&session) {
+    //     token
+    // } else {
+    //     log::error!("token is None");
+    //     return Ok(HttpResponse::InternalServerError().finish());
+    // };
     let posts = match make_post(results, csrf_token, false, pool.as_ref()).await {
         Ok(posts) => posts,
         Err(e) => {
@@ -585,8 +619,30 @@ async fn get_index(
         }
     };
 
+    let body = {
+        let mut map = Map::new();
+        let json = serde_json::to_value(posts).unwrap();
+        // let map = json.as_object_mut().unwrap();
+        map.insert("posts".to_string(), to_json(json.as_array()));
+        map.insert("user".to_string(), to_json(me));
+        map.insert(
+            "csrf_token".to_string(),
+            to_json(get_csrf_token(&session).unwrap_or_default()),
+        );
+        map.insert("flash".to_string(), to_json(get_flash(&session, "notice")));
+
+        map.insert("post_parent".to_string(), to_json("posts"));
+        map.insert("posts_parent".to_string(), to_json("index"));
+        map.insert("content_parent".to_string(), to_json("layout"));
+
+        let mut file = std::fs::File::create("map.json")?;
+        write!(file, "{:#?}", &map)?;
+        file.flush().unwrap();
+
+        handlebars.render("post", &map).unwrap()
+    };
     // TODO: after golang 406 line
-    Ok(HttpResponse::Ok().finish())
+    Ok(HttpResponse::Ok().body(body))
 }
 
 async fn get_posts() -> Result<HttpResponse> {
@@ -691,6 +747,8 @@ async fn main() -> io::Result<()> {
 
     HttpServer::new(move || {
         let mut handlebars = Handlebars::new();
+        handlebars.register_helper("image_url_helper", Box::new(image_url));
+        handlebars.register_helper("date_time_format", Box::new(date_time_format));
         handlebars
             .register_templates_directory(".html", "./static")
             .unwrap();
@@ -721,12 +779,6 @@ async fn main() -> io::Result<()> {
                     _ => HttpResponse::NotFound(),
                 }),
             )
-            .service(web::resource("/").to(|| async {
-                error::InternalError::new(
-                    io::Error::new(io::ErrorKind::Other, "test"),
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                )
-            }))
     })
     .bind(("0.0.0.0", 8080))?
     .run()

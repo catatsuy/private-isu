@@ -14,7 +14,7 @@ services:
     cpus: 1
     mem_limit: 1g
     # Go実装の場合は golang/ PHP実装の場合は php/
-    build: golang/
+    build: rust/
     environment:
       ISUCONP_DB_HOST: mysql
       ISUCONP_DB_PORT: 3306
@@ -28,6 +28,7 @@ services:
     volumes:
       - ./public:/home/public
     init: true
+    depends_on: mysql
 
   mysql:
     cpus: 1

@@ -1,15 +1,16 @@
-<div class="isu-post" id="pid_{{id}}" data-created-at="{{created_at " 2006-01-02T15:04:05-07:00"}}">
+{{#*inline "post_html"}}
+<div class="isu-post" id="pid_{{post.id}}" data-created-at="{{date_time_format post.created_at}}">
   <div class="isu-post-header">
-    <a href="/@{{user.account_name}} " class="isu-post-account-name">{{user.account_name}}</a>
-    <a href="/posts/{{id}}" class="isu-post-permalink">
-      <time class="timeago" datetime="{{created_at " 2006-01-02T15:04:05-07:00"}}"></time>
+    <a href="/{{user.account_name}} " class="isu-post-account-name">{{user.account_name}}</a>
+    <a href="/posts/{{post.id}}" class="isu-post-permalink">
+      <time class="timeago" datetime="{{date_time_format post.created_at}}"></time>
     </a>
   </div>
   <div class="isu-post-image">
-    <img src="{{imageURL .}}" class="isu-image">
+    <img src="{{image_url_helper this}}" class="isu-image">
   </div>
   <div class="isu-post-text">
-    <a href="/@{{user.account_name}}" class="isu-post-account-name">{{user.account_name}}</a>
+    <a href="/{{user.account_name}}" class="isu-post-account-name">{{user.account_name}}</a>
     {{body}}
   </div>
   <div class="isu-post-comment">
@@ -19,17 +20,19 @@
 
     {{#each comments}}
     <div class="isu-comment">
-      <a href="/@{{user.account_name}}" class="isu-comment-account-name">{{user.account_name}}</a>
+      <a href="/{{user.account_name}}" class="isu-comment-account-name">{{user.account_name}}</a>
       <span class="isu-comment-text">{{comment.comment}}</span>
     </div>
     {{/each}}
     <div class="isu-comment-form">
       <form method="post" action="/comment">
         <input type="text" name="comment">
-        <input type="hidden" name="post_id" value="{{id}}">
+        <input type="hidden" name="post_id" value="{{post.id}}">
         <input type="hidden" name="csrf_token" value="{{csrf_token}}">
         <input type="submit" name="submit" value="submit">
       </form>
     </div>
   </div>
 </div>
+{{/inline}}
+{{> (lookup this "post_parent")}}
