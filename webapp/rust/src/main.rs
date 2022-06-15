@@ -739,7 +739,7 @@ async fn get_posts_id(
     Ok(HttpResponse::Ok().body(body))
 }
 
-// golang版と処理順が異なる
+// NOTE: golang版と処理順が異なる
 #[post("/")]
 async fn post_index(
     session: Session,
@@ -805,7 +805,7 @@ async fn post_index(
                 }
             }
             "body" => {
-                // 例外処理入れたほうがいい？
+                // NOTE: 例外処理入れたほうがいい？
                 let bytes = field_to_vec(&mut field).await.unwrap_or_default();
                 body = String::from_utf8(bytes).unwrap_or_default();
             }
