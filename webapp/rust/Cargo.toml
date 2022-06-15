@@ -8,6 +8,7 @@ version = "0.1.0"
 [dependencies]
 actix-cors = "0.6.1"
 actix-files = "0.6.0"
+actix-multipart = "0.4.0"
 actix-redis = "0.10.0"
 actix-session = "0.5.0"
 actix-web = "4.0.1"
@@ -19,6 +20,7 @@ anyhow = "1.0.57"
 chrono = {version = "0.4.19", features = ["serde"]}
 derive_more = "0.99.17"
 duct = "0.13.5"
+futures-util = {version = "0.3.21", default-features = false, features = ["std"]}
 log = "0.4.17"
 num_cpus = "1.13.1"
 once_cell = "1.10.0"
