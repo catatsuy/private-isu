@@ -640,22 +640,84 @@ async fn get_index(
         map.insert("posts_parent".to_string(), to_json("index"));
         map.insert("content_parent".to_string(), to_json("layout"));
 
-        let mut file = std::fs::File::create("map.json")?;
-        write!(file, "{:#?}", &map)?;
-        file.flush().unwrap();
-
         handlebars.render("post", &map).unwrap()
     };
-    // TODO: after golang 406 line
+
     Ok(HttpResponse::Ok().body(body))
 }
 
+#[get("/posts")]
 async fn get_posts() -> Result<HttpResponse> {
     todo!()
 }
 
-async fn get_posts_id() -> Result<HttpResponse> {
-    todo!()
+#[get("/posts/{id}")]
+async fn get_posts_id(
+    pid: web::Path<(u64,)>,
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    handlebars: Data<Handlebars<'_>>,
+) -> Result<HttpResponse> {
+    let results = match sqlx::query_as!(Post, "SELECT * FROM `posts` WHERE `id` = ?", pid.0)
+        .fetch_all(pool.as_ref())
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let posts = match make_post(
+        results,
+        get_csrf_token(&session).unwrap_or_default(),
+        true,
+        pool.as_ref(),
+    )
+    .await
+    {
+        Ok(p) => p,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    if posts.is_empty() {
+        return Ok(HttpResponse::NotFound().finish());
+    }
+
+    let p = &posts[0];
+
+    let me = match get_session_user(&session, pool.as_ref()).await {
+        Ok(u) => u.unwrap_or_default(),
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let body = {
+        // let mut map = Map::new();
+        // let posts = serde_json::to_value(posts).unwrap();
+        // let map = json.as_object_mut().unwrap();
+        // map.insert("post".to_string(), to_json(p));
+
+        let mut post = serde_json::to_value(p).unwrap();
+        let map = post.as_object_mut().unwrap();
+        map.insert("user".to_string(), to_json(me));
+
+        map.insert("post_parent".to_string(), to_json("post_id"));
+        map.insert("content_parent".to_string(), to_json("layout"));
+
+        // let mut file = std::fs::File::create(".tmp/get_posts_id.json").unwrap();
+        // write!(file, "{:#?}", &map).unwrap();
+
+        handlebars.render("post", &map).unwrap()
+    };
+
+    Ok(HttpResponse::Ok().body(body))
 }
 
 async fn post_index() -> Result<HttpResponse> {
@@ -822,6 +884,8 @@ async fn main() -> io::Result<()> {
             .service(post_register)
             .service(get_logout)
             .service(get_index)
+            .service(get_posts)
+            .service(get_posts_id)
             .service(get_image)
             // .service(ResourceDef::new("/{tail}*").)
             .service(Files::new("/", "../public"))
