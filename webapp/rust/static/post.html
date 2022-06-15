@@ -1,7 +1,7 @@
 {{#*inline "post_html"}}
 <div class="isu-post" id="pid_{{post.id}}" data-created-at="{{date_time_format post.created_at}}">
   <div class="isu-post-header">
-    <a href="/{{user.account_name}} " class="isu-post-account-name">{{user.account_name}}</a>
+    <a href="/@{{user.account_name}} " class="isu-post-account-name">{{user.account_name}}</a>
     <a href="/posts/{{post.id}}" class="isu-post-permalink">
       <time class="timeago" datetime="{{date_time_format post.created_at}}"></time>
     </a>
@@ -10,7 +10,7 @@
     <img src="{{image_url_helper this}}" class="isu-image">
   </div>
   <div class="isu-post-text">
-    <a href="/{{user.account_name}}" class="isu-post-account-name">{{user.account_name}}</a>
+    <a href="/@{{user.account_name}}" class="isu-post-account-name">{{user.account_name}}</a>
     {{body}}
   </div>
   <div class="isu-post-comment">
@@ -20,7 +20,7 @@
 
     {{#each comments}}
     <div class="isu-comment">
-      <a href="/{{user.account_name}}" class="isu-comment-account-name">{{user.account_name}}</a>
+      <a href="/@{{user.account_name}}" class="isu-comment-account-name">{{user.account_name}}</a>
       <span class="isu-comment-text">{{comment.comment}}</span>
     </div>
     {{/each}}

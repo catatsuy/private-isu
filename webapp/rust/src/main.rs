@@ -665,6 +665,10 @@ async fn get_index(
     Ok(HttpResponse::Ok().body(body))
 }
 
+async fn get_account_name() {
+    todo!()
+}
+
 #[get("/posts")]
 async fn get_posts() -> Result<HttpResponse> {
     todo!()
