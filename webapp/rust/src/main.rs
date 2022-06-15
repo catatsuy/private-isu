@@ -935,7 +935,7 @@ fn init_logger<P: AsRef<Path>>(log_path: Option<P>) {
             if cfg!(debug_assertions) {
                 LevelFilter::Debug
             } else {
-                LevelFilter::Info
+                LevelFilter::Warn
             },
             config.build(),
             TerminalMode::Mixed,
