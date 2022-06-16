@@ -21,7 +21,7 @@ use actix_web::{
         Method, StatusCode,
     },
     middleware, post,
-    web::{self, Bytes, Data, Form},
+    web::{self, Bytes, Data, Form, Payload},
     App, HttpRequest, HttpResponse, HttpServer, Result,
 };
 use anyhow::{bail, Context};
@@ -132,6 +132,12 @@ struct IndexParams {
 struct CommentParams {
     comment: String,
     post_id: u64,
+    csrf_token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct BannedParams {
+    uid: Vec<u64>,
     csrf_token: String,
 }
 
@@ -1012,7 +1018,18 @@ async fn get_admin_banned(
 }
 
 #[post("/admin/banned")]
-async fn post_admin_banned(session: Session, pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
+async fn post_admin_banned(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    mut payload: Payload,
+) -> Result<HttpResponse> {
+    let mut bytes = Vec::new();
+    while let Some(field) = payload.try_next().await? {
+        bytes.append(&mut field.to_vec());
+    }
+    let body = String::from_utf8(bytes).unwrap();
+    log::debug!("{}", body);
+
     let me = match get_session_user(&session, pool.as_ref()).await {
         Ok(me) => {
             if !is_login(me.as_ref()) {
@@ -1031,7 +1048,8 @@ async fn post_admin_banned(session: Session, pool: Data<Pool<MySql>>) -> Result<
     if me.authority == 0 {
         return Ok(HttpResponse::Forbidden().finish());
     }
-    todo!()
+
+    Ok(HttpResponse::Ok().body("Ok"))
 }
 
 fn init_logger<P: AsRef<Path>>(log_path: Option<P>) {
