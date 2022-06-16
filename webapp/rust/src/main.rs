@@ -910,6 +910,7 @@ async fn get_image(path: web::Path<(String,)>, pool: Data<Pool<MySql>>) -> Resul
         .body(post.imgdata))
 }
 
+#[post("/comment")]
 async fn post_comment(
     session: Session,
     pool: Data<Pool<MySql>>,
@@ -952,8 +953,62 @@ async fn post_comment(
         .finish())
 }
 
-async fn get_admin_banned() -> Result<HttpResponse> {
-    todo!()
+// NOTE: adminアカウントがわからないので検証できてない
+#[get("/admin/banned")]
+async fn get_admin_banned(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    handlebars: Data<Handlebars<'_>>,
+) -> Result<HttpResponse> {
+    let me = match get_session_user(&session, pool.as_ref()).await {
+        Ok(me) => {
+            if !is_login(me.as_ref()) {
+                return Ok(HttpResponse::Found()
+                    .insert_header((header::LOCATION, "/"))
+                    .finish());
+            }
+            me.unwrap_or_default()
+        }
+        Err(e) => {
+            log::warn!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    if me.authority == 0 {
+        return Ok(HttpResponse::Forbidden().finish());
+    }
+
+    let users = match sqlx::query_as!(
+        User,
+        "SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC"
+    )
+    .fetch_all(pool.as_ref())
+    .await
+    {
+        Ok(users) => users,
+        Err(e) => {
+            log::warn!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let body = {
+        let mut map = Map::new();
+
+        map.insert("users".to_string(), to_json(users));
+        map.insert("user".to_string(), to_json(me));
+        map.insert(
+            "csrf_token".to_string(),
+            to_json(get_csrf_token(&session).unwrap_or_default()),
+        );
+
+        map.insert("content_parent".to_string(), to_json("layout"));
+
+        handlebars.render("banned", &map).unwrap()
+    };
+
+    Ok(HttpResponse::Ok().body(body))
 }
 
 async fn post_admin_banned() -> Result<HttpResponse> {
@@ -1063,6 +1118,8 @@ async fn main() -> io::Result<()> {
             .service(get_posts_id)
             .service(post_index)
             .service(get_image)
+            .service(post_comment)
+            .service(get_admin_banned)
             // .service(ResourceDef::new("/{tail}*").)
             .service(Files::new("/", "../public"))
             .service(
