@@ -128,6 +128,13 @@ struct IndexParams {
     csrf_token: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct CommentParams {
+    comment: String,
+    post_id: u64,
+    csrf_token: String,
+}
+
 async fn field_to_vec(field: &mut Field) -> anyhow::Result<Vec<u8>> {
     let mut b = Vec::new();
     while let Some(chunk) = field.try_next().await? {
@@ -903,8 +910,46 @@ async fn get_image(path: web::Path<(String,)>, pool: Data<Pool<MySql>>) -> Resul
         .body(post.imgdata))
 }
 
-async fn post_comment() -> Result<HttpResponse> {
-    todo!()
+async fn post_comment(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    params: Form<CommentParams>,
+) -> Result<HttpResponse> {
+    let me = match get_session_user(&session, pool.as_ref()).await {
+        Ok(me) => {
+            if !is_login(me.as_ref()) {
+                return Ok(HttpResponse::Found()
+                    .insert_header((header::LOCATION, "/login"))
+                    .finish());
+            }
+            me.unwrap_or_default()
+        }
+        Err(e) => {
+            log::warn!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    if params.csrf_token != get_csrf_token(&session).unwrap_or_default() {
+        return Ok(HttpResponse::UnprocessableEntity().finish());
+    }
+
+    if let Err(e) = sqlx::query!(
+        "INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)",
+        params.post_id,
+        me.id,
+        &params.comment
+    )
+    .execute(pool.as_ref())
+    .await
+    {
+        log::warn!("{:?}", &e);
+        return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+    }
+
+    Ok(HttpResponse::Found()
+        .insert_header((header::LOCATION, format!("/posts/{}", params.post_id)))
+        .finish())
 }
 
 async fn get_admin_banned() -> Result<HttpResponse> {
