@@ -893,11 +893,6 @@ async fn get_image(path: web::Path<(String,)>, pool: Data<Pool<MySql>>) -> Resul
         }
     };
 
-    if ext == "jpg" && post.mime == "image/jpeg"
-        || ext == "png" && post.mime == "image/png"
-        || ext == "gif" && post.mime == "image/gif"
-    {}
-
     let content_type = match (ext, post.mime.as_str()) {
         ("jpg", "image/jpeg") | ("png", "image/png") | ("gif", "image/gif") => post.mime.as_str(),
         _ => return Ok(HttpResponse::InternalServerError().finish()),
