@@ -199,7 +199,7 @@ fn digest(src: &str) -> anyhow::Result<String> {
         "/bin/bash",
         "-c",
         format!(
-            r#"printf "%s" "+{}+" | openssl dgst -sha512 | sed 's/^.*= //'"#,
+            r#"printf "%s" {} | openssl dgst -sha512 | sed 's/^.*= //'"#,
             escapeshellarg(src)
         )
     )
@@ -1011,7 +1011,26 @@ async fn get_admin_banned(
     Ok(HttpResponse::Ok().body(body))
 }
 
-async fn post_admin_banned() -> Result<HttpResponse> {
+#[post("/admin/banned")]
+async fn post_admin_banned(session: Session, pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
+    let me = match get_session_user(&session, pool.as_ref()).await {
+        Ok(me) => {
+            if !is_login(me.as_ref()) {
+                return Ok(HttpResponse::Found()
+                    .insert_header((header::LOCATION, "/"))
+                    .finish());
+            }
+            me.unwrap_or_default()
+        }
+        Err(e) => {
+            log::warn!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    if me.authority == 0 {
+        return Ok(HttpResponse::Forbidden().finish());
+    }
     todo!()
 }
 
@@ -1120,6 +1139,7 @@ async fn main() -> io::Result<()> {
             .service(get_image)
             .service(post_comment)
             .service(get_admin_banned)
+            .service(post_admin_banned)
             // .service(ResourceDef::new("/{tail}*").)
             .service(Files::new("/", "../public"))
             .service(
