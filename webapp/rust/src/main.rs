@@ -9,6 +9,7 @@ use std::{
 
 use actix_cors::Cors;
 use actix_files::Files;
+use actix_multipart::{Field, Multipart, MultipartError};
 use actix_redis::RedisSession;
 use actix_session::Session;
 use actix_web::{
@@ -20,13 +21,14 @@ use actix_web::{
         Method, StatusCode,
     },
     middleware, post,
-    web::{self, Data, Form},
+    web::{self, Bytes, Data, Form},
     App, HttpRequest, HttpResponse, HttpServer, Result,
 };
 use anyhow::{bail, Context};
 use chrono::{DateTime, FixedOffset, Local, Utc};
 use derive_more::Constructor;
 use duct::cmd;
+use futures_util::TryStreamExt;
 use handlebars::{handlebars_helper, to_json, Handlebars};
 use log::LevelFilter;
 use once_cell::sync::Lazy;
@@ -43,6 +45,7 @@ use simplelog::{
 use sqlx::{MySql, Pool};
 
 const POSTS_PER_PAGE: usize = 20;
+const UPLOAD_LIMIT: usize = 10 * 1024 * 1024;
 static AGGREGATION_LOWER_CASE_NUM: Lazy<Vec<char>> = Lazy::new(|| {
     let mut az09 = Vec::new();
     for az in 'a' as u32..('z' as u32 + 1) {
@@ -116,6 +119,22 @@ struct GrantedUserComment {
 struct LoginRegisterParams {
     account_name: String,
     password: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct IndexParams {
+    file: Vec<u8>,
+    body: String,
+    csrf_token: String,
+}
+
+async fn field_to_vec(field: &mut Field) -> anyhow::Result<Vec<u8>> {
+    let mut b = Vec::new();
+    while let Some(chunk) = field.try_next().await? {
+        b.append(&mut chunk.to_vec());
+    }
+
+    Ok(b)
 }
 
 async fn db_initialize(pool: &Pool<MySql>) -> anyhow::Result<()> {
@@ -646,6 +665,10 @@ async fn get_index(
     Ok(HttpResponse::Ok().body(body))
 }
 
+async fn get_account_name() {
+    todo!()
+}
+
 #[get("/posts")]
 async fn get_posts() -> Result<HttpResponse> {
     todo!()
@@ -720,8 +743,120 @@ async fn get_posts_id(
     Ok(HttpResponse::Ok().body(body))
 }
 
-async fn post_index() -> Result<HttpResponse> {
-    todo!()
+// NOTE: golang版と処理順が異なる
+#[post("/")]
+async fn post_index(
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    mut payload: Multipart,
+) -> Result<HttpResponse> {
+    let me = match get_session_user(&session, pool.as_ref()).await {
+        Ok(me) => {
+            if !is_login(me.as_ref()) {
+                return Ok(HttpResponse::Found()
+                    .insert_header((header::LOCATION, "/login"))
+                    .finish());
+            }
+            me.unwrap_or_default()
+        }
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let mut file = Vec::new();
+    let mut mime = String::new();
+    let mut body = String::new();
+    let mut csrf_token = String::new();
+
+    while let Some(mut field) = payload.try_next().await? {
+        log::debug!("{}", field.name());
+        log::debug!("{:#?}", field.content_type());
+        log::debug!("{:#?}", field.content_disposition());
+        log::debug!("{:#?}", field.headers());
+        match field.name() {
+            "file" => {
+                let content_type = field.content_type().to_string();
+                log::debug!("content_type {}", &content_type);
+                if content_type.starts_with("image/") {
+                    if let "image/jpeg" | "image/png" | "image/gif" = field.content_type().as_ref()
+                    {
+                        log::debug!("This is image");
+                        mime = content_type;
+                        file = field_to_vec(&mut field).await.unwrap_or_default();
+                    } else {
+                        if let Err(e) =
+                            session.insert("notice", "投稿できる画像形式はjpgとpngとgifだけです")
+                        {
+                            log::error!("{:?}", &e);
+                            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+                        } else {
+                            return Ok(HttpResponse::Found()
+                                .insert_header((header::LOCATION, "/"))
+                                .finish());
+                        }
+                    }
+                } else {
+                    if let Err(e) = session.insert("notice", "画像が必須です") {
+                        log::error!("{:?}", &e);
+                        return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+                    } else {
+                        return Ok(HttpResponse::Found()
+                            .insert_header((header::LOCATION, "/"))
+                            .finish());
+                    }
+                }
+            }
+            "body" => {
+                // NOTE: 例外処理入れたほうがいい？
+                let bytes = field_to_vec(&mut field).await.unwrap_or_default();
+                body = String::from_utf8(bytes).unwrap_or_default();
+            }
+            "csrf_token" => {
+                // 例外処理入れたほうがいい？
+                let bytes = field_to_vec(&mut field).await.unwrap_or_default();
+                csrf_token = String::from_utf8(bytes).unwrap_or_default();
+            }
+            _ => log::debug!("other"),
+        }
+    }
+
+    if csrf_token != get_csrf_token(&session).unwrap_or_default() {
+        return Ok(HttpResponse::UnprocessableEntity().finish());
+    }
+
+    if file.len() > UPLOAD_LIMIT {
+        if let Err(e) = session.insert("notice", "ファイルサイズが大きすぎます") {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        } else {
+            return Ok(HttpResponse::Found()
+                .insert_header((header::LOCATION, "/"))
+                .finish());
+        }
+    }
+
+    let pid = match sqlx::query!(
+        "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)",
+        me.id,
+        &mime,
+        &file,
+        &body
+    )
+    .execute(pool.as_ref())
+    .await
+    {
+        Ok(result) => result.last_insert_id(),
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    Ok(HttpResponse::Found()
+        .insert_header((header::LOCATION, format!("/posts/{}", pid)))
+        .finish())
 }
 
 #[get("/image/{path}")]
@@ -804,7 +939,7 @@ fn init_logger<P: AsRef<Path>>(log_path: Option<P>) {
             if cfg!(debug_assertions) {
                 LevelFilter::Debug
             } else {
-                LevelFilter::Info
+                LevelFilter::Warn
             },
             config.build(),
             TerminalMode::Mixed,
@@ -886,6 +1021,7 @@ async fn main() -> io::Result<()> {
             .service(get_index)
             .service(get_posts)
             .service(get_posts_id)
+            .service(post_index)
             .service(get_image)
             // .service(ResourceDef::new("/{tail}*").)
             .service(Files::new("/", "../public"))

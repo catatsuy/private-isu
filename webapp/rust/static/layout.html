@@ -17,7 +17,7 @@
         {{#if (eq user.id 0)}}
         <div><a href="/login">ログイン</a></div>
         {{else}}
-        <div><a href="/{{account_name}}"><span class="isu-account-name">{{account_name}}</span>さん</a></div>
+        <div><a href="/{{account_name}}"><span class="isu-account-name">{{user.account_name}}</span>さん</a></div>
         {{#if (eq user.authority 1)}}
         <div><a href="/admin/banned">管理者用ページ</a></div>
         {{/if}}
