@@ -775,16 +775,14 @@ async fn get_account_name(
             query = query.bind(pid);
         }
 
-        let commented_count = query.fetch_one(pool.as_ref()).await.unwrap();
-        // {
-        //     Ok(r) => r,
-        //     Err(e) => {
-        //         log::error!("{:?}", &e);
-        //         return Ok(HttpResponse::InternalServerError().body(e.to_string()));
-        //     }
-        // };
-        // log::debug!("commented_count {}", commented_count);
-        // commented_count
+        let commented_count = match query.fetch_one(pool.as_ref()).await {
+            Ok(c) => c,
+            Err(e) => {
+                log::error!("{:?}", &e);
+                return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            }
+        };
+
         commented_count.count
     } else {
         0
