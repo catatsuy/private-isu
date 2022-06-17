@@ -2,6 +2,7 @@ use std::{
     any,
     collections::HashMap,
     env,
+    f32::consts::E,
     io::{self, Write},
     path::Path,
     time::Duration,
@@ -823,17 +824,66 @@ async fn get_account_name(
 }
 
 #[get("/posts")]
-async fn get_posts(query: web::Query<PostsQuery>) -> Result<HttpResponse> {
-    log::error!("/posts {:?}", query.max_created_at);
-    // let mut bytes = Vec::new();
-    // while let Some(field) = payload.try_next().await? {
-    //     bytes.append(&mut field.to_vec());
-    // }
-    // let body = String::from_utf8(bytes).unwrap();
-    // let body = body.replace("%5B", "[").replace("%5D", "]");
-    // log::error!("/posts {}", body);
+async fn get_posts(
+    query: web::Query<PostsQuery>,
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    handlebars: Data<Handlebars<'_>>,
+) -> Result<HttpResponse> {
+    // NOTE: example max_created_at "2016-01-02T11:46:23+09:00"
+    let max_create_at = query.into_inner().max_created_at;
 
-    Ok(HttpResponse::Ok().finish())
+    if max_create_at.is_empty() {
+        return Ok(HttpResponse::InternalServerError().finish());
+    }
+
+    let t = match DateTime::parse_from_rfc3339(&max_create_at) {
+        Ok(t) => t,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let results = match sqlx::query_as!(Post,"SELECT `id`, `user_id`, `body`, `mime`, `created_at`, b'0' AS imgdata FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC",&t.to_rfc3339()).fetch_all(pool.as_ref()).await{
+        Ok(r)=> r,
+        Err(e)=> {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let posts = match make_post(
+        results,
+        get_csrf_token(&session).unwrap_or_default(),
+        false,
+        pool.as_ref(),
+    )
+    .await
+    {
+        Ok(p) => p,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    if posts.is_empty() {
+        return Ok(HttpResponse::NotFound().finish());
+    }
+
+    log::debug!("posts len {}", posts.len());
+
+    let body = {
+        let mut map = Map::new();
+        map.insert("posts".to_string(), to_json(posts));
+
+        map.insert("post_parent".to_string(), to_json("posts_stand_alone"));
+
+        handlebars.render("post", &map).unwrap()
+    };
+
+    Ok(HttpResponse::Ok().body(body))
 }
 
 #[get("/posts/{id}")]
@@ -1266,7 +1316,7 @@ fn init_logger<P: AsRef<Path>>(log_dir: Option<P>) {
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
-    init_logger::<&str>(Some("/home/webapp/log"));
+    init_logger::<&str>(None);
 
     let host = env::var("ISUCONP_DB_HOST").unwrap_or("localhost".to_string());
     let port: u32 = env::var("ISUCONP_DB_PORT")
@@ -1275,17 +1325,23 @@ async fn main() -> io::Result<()> {
         .unwrap();
 
     let user = env::var("ISUCONP_DB_USER").unwrap_or("root".to_string());
-    let password = env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD");
-    // let password = env::var("ISUCONP_DB_PASSWORD").unwrap_or("root".to_string());
+    let password = if cfg!(debug_assertions) {
+        env::var("ISUCONP_DB_PASSWORD").unwrap_or("root".to_string())
+    } else {
+        env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD")
+    };
     let dbname = env::var("ISUCONP_DB_NAME").unwrap_or("isuconp".to_string());
 
     let redis_url = env::var("ISUCONP_REDIS_URL").unwrap_or("localhost:6379".to_string());
 
-    let dsn = format!(
-        "mysql://{}:{}@{}:{}/{}",
-        &user, &password, &host, &port, &dbname
-    );
-    // let dsn = "mysql://root:root@localhost:3306/isuconp".to_string();
+    let dsn = if cfg!(debug_assertions) {
+        "mysql://root:root@localhost:3306/isuconp".to_string()
+    } else {
+        format!(
+            "mysql://{}:{}@{}:{}/{}",
+            &user, &password, &host, &port, &dbname
+        )
+    };
 
     let num_cpus = num_cpus::get();
 
