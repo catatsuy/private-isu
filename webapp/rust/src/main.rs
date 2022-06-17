@@ -141,6 +141,11 @@ struct BannedParams {
     csrf_token: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct PostsQuery {
+    max_created_at: String,
+}
+
 async fn field_to_vec(field: &mut Field) -> anyhow::Result<Vec<u8>> {
     let mut b = Vec::new();
     while let Some(chunk) = field.try_next().await? {
@@ -817,9 +822,17 @@ async fn get_account_name(
     Ok(HttpResponse::Ok().body(body))
 }
 
-// NOTE: クエリパラメータがわからないのでどうしようもない
 #[get("/posts")]
-async fn get_posts() -> Result<HttpResponse> {
+async fn get_posts(query: web::Query<PostsQuery>) -> Result<HttpResponse> {
+    log::error!("/posts {:?}", query.max_created_at);
+    // let mut bytes = Vec::new();
+    // while let Some(field) = payload.try_next().await? {
+    //     bytes.append(&mut field.to_vec());
+    // }
+    // let body = String::from_utf8(bytes).unwrap();
+    // let body = body.replace("%5B", "[").replace("%5D", "]");
+    // log::error!("/posts {}", body);
+
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -1213,7 +1226,7 @@ async fn post_admin_banned(
         .finish())
 }
 
-fn init_logger<P: AsRef<Path>>(log_path: Option<P>) {
+fn init_logger<P: AsRef<Path>>(log_dir: Option<P>) {
     const JST_UTCOFFSET_SECS: i32 = 9 * 3600;
 
     let jst_now = {
@@ -1239,11 +1252,11 @@ fn init_logger<P: AsRef<Path>>(log_path: Option<P>) {
             ColorChoice::Always,
         ),
     ];
-    if let Some(log_path) = log_path {
+    if let Some(log_path) = log_dir {
         let log_path = log_path.as_ref();
         std::fs::create_dir_all(&log_path).unwrap();
         logger.push(WriteLogger::new(
-            LevelFilter::Info,
+            LevelFilter::Warn,
             config.build(),
             std::fs::File::create(log_path.join(format!("{}.log", jst_now))).unwrap(),
         ));
@@ -1253,7 +1266,7 @@ fn init_logger<P: AsRef<Path>>(log_path: Option<P>) {
 
 #[actix_web::main]
 async fn main() -> io::Result<()> {
-    init_logger::<&str>(None);
+    init_logger::<&str>(Some("/home/webapp/log"));
 
     let host = env::var("ISUCONP_DB_HOST").unwrap_or("localhost".to_string());
     let port: u32 = env::var("ISUCONP_DB_PORT")
