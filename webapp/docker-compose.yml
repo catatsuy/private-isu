@@ -22,12 +22,16 @@ services:
       ISUCONP_DB_PASSWORD: root
       ISUCONP_DB_NAME: isuconp
       ISUCONP_MEMCACHED_ADDRESS: memcached:11211
+      ISUCONP_REDIS_URL: redis:6379
     links:
       - mysql
       - memcached
     volumes:
       - ./public:/home/public
     init: true
+    depends_on:
+      mysql:
+        condition: service_healthy
 
   mysql:
     cpus: 1
@@ -43,9 +47,21 @@ services:
       - ./sql:/docker-entrypoint-initdb.d
     ports:
       - "3306:3306"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
   memcached:
     image: memcached:1.6
+
+  redis:
+    image: redis:7.0.0
+    restart: always
+    ports:
+      - 6379:6379
 
 volumes:
   mysql:

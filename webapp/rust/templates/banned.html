@@ -1,0 +1,15 @@
+{{ define "content" }}
+<div>
+  <form method="post" action="/admin/banned">
+    {{ range .Users }}
+    <div>
+      <input type="checkbox" name="uid[]" id="uid_{{ .ID }}" value="{{ .ID }}" data-account-name="{{ .AccountName }}"> <label for="uid_{{ .ID }}">{{ .AccountName }}</label>
+    </div>
+    {{ end }}
+    <div class="form-submit">
+      <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
+      <input type="submit" name="submit" value="submit">
+    </div>
+  </form>
+</div>
+{{ end }}

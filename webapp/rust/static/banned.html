@@ -1,0 +1,17 @@
+{{#*inline "content"}}
+<div>
+  <form method="post" action="/admin/banned">
+    {{#each users}}
+    <div>
+      <input type="checkbox" name="uid[]" id="uid_{{id}}" value="{{id}}" data-account-name="{{account_name}}">
+      <label for="uid_{{id}}">{{account_name}}</label>
+    </div>
+    {{/each}}
+    <div class="form-submit">
+      <input type="hidden" name="csrf_token" value="{{csrf_token}}">
+      <input type="submit" name="submit" value="submit">
+    </div>
+  </form>
+</div>
+{{/inline}}
+{{> (lookup this "content_parent")}}

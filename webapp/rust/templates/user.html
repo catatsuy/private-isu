@@ -1,0 +1,10 @@
+{{ define "content" }}
+<div class="isu-user">
+  <div><span class="isu-user-account-name">{{ .User.AccountName }}さん</span>のページ</div>
+  <div>投稿数 <span class="isu-post-count">{{ .PostCount }}</span></div>
+  <div>コメント数 <span class="isu-comment-count">{{ .CommentCount }}</span></div>
+  <div>被コメント数 <span class="isu-commented-count">{{ .CommentedCount }}</span></div>
+</div>
+
+{{ template "posts.html" .Posts }}
+{{ end }}
