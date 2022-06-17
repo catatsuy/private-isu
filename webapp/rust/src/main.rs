@@ -374,6 +374,7 @@ handlebars_helper!(date_time_format: |create_at: DateTime<Utc>| {
     create_at.format("%Y-%m-%dT%H:%M:%S-07:00").to_string()
 });
 
+// NOTE: idが0ならみたいなことしてるけどせっかくOptionがあるからこっちで判定したい
 fn is_login(u: Option<&User>) -> bool {
     match u {
         Some(u) => u.id != 0,
@@ -678,8 +679,134 @@ async fn get_index(
     Ok(HttpResponse::Ok().body(body))
 }
 
-async fn get_account_name() {
-    todo!()
+#[get("/@{account_name}")]
+async fn get_account_name(
+    path: web::Path<(String,)>,
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    handlebars: Data<Handlebars<'_>>,
+) -> Result<HttpResponse> {
+    let account_name = path.into_inner().0;
+
+    let user = match sqlx::query_as!(
+        User,
+        "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0",
+        account_name
+    )
+    .fetch_optional(pool.as_ref())
+    .await
+    {
+        Ok(Some(user)) => user,
+        Ok(None) => return Ok(HttpResponse::NotFound().finish()),
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let results =match sqlx::query_as!(Post,"SELECT `id`, `user_id`, `body`, `mime`, `created_at`, b'0' AS imgdata FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC",user.id).fetch_all(pool.as_ref()).await{
+        Ok(r) => r,
+        Err(e)=>{
+               log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let posts = match make_post(
+        results,
+        get_csrf_token(&session).unwrap_or_default(),
+        false,
+        pool.as_ref(),
+    )
+    .await
+    {
+        Ok(p) => p,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let comment_count = match sqlx::query!(
+        "SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?",
+        user.id
+    )
+    .fetch_one(pool.as_ref())
+    .await
+    {
+        Ok(r) => r.count,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let post_ids = match sqlx::query!("SELECT `id` FROM `posts` WHERE `user_id` = ?", user.id)
+        .fetch_all(pool.as_ref())
+        .await
+    {
+        Ok(records) => records.iter().map(|r| r.id).collect::<Vec<i32>>(),
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+    let post_count = post_ids.len();
+
+    let commented_count = if post_count > 0 {
+        let mut s = Vec::new();
+        for _pid in post_ids {
+            s.push("?".to_string());
+        }
+        let place_holder = s.join(", ");
+
+        let commented_count = match sqlx::query!(
+            "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN (?)",
+            place_holder
+        )
+        .fetch_one(pool.as_ref())
+        .await
+        {
+            Ok(r) => r.count,
+            Err(e) => {
+                log::error!("{:?}", &e);
+                return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            }
+        };
+        log::debug!("{}", commented_count);
+
+        commented_count
+    } else {
+        0
+    };
+
+    let me = match get_session_user(&session, pool.as_ref()).await {
+        Ok(me) => me.unwrap_or_default(),
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let body = {
+        let mut map = Map::new();
+        // let posts = serde_json::to_value(posts).unwrap();
+        // let map = json.as_object_mut().unwrap();
+        map.insert("posts".to_string(), to_json(posts));
+        map.insert("user".to_string(), to_json(user));
+        map.insert("post_count".to_string(), to_json(post_count));
+        map.insert("comment_count".to_string(), to_json(comment_count));
+        map.insert("commented_count".to_string(), to_json(commented_count));
+        map.insert("me".to_string(), to_json(me));
+
+        map.insert("post_parent".to_string(), to_json("posts"));
+        map.insert("posts_parent".to_string(), to_json("user"));
+        map.insert("content_parent".to_string(), to_json("layout"));
+
+        handlebars.render("post", &map).unwrap()
+    };
+
+    Ok(HttpResponse::Ok().body(body))
 }
 
 #[get("/posts")]
@@ -872,6 +999,7 @@ async fn post_index(
         .finish())
 }
 
+// TODO: idと拡張子分離できそうなので分離する
 #[get("/image/{path}")]
 async fn get_image(path: web::Path<(String,)>, pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
     let (pid, ext) = match path.0.rsplit_once(".") {
@@ -1183,6 +1311,7 @@ async fn main() -> io::Result<()> {
             .service(post_comment)
             .service(get_admin_banned)
             .service(post_admin_banned)
+            .service(get_account_name)
             // .service(ResourceDef::new("/{tail}*").)
             .service(Files::new("/", "../public"))
             .service(
