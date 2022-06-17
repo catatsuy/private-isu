@@ -817,9 +817,10 @@ async fn get_account_name(
     Ok(HttpResponse::Ok().body(body))
 }
 
+// NOTE: クエリパラメータがわからないのでどうしようもない
 #[get("/posts")]
 async fn get_posts() -> Result<HttpResponse> {
-    todo!()
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[get("/posts/{id}")]
@@ -1095,7 +1096,6 @@ async fn post_comment(
         .finish())
 }
 
-// NOTE: adminアカウントがわからないので検証できてない
 #[get("/admin/banned")]
 async fn get_admin_banned(
     session: Session,
@@ -1262,17 +1262,17 @@ async fn main() -> io::Result<()> {
         .unwrap();
 
     let user = env::var("ISUCONP_DB_USER").unwrap_or("root".to_string());
-    // let password = env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD");
-    let password = env::var("ISUCONP_DB_PASSWORD").unwrap_or("root".to_string());
+    let password = env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD");
+    // let password = env::var("ISUCONP_DB_PASSWORD").unwrap_or("root".to_string());
     let dbname = env::var("ISUCONP_DB_NAME").unwrap_or("isuconp".to_string());
 
     let redis_url = env::var("ISUCONP_REDIS_URL").unwrap_or("localhost:6379".to_string());
 
     let dsn = format!(
-        "{}:{}@tcp({}:{})/{}?charset=utf8mb4&parseTime=true&loc=Local",
+        "mysql://{}:{}@{}:{}/{}",
         &user, &password, &host, &port, &dbname
     );
-    let dsn = "mysql://root:root@localhost:3306/isuconp".to_string();
+    // let dsn = "mysql://root:root@localhost:3306/isuconp".to_string();
 
     let num_cpus = num_cpus::get();
 
