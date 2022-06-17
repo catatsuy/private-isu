@@ -755,28 +755,37 @@ async fn get_account_name(
 
     let commented_count = if post_count > 0 {
         let mut s = Vec::new();
-        for _pid in post_ids {
+        for _pid in &post_ids {
             s.push("?".to_string());
         }
         let place_holder = s.join(", ");
 
-        // BUG: このクエリは意図した動作をしていない
-        let commented_count = match sqlx::query!(
-            "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN (?)",
+        #[derive(sqlx::FromRow)]
+        struct CommentedCount {
+            count: i64,
+        }
+        let q = format!(
+            "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ({})",
             place_holder
-        )
-        .fetch_one(pool.as_ref())
-        .await
-        {
-            Ok(r) => r.count,
-            Err(e) => {
-                log::error!("{:?}", &e);
-                return Ok(HttpResponse::InternalServerError().body(e.to_string()));
-            }
-        };
-        log::debug!("{}", commented_count);
+        );
+        // NOTE: もっといい記述ないかな
+        let mut query = sqlx::query_as::<_, CommentedCount>(q.as_str());
 
-        commented_count
+        for pid in &post_ids {
+            query = query.bind(pid);
+        }
+
+        let commented_count = query.fetch_one(pool.as_ref()).await.unwrap();
+        // {
+        //     Ok(r) => r,
+        //     Err(e) => {
+        //         log::error!("{:?}", &e);
+        //         return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        //     }
+        // };
+        // log::debug!("commented_count {}", commented_count);
+        // commented_count
+        commented_count.count
     } else {
         0
     };
