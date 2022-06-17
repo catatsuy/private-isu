@@ -135,7 +135,7 @@ struct CommentParams {
     csrf_token: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 struct BannedParams {
     uid: Vec<u64>,
     csrf_token: String,
@@ -1023,12 +1023,21 @@ async fn post_admin_banned(
     pool: Data<Pool<MySql>>,
     mut payload: Payload,
 ) -> Result<HttpResponse> {
+    // NOTE: field_to_vecにまとめたいなぁ
     let mut bytes = Vec::new();
     while let Some(field) = payload.try_next().await? {
         bytes.append(&mut field.to_vec());
     }
     let body = String::from_utf8(bytes).unwrap();
-    log::debug!("{}", body);
+    let query =
+        match serde_qs::from_str::<BannedParams>(&body.replace("%5B", "[").replace("%5D", "]")) {
+            Ok(q) => q,
+            Err(e) => {
+                log::error!("{:#?}", &e);
+                BannedParams::default()
+            }
+        };
+    log::debug!("admin banned {:?}", query);
 
     let me = match get_session_user(&session, pool.as_ref()).await {
         Ok(me) => {
