@@ -429,7 +429,7 @@ async fn get_login(
     let body = {
         let mut map = Map::new();
 
-        map.insert("user".to_string(), to_json(user));
+        map.insert("me".to_string(), to_json(user));
         map.insert("flash".to_string(), to_json(get_flash(&session, "notice")));
         map.insert("parent".to_string(), to_json("layout"));
         log::debug!("{:?}", &map);
@@ -504,7 +504,7 @@ async fn get_register(
 
         let mut map = Map::new();
 
-        map.insert("user".to_string(), to_json(user));
+        map.insert("me".to_string(), to_json(user));
         map.insert("flash".to_string(), to_json(get_flash(&session, "notice")));
         map.insert("parent".to_string(), to_json("layout"));
         log::debug!("map {:?}", &map);
@@ -662,7 +662,7 @@ async fn get_index(
         // let posts = serde_json::to_value(posts).unwrap();
         // let map = json.as_object_mut().unwrap();
         map.insert("posts".to_string(), to_json(posts));
-        map.insert("user".to_string(), to_json(me));
+        map.insert("me".to_string(), to_json(me));
         map.insert(
             "csrf_token".to_string(),
             to_json(get_csrf_token(&session).unwrap_or_default()),
@@ -869,7 +869,7 @@ async fn get_posts_id(
 
         let mut post = serde_json::to_value(p).unwrap();
         let map = post.as_object_mut().unwrap();
-        map.insert("user".to_string(), to_json(me));
+        map.insert("me".to_string(), to_json(me));
 
         map.insert("post_parent".to_string(), to_json("post_id"));
         map.insert("content_parent".to_string(), to_json("layout"));
@@ -1131,7 +1131,7 @@ async fn get_admin_banned(
         let mut map = Map::new();
 
         map.insert("users".to_string(), to_json(users));
-        map.insert("user".to_string(), to_json(me));
+        map.insert("me".to_string(), to_json(me));
         map.insert(
             "csrf_token".to_string(),
             to_json(get_csrf_token(&session).unwrap_or_default()),
