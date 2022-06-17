@@ -1023,22 +1023,6 @@ async fn post_admin_banned(
     pool: Data<Pool<MySql>>,
     mut payload: Payload,
 ) -> Result<HttpResponse> {
-    // NOTE: field_to_vecにまとめたいなぁ
-    let mut bytes = Vec::new();
-    while let Some(field) = payload.try_next().await? {
-        bytes.append(&mut field.to_vec());
-    }
-    let body = String::from_utf8(bytes).unwrap();
-    let query =
-        match serde_qs::from_str::<BannedParams>(&body.replace("%5B", "[").replace("%5D", "]")) {
-            Ok(q) => q,
-            Err(e) => {
-                log::error!("{:#?}", &e);
-                BannedParams::default()
-            }
-        };
-    log::debug!("admin banned {:?}", query);
-
     let me = match get_session_user(&session, pool.as_ref()).await {
         Ok(me) => {
             if !is_login(me.as_ref()) {
@@ -1058,7 +1042,39 @@ async fn post_admin_banned(
         return Ok(HttpResponse::Forbidden().finish());
     }
 
-    Ok(HttpResponse::Ok().body("Ok"))
+    // NOTE: field_to_vecにまとめたいなぁ
+    let mut bytes = Vec::new();
+    while let Some(field) = payload.try_next().await? {
+        bytes.append(&mut field.to_vec());
+    }
+    let body = String::from_utf8(bytes).unwrap();
+    let query =
+        match serde_qs::from_str::<BannedParams>(&body.replace("%5B", "[").replace("%5D", "]")) {
+            Ok(q) => q,
+            Err(e) => {
+                log::error!("{:#?}", &e);
+                return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            }
+        };
+    log::debug!("admin banned {:?}", query);
+
+    if query.csrf_token != get_csrf_token(&session).unwrap_or_default() {
+        return Ok(HttpResponse::UnprocessableEntity().finish());
+    }
+
+    for uid in &query.uid {
+        if let Err(e) = sqlx::query!("UPDATE `users` SET `del_flg` = ? WHERE `id` = ?", 1, &uid)
+            .execute(pool.as_ref())
+            .await
+        {
+            log::warn!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    }
+
+    Ok(HttpResponse::Found()
+        .insert_header((header::LOCATION, "/admin/banned"))
+        .finish())
 }
 
 fn init_logger<P: AsRef<Path>>(log_path: Option<P>) {
