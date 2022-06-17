@@ -760,6 +760,7 @@ async fn get_account_name(
         }
         let place_holder = s.join(", ");
 
+        // BUG: このクエリは意図した動作をしていない
         let commented_count = match sqlx::query!(
             "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN (?)",
             place_holder
