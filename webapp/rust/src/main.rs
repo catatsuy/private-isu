@@ -196,7 +196,7 @@ async fn try_login(account_name: &str, password: &str, pool: &Pool<MySql>) -> an
 }
 
 fn escapeshellarg(arg: &str) -> String {
-    format!("'{}'", arg.replace("'", "'\\''"))
+    format!("'{}'", arg.replace('\'', "'\\''"))
 }
 
 fn digest(src: &str) -> anyhow::Result<String> {
@@ -211,7 +211,7 @@ fn digest(src: &str) -> anyhow::Result<String> {
     .read()
     .context("Failed to cmd")?;
 
-    Ok(output.trim_end_matches("\n").to_string())
+    Ok(output.trim_end_matches('\n').to_string())
 }
 
 fn validate_user(account_name: &str, password: &str) -> bool {
@@ -394,7 +394,7 @@ fn secure_random_str(b: u32) -> String {
         rnd_str.push(AGGREGATION_LOWER_CASE_NUM.choose(&mut rng).unwrap());
     }
 
-    let rnd_str = rnd_str.iter().map(|c| *c).collect();
+    let rnd_str = rnd_str.iter().copied().collect();
 
     rnd_str
 }
@@ -561,7 +561,7 @@ async fn post_register(
         }
     };
 
-    if let Some(_) = exists {
+    if exists.is_some() {
         if let Err(e) = session.insert("notice", "アカウント名がすでに使われています")
         {
             log::error!("{:?}", &e);
@@ -990,20 +990,9 @@ async fn post_index(
                         log::debug!("This is image");
                         mime = content_type;
                         file = field_to_vec(&mut field).await.unwrap_or_default();
-                    } else {
-                        if let Err(e) =
-                            session.insert("notice", "投稿できる画像形式はjpgとpngとgifだけです")
-                        {
-                            log::error!("{:?}", &e);
-                            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
-                        } else {
-                            return Ok(HttpResponse::Found()
-                                .insert_header((header::LOCATION, "/"))
-                                .finish());
-                        }
-                    }
-                } else {
-                    if let Err(e) = session.insert("notice", "画像が必須です") {
+                    } else if let Err(e) =
+                        session.insert("notice", "投稿できる画像形式はjpgとpngとgifだけです")
+                    {
                         log::error!("{:?}", &e);
                         return Ok(HttpResponse::InternalServerError().body(e.to_string()));
                     } else {
@@ -1011,6 +1000,13 @@ async fn post_index(
                             .insert_header((header::LOCATION, "/"))
                             .finish());
                     }
+                } else if let Err(e) = session.insert("notice", "画像が必須です") {
+                    log::error!("{:?}", &e);
+                    return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+                } else {
+                    return Ok(HttpResponse::Found()
+                        .insert_header((header::LOCATION, "/"))
+                        .finish());
                 }
             }
             "body" => {
@@ -1297,19 +1293,19 @@ fn init_logger<P: AsRef<Path>>(log_dir: Option<P>) {
 async fn main() -> io::Result<()> {
     init_logger::<&str>(None);
 
-    let host = env::var("ISUCONP_DB_HOST").unwrap_or("localhost".to_string());
+    let host = env::var("ISUCONP_DB_HOST").unwrap_or_else(|_| "localhost".to_string());
     let port: u32 = env::var("ISUCONP_DB_PORT")
-        .unwrap_or("3306".to_string())
+        .unwrap_or_else(|_| "3306".to_string())
         .parse()
         .unwrap();
 
-    let user = env::var("ISUCONP_DB_USER").unwrap_or("root".to_string());
+    let user = env::var("ISUCONP_DB_USER").unwrap_or_else(|_| "root".to_string());
     let password = if cfg!(debug_assertions) {
-        env::var("ISUCONP_DB_PASSWORD").unwrap_or("root".to_string())
+        env::var("ISUCONP_DB_PASSWORD").unwrap_or_else(|_| "root".to_string())
     } else {
         env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD")
     };
-    let dbname = env::var("ISUCONP_DB_NAME").unwrap_or("isuconp".to_string());
+    let dbname = env::var("ISUCONP_DB_NAME").unwrap_or_else(|_| "isuconp".to_string());
 
     let dsn = if cfg!(debug_assertions) {
         "mysql://root:root@localhost:3306/isuconp".to_string()
