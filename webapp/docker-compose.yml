@@ -19,7 +19,6 @@ services:
       ISUCONP_DB_PASSWORD: root
       ISUCONP_DB_NAME: isuconp
       ISUCONP_MEMCACHED_ADDRESS: memcached:11211
-      ISUCONP_REDIS_URL: redis:6379
     links:
       - mysql
       - memcached
@@ -61,12 +60,6 @@ services:
 
   memcached:
     image: memcached:1.6
-
-  redis:
-    image: redis:7.0.0
-    restart: always
-    ports:
-      - 6379:6379
 
 volumes:
   mysql:

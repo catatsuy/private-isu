@@ -1338,8 +1338,6 @@ async fn main() -> io::Result<()> {
         .await
         .unwrap();
 
-    let private_key = actix_web::cookie::Key::generate();
-
     HttpServer::new(move || {
         let mut handlebars = Handlebars::new();
         handlebars.register_helper("image_url_helper", Box::new(image_url));
@@ -1375,7 +1373,6 @@ async fn main() -> io::Result<()> {
             .service(get_admin_banned)
             .service(post_admin_banned)
             .service(get_account_name)
-            // .service(ResourceDef::new("/{tail}*").)
             .service(Files::new("/", "../public"))
     })
     .bind(("0.0.0.0", 8080))?
