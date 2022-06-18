@@ -2,6 +2,7 @@ use std::{
     any,
     collections::HashMap,
     env,
+    f32::consts::E,
     io::{self, Write},
     path::Path,
     time::Duration,
@@ -139,6 +140,11 @@ struct CommentParams {
 struct BannedParams {
     uid: Vec<u64>,
     csrf_token: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct PostsQuery {
+    max_created_at: String,
 }
 
 async fn field_to_vec(field: &mut Field) -> anyhow::Result<Vec<u8>> {
@@ -818,8 +824,66 @@ async fn get_account_name(
 }
 
 #[get("/posts")]
-async fn get_posts() -> Result<HttpResponse> {
-    todo!()
+async fn get_posts(
+    query: web::Query<PostsQuery>,
+    session: Session,
+    pool: Data<Pool<MySql>>,
+    handlebars: Data<Handlebars<'_>>,
+) -> Result<HttpResponse> {
+    // NOTE: example max_created_at "2016-01-02T11:46:23+09:00"
+    let max_create_at = query.into_inner().max_created_at;
+
+    if max_create_at.is_empty() {
+        return Ok(HttpResponse::InternalServerError().finish());
+    }
+
+    let t = match DateTime::parse_from_rfc3339(&max_create_at) {
+        Ok(t) => t,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let results = match sqlx::query_as!(Post,"SELECT `id`, `user_id`, `body`, `mime`, `created_at`, b'0' AS imgdata FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC",&t.to_rfc3339()).fetch_all(pool.as_ref()).await{
+        Ok(r)=> r,
+        Err(e)=> {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    let posts = match make_post(
+        results,
+        get_csrf_token(&session).unwrap_or_default(),
+        false,
+        pool.as_ref(),
+    )
+    .await
+    {
+        Ok(p) => p,
+        Err(e) => {
+            log::error!("{:?}", &e);
+            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        }
+    };
+
+    if posts.is_empty() {
+        return Ok(HttpResponse::NotFound().finish());
+    }
+
+    log::debug!("posts len {}", posts.len());
+
+    let body = {
+        let mut map = Map::new();
+        map.insert("posts".to_string(), to_json(posts));
+
+        map.insert("post_parent".to_string(), to_json("posts_stand_alone"));
+
+        handlebars.render("post", &map).unwrap()
+    };
+
+    Ok(HttpResponse::Ok().body(body))
 }
 
 #[get("/posts/{id}")]
@@ -1007,26 +1071,12 @@ async fn post_index(
         .finish())
 }
 
-// TODO: idと拡張子分離できそうなので分離する
-#[get("/image/{path}")]
-async fn get_image(path: web::Path<(String,)>, pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
-    let (pid, ext) = match path.0.rsplit_once(".") {
-        Some((pid, ext)) => {
-            let pid = match pid.parse::<u64>() {
-                Ok(pid) => pid,
-                Err(e) => {
-                    log::warn!("{:?}", &e);
-                    return Ok(HttpResponse::InternalServerError().body(e.to_string()));
-                }
-            };
-            (pid, ext)
-        }
-        None => {
-            let e = "Invalid path";
-            log::warn!("{}", e);
-            return Ok(HttpResponse::InternalServerError().body(e));
-        }
-    };
+#[get("/image/{pid}.{ext}")]
+async fn get_image(
+    path: web::Path<(String, String)>,
+    pool: Data<Pool<MySql>>,
+) -> Result<HttpResponse> {
+    let (pid, ext) = path.into_inner();
 
     let post = match sqlx::query_as!(Post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
         .fetch_optional(pool.as_ref())
@@ -1042,7 +1092,7 @@ async fn get_image(path: web::Path<(String,)>, pool: Data<Pool<MySql>>) -> Resul
         }
     };
 
-    let content_type = match (ext, post.mime.as_str()) {
+    let content_type = match (ext.as_str(), post.mime.as_str()) {
         ("jpg", "image/jpeg") | ("png", "image/png") | ("gif", "image/gif") => post.mime.as_str(),
         _ => return Ok(HttpResponse::InternalServerError().finish()),
     };
@@ -1095,7 +1145,6 @@ async fn post_comment(
         .finish())
 }
 
-// NOTE: adminアカウントがわからないので検証できてない
 #[get("/admin/banned")]
 async fn get_admin_banned(
     session: Session,
@@ -1213,7 +1262,7 @@ async fn post_admin_banned(
         .finish())
 }
 
-fn init_logger<P: AsRef<Path>>(log_path: Option<P>) {
+fn init_logger<P: AsRef<Path>>(log_dir: Option<P>) {
     const JST_UTCOFFSET_SECS: i32 = 9 * 3600;
 
     let jst_now = {
@@ -1239,11 +1288,11 @@ fn init_logger<P: AsRef<Path>>(log_path: Option<P>) {
             ColorChoice::Always,
         ),
     ];
-    if let Some(log_path) = log_path {
+    if let Some(log_path) = log_dir {
         let log_path = log_path.as_ref();
         std::fs::create_dir_all(&log_path).unwrap();
         logger.push(WriteLogger::new(
-            LevelFilter::Info,
+            LevelFilter::Warn,
             config.build(),
             std::fs::File::create(log_path.join(format!("{}.log", jst_now))).unwrap(),
         ));
@@ -1262,17 +1311,23 @@ async fn main() -> io::Result<()> {
         .unwrap();
 
     let user = env::var("ISUCONP_DB_USER").unwrap_or("root".to_string());
-    // let password = env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD");
-    let password = env::var("ISUCONP_DB_PASSWORD").unwrap_or("root".to_string());
+    let password = if cfg!(debug_assertions) {
+        env::var("ISUCONP_DB_PASSWORD").unwrap_or("root".to_string())
+    } else {
+        env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD")
+    };
     let dbname = env::var("ISUCONP_DB_NAME").unwrap_or("isuconp".to_string());
 
     let redis_url = env::var("ISUCONP_REDIS_URL").unwrap_or("localhost:6379".to_string());
 
-    let dsn = format!(
-        "{}:{}@tcp({}:{})/{}?charset=utf8mb4&parseTime=true&loc=Local",
-        &user, &password, &host, &port, &dbname
-    );
-    let dsn = "mysql://root:root@localhost:3306/isuconp".to_string();
+    let dsn = if cfg!(debug_assertions) {
+        "mysql://root:root@localhost:3306/isuconp".to_string()
+    } else {
+        format!(
+            "mysql://{}:{}@{}:{}/{}",
+            &user, &password, &host, &port, &dbname
+        )
+    };
 
     let num_cpus = num_cpus::get();
 
@@ -1322,13 +1377,6 @@ async fn main() -> io::Result<()> {
             .service(get_account_name)
             // .service(ResourceDef::new("/{tail}*").)
             .service(Files::new("/", "../public"))
-            .service(
-                web::resource("/test").to(|req: HttpRequest| match *req.method() {
-                    Method::GET => HttpResponse::Ok(),
-                    Method::POST => HttpResponse::MethodNotAllowed(),
-                    _ => HttpResponse::NotFound(),
-                }),
-            )
     })
     .bind(("0.0.0.0", 8080))?
     .run()
