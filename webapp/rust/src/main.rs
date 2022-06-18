@@ -1335,7 +1335,8 @@ async fn main() -> io::Result<()> {
     let redis_url = env::var("ISUCONP_REDIS_URL").unwrap_or("localhost:6379".to_string());
 
     let dsn = if cfg!(debug_assertions) {
-        "mysql://root:root@localhost:3306/isuconp".to_string()
+        "mysql://root:root@tcp(localhost:3306)/isuconp?charset=utf8mb4&parseTime=true&loc=Local"
+            .to_string()
     } else {
         format!(
             "mysql://{}:{}@{}:{}/{}",
@@ -1391,13 +1392,6 @@ async fn main() -> io::Result<()> {
             .service(get_account_name)
             // .service(ResourceDef::new("/{tail}*").)
             .service(Files::new("/", "../public"))
-            .service(
-                web::resource("/test").to(|req: HttpRequest| match *req.method() {
-                    Method::GET => HttpResponse::Ok(),
-                    Method::POST => HttpResponse::MethodNotAllowed(),
-                    _ => HttpResponse::NotFound(),
-                }),
-            )
     })
     .bind(("0.0.0.0", 8080))?
     .run()
