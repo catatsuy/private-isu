@@ -1,32 +1,25 @@
 use std::{
-    any,
-    collections::HashMap,
     env,
-    f32::consts::E,
-    io::{self, Write},
+    io::{self},
     path::Path,
     time::Duration,
 };
 
 use actix_cors::Cors;
 use actix_files::Files;
-use actix_multipart::{Field, Multipart, MultipartError};
-use actix_redis::RedisSession;
+use actix_multipart::{Field, Multipart};
+
 use actix_session::{CookieSession, Session};
 use actix_web::{
     cookie::time::UtcOffset,
-    dev::ResourceDef,
-    error, get,
-    http::{
-        header::{self, ContentType},
-        Method, StatusCode,
-    },
+    get,
+    http::header::{self},
     middleware, post,
-    web::{self, Bytes, Data, Form, Payload},
-    App, HttpRequest, HttpResponse, HttpServer, Result,
+    web::{self, Data, Form, Payload},
+    App, HttpResponse, HttpServer, Result,
 };
 use anyhow::{bail, Context};
-use chrono::{DateTime, FixedOffset, Local, Utc};
+use chrono::{DateTime, FixedOffset, Utc};
 use derive_more::Constructor;
 use duct::cmd;
 use futures_util::TryStreamExt;
@@ -292,7 +285,7 @@ async fn make_post(
         .context("Failed to query comment_count")?
         .count;
 
-        let mut comments = if all_comments {
+        let comments = if all_comments {
             sqlx::query_as!(
                 Comment,
                 "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC",
@@ -1317,8 +1310,6 @@ async fn main() -> io::Result<()> {
         env::var("ISUCONP_DB_PASSWORD").expect("Failed to ISUCONP_DB_PASSWORD")
     };
     let dbname = env::var("ISUCONP_DB_NAME").unwrap_or("isuconp".to_string());
-
-    let redis_url = env::var("ISUCONP_REDIS_URL").unwrap_or("localhost:6379".to_string());
 
     let dsn = if cfg!(debug_assertions) {
         "mysql://root:root@localhost:3306/isuconp".to_string()
