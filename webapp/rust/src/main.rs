@@ -456,7 +456,7 @@ async fn post_login(
                 .finish())
         }
         Err(e) => {
-            log::error!("{:?}", &e);
+            log::info!("{:?}", &e);
             session
                 .insert("notice", "アカウント名かパスワードが間違っています")
                 .unwrap();
