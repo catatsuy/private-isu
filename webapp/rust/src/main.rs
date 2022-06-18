@@ -347,17 +347,6 @@ async fn make_post(
     Ok(granted_info_posts)
 }
 
-// fn image_url(p: &GrantedInfoPost) -> String {
-//     let ext = match p.post.mime.as_str() {
-//         "image/jpeg" => ".jpg",
-//         "image/png" => ".png",
-//         "image/gif" => ".gif",
-//         _ => "",
-//     };
-
-//     format!("/image/{}{}", p.post.id, ext)
-// }
-
 handlebars_helper!(image_url: |p: GrantedInfoPost| {
     let ext = match p.post.mime.as_str() {
             "image/jpeg" => ".jpg",
@@ -642,12 +631,7 @@ async fn get_index(
     };
 
     let csrf_token = get_csrf_token(&session).unwrap_or_default();
-    // let csrf_token = if let Some(token) = get_csrf_token(&session) {
-    //     token
-    // } else {
-    //     log::error!("token is None");
-    //     return Ok(HttpResponse::InternalServerError().finish());
-    // };
+
     let posts = match make_post(results, csrf_token, false, pool.as_ref()).await {
         Ok(posts) => posts,
         Err(e) => {
@@ -658,8 +642,7 @@ async fn get_index(
 
     let body = {
         let mut map = Map::new();
-        // let posts = serde_json::to_value(posts).unwrap();
-        // let map = json.as_object_mut().unwrap();
+
         map.insert("posts".to_string(), to_json(posts));
         map.insert("me".to_string(), to_json(me));
         map.insert(
@@ -797,8 +780,7 @@ async fn get_account_name(
 
     let body = {
         let mut map = Map::new();
-        // let posts = serde_json::to_value(posts).unwrap();
-        // let map = json.as_object_mut().unwrap();
+
         map.insert("posts".to_string(), to_json(posts));
         map.insert("user".to_string(), to_json(user));
         map.insert("post_count".to_string(), to_json(post_count));
@@ -927,20 +909,12 @@ async fn get_posts_id(
     };
 
     let body = {
-        // let mut map = Map::new();
-        // let posts = serde_json::to_value(posts).unwrap();
-        // let map = json.as_object_mut().unwrap();
-        // map.insert("post".to_string(), to_json(p));
-
         let mut post = serde_json::to_value(p).unwrap();
         let map = post.as_object_mut().unwrap();
         map.insert("me".to_string(), to_json(me));
 
         map.insert("post_parent".to_string(), to_json("post_id"));
         map.insert("content_parent".to_string(), to_json("layout"));
-
-        // let mut file = std::fs::File::create(".tmp/get_posts_id.json").unwrap();
-        // write!(file, "{:#?}", &map).unwrap();
 
         handlebars.render("post", &map).unwrap()
     };
