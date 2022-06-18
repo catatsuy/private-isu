@@ -1071,26 +1071,12 @@ async fn post_index(
         .finish())
 }
 
-// TODO: idと拡張子分離できそうなので分離する
-#[get("/image/{path}")]
-async fn get_image(path: web::Path<(String,)>, pool: Data<Pool<MySql>>) -> Result<HttpResponse> {
-    let (pid, ext) = match path.0.rsplit_once(".") {
-        Some((pid, ext)) => {
-            let pid = match pid.parse::<u64>() {
-                Ok(pid) => pid,
-                Err(e) => {
-                    log::warn!("{:?}", &e);
-                    return Ok(HttpResponse::InternalServerError().body(e.to_string()));
-                }
-            };
-            (pid, ext)
-        }
-        None => {
-            let e = "Invalid path";
-            log::warn!("{}", e);
-            return Ok(HttpResponse::InternalServerError().body(e));
-        }
-    };
+#[get("/image/{pid}.{ext}")]
+async fn get_image(
+    path: web::Path<(String, String)>,
+    pool: Data<Pool<MySql>>,
+) -> Result<HttpResponse> {
+    let (pid, ext) = path.into_inner();
 
     let post = match sqlx::query_as!(Post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
         .fetch_optional(pool.as_ref())
@@ -1106,7 +1092,7 @@ async fn get_image(path: web::Path<(String,)>, pool: Data<Pool<MySql>>) -> Resul
         }
     };
 
-    let content_type = match (ext, post.mime.as_str()) {
+    let content_type = match (ext.as_str(), post.mime.as_str()) {
         ("jpg", "image/jpeg") | ("png", "image/png") | ("gif", "image/gif") => post.mime.as_str(),
         _ => return Ok(HttpResponse::InternalServerError().finish()),
     };
@@ -1335,8 +1321,7 @@ async fn main() -> io::Result<()> {
     let redis_url = env::var("ISUCONP_REDIS_URL").unwrap_or("localhost:6379".to_string());
 
     let dsn = if cfg!(debug_assertions) {
-        "mysql://root:root@tcp(localhost:3306)/isuconp?charset=utf8mb4&parseTime=true&loc=Local"
-            .to_string()
+        "mysql://root:root@localhost:3306/isuconp".to_string()
     } else {
         format!(
             "mysql://{}:{}@{}:{}/{}",
