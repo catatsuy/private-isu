@@ -1,4 +1,3 @@
-version: '2.2'
 services:
   nginx:
     image: nginx:1.22
@@ -11,8 +10,6 @@ services:
       - app
 
   app:
-    cpus: 1
-    mem_limit: 1g
     # Go実装の場合は golang/ PHP実装の場合は php/
     build: rust/
     environment:
@@ -32,10 +29,13 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1g
 
   mysql:
-    cpus: 1
-    mem_limit: 1g
     image: mysql/mysql-server:8.0
     environment:
       - "TZ=Asia/Tokyo"
@@ -53,6 +53,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1g
 
   memcached:
     image: memcached:1.6

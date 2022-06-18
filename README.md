@@ -51,6 +51,7 @@ Ubuntu 20.04 / 22.04
 * AMI・Docker Compose・Vagrantが用意されている
   * 手元で適当に動かすことも難しくない
   * Ansibleを動かせば、他の環境でも動くはず
+  * cloud-initも利用可能
 
 ### AMI
 
@@ -70,19 +71,28 @@ $ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/priva
 
 以下のAMI IDで起動する。リージョンは『Asia Pacific (Tokyo)』。
 
-x86_64:
+競技者用 (Ubuntu 22.04):
 
-| 用途           |        AMI ID         |                 AMI name                  | 推奨インスタンスタイプ |
-| -------------- | :-------------------: | :---------------------------------------: | ---------------------- |
-| 競技者用       | ami-0b37d5c92add6d0d5 |    catatsuy_private_isu_amd64_20220529    | c4.large               |
-| ベンチマーカー | ami-024cfcacc753fa53e | catatsuy_private_isu_bench_amd64_20220529 | c5.xlarge              |
+| 用途   |        AMI ID         |                 AMI name                 | 推奨インスタンスタイプ |
+| ------ | :-------------------: | :--------------------------------------: | ---------------------- |
+| x86_64 | ami-06131fec48ac3cd17 | catatsuy_private_isu_amd64_2204_20220618 | c4.large               |
+| arm64  | ami-061f008820446dd4a | catatsuy_private_isu_arm64_2204_20220618 | c6g.large              |
 
-arm64:
+競技者用 (Ubuntu 20.04):
 
-| 用途           |        AMI ID         |                 AMI name                  | 推奨インスタンスタイプ |
-| -------------- | :-------------------: | :---------------------------------------: | ---------------------- |
-| 競技者用       | ami-06c591d563bfd1665 |    catatsuy_private_isu_arm64_20220529    | c6g.large              |
-| ベンチマーカー | ami-035922e4d248319af | catatsuy_private_isu_bench_arm64_20220529 | c6g.xlarge             |
+| 用途   |        AMI ID         |              AMI name               | 推奨インスタンスタイプ |
+| ------ | :-------------------: | :---------------------------------: | ---------------------- |
+| x86_64 | ami-0b37d5c92add6d0d5 | catatsuy_private_isu_amd64_20220529 | c4.large               |
+| arm64  | ami-06c591d563bfd1665 | catatsuy_private_isu_arm64_20220529 | c6g.large              |
+
+
+ベンチマーカー (Ubuntu 20.04):
+
+| 用途   |        AMI ID         |                 AMI name                  | 推奨インスタンスタイプ |
+| ------ | :-------------------: | :---------------------------------------: | ---------------------- |
+| x86_64 | ami-024cfcacc753fa53e | catatsuy_private_isu_bench_amd64_20220529 | c5.xlarge              |
+| arm64  | ami-035922e4d248319af | catatsuy_private_isu_bench_arm64_20220529 | c6g.xlarge             |
+
 
 ### 手元で動かす
 
@@ -134,6 +144,8 @@ bunzip2 dump.sql.bz2
 cd ..
 docker compose up
 ```
+
+（もしうまく動かなければ`docker-compose up`を使うとよいかもしれません）
 
 デフォルトはRubyのため、他言語にする場合は`docker-compose.yml`ファイル内のappのbuildを変更する必要がある。PHPはそれに加えて以下の作業が必要。
 
@@ -201,6 +213,7 @@ cloud-initに対応した環境、例えばAWS、Azure、Google Cloud、Oracle C
 
 https://github.com/matsuu/cloud-init-isucon/tree/main/private-isu
 
+ISUCON過去問題の環境を「さくらのクラウド」で構築する | さくらのナレッジ https://knowledge.sakura.ad.jp/31520/
 
 ### 競技者用・ベンチマーカーインスタンスのセットアップ方法
 
