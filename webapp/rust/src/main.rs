@@ -12,7 +12,7 @@ use actix_cors::Cors;
 use actix_files::Files;
 use actix_multipart::{Field, Multipart, MultipartError};
 use actix_redis::RedisSession;
-use actix_session::Session;
+use actix_session::{CookieSession, Session};
 use actix_web::{
     cookie::time::UtcOffset,
     dev::ResourceDef,
@@ -1357,7 +1357,7 @@ async fn main() -> io::Result<()> {
                     .supports_credentials()
                     .allowed_origin("http://localhost")
             })
-            .wrap(RedisSession::new(redis_url.clone(), private_key.master()))
+            .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .app_data(Data::new(db.clone()))
             .app_data(Data::new(handlebars))
             .service(get_initialize)
