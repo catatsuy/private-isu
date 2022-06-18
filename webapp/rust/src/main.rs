@@ -580,18 +580,18 @@ async fn post_register(
         Ok(r) => r.last_insert_id(),
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
     log::debug!("last insert id {}", &uid);
 
     if let Err(e) = session.insert("user_id", uid) {
         log::error!("{:?}", &e);
-        return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        return Ok(HttpResponse::Ok().body(e.to_string()));
     }
     if let Err(e) = session.insert("csrf_token", secure_random_str(32)) {
         log::error!("{:?}", &e);
-        return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        return Ok(HttpResponse::Ok().body(e.to_string()));
     }
 
     Ok(HttpResponse::Found()
@@ -626,7 +626,7 @@ async fn get_index(
         Ok(results) => results,
         Err(e) => {
             log::error!("{:?}",&e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -636,7 +636,7 @@ async fn get_index(
         Ok(posts) => posts,
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -682,7 +682,7 @@ async fn get_account_name(
         Ok(None) => return Ok(HttpResponse::NotFound().finish()),
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -690,7 +690,7 @@ async fn get_account_name(
         Ok(r) => r,
         Err(e)=>{
                log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -705,7 +705,7 @@ async fn get_account_name(
         Ok(p) => p,
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -719,7 +719,7 @@ async fn get_account_name(
         Ok(r) => r.count,
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -730,7 +730,7 @@ async fn get_account_name(
         Ok(records) => records.iter().map(|r| r.id).collect::<Vec<i32>>(),
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
     let post_count = post_ids.len();
@@ -761,7 +761,7 @@ async fn get_account_name(
             Ok(c) => c,
             Err(e) => {
                 log::error!("{:?}", &e);
-                return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+                return Ok(HttpResponse::Ok().body(e.to_string()));
             }
         };
 
@@ -809,14 +809,14 @@ async fn get_posts(
     let max_create_at = query.into_inner().max_created_at;
 
     if max_create_at.is_empty() {
-        return Ok(HttpResponse::InternalServerError().finish());
+        return Ok(HttpResponse::Ok().finish());
     }
 
     let t = match DateTime::parse_from_rfc3339(&max_create_at) {
         Ok(t) => t,
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -824,7 +824,7 @@ async fn get_posts(
         Ok(r)=> r,
         Err(e)=> {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -839,7 +839,7 @@ async fn get_posts(
         Ok(p) => p,
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -875,7 +875,7 @@ async fn get_posts_id(
         Ok(r) => r,
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -890,7 +890,7 @@ async fn get_posts_id(
         Ok(p) => p,
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -1025,7 +1025,7 @@ async fn post_index(
         Ok(result) => result.last_insert_id(),
         Err(e) => {
             log::error!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -1048,16 +1048,16 @@ async fn get_image(
         Ok(Some(post)) => post,
         Err(e) => {
             log::warn!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
         _ => {
-            return Ok(HttpResponse::InternalServerError().finish());
+            return Ok(HttpResponse::Ok().finish());
         }
     };
 
     let content_type = match (ext.as_str(), post.mime.as_str()) {
         ("jpg", "image/jpeg") | ("png", "image/png") | ("gif", "image/gif") => post.mime.as_str(),
-        _ => return Ok(HttpResponse::InternalServerError().finish()),
+        _ => return Ok(HttpResponse::Ok().finish()),
     };
 
     Ok(HttpResponse::Ok()
@@ -1100,7 +1100,7 @@ async fn post_comment(
     .await
     {
         log::warn!("{:?}", &e);
-        return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+        return Ok(HttpResponse::Ok().body(e.to_string()));
     }
 
     Ok(HttpResponse::Found()
@@ -1143,7 +1143,7 @@ async fn get_admin_banned(
         Ok(users) => users,
         Err(e) => {
             log::warn!("{:?}", &e);
-            return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+            return Ok(HttpResponse::Ok().body(e.to_string()));
         }
     };
 
@@ -1201,7 +1201,7 @@ async fn post_admin_banned(
             Ok(q) => q,
             Err(e) => {
                 log::error!("{:#?}", &e);
-                return Ok(HttpResponse::InternalServerError().body(e.to_string()));
+                return Ok(HttpResponse::Ok().body(e.to_string()));
             }
         };
     log::debug!("admin banned {:?}", query);
