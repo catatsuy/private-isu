@@ -195,16 +195,10 @@ fn escapeshellarg(arg: &str) -> String {
 }
 
 fn digest(src: &str) -> anyhow::Result<String> {
-    let output = cmd!(
-        "/bin/bash",
-        "-c",
-        format!(
-            r#"printf "%s" {} | openssl dgst -sha512 | sed 's/^.*= //'"#,
-            escapeshellarg(src)
-        )
-    )
-    .read()
-    .context("Failed to cmd")?;
+    let output = duct_sh::sh(r#"printf "%s" $SRC | openssl dgst -sha512 | sed 's/^.*= //'"#)
+        .env("SRC", src)
+        .read()
+        .context("Failed to cmd")?;
 
     Ok(output.trim_end_matches('\n').to_string())
 }
