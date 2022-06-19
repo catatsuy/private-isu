@@ -1,9 +1,4 @@
-use std::{
-    env,
-    io::{self},
-    path::Path,
-    time::Duration,
-};
+use std::{env, io, path::Path, time::Duration};
 
 use actix_cors::Cors;
 use actix_files::Files;
@@ -13,7 +8,7 @@ use actix_session::{CookieSession, Session};
 use actix_web::{
     cookie::time::UtcOffset,
     get,
-    http::header::{self},
+    http::header,
     middleware, post,
     web::{self, Data, Form, Payload},
     App, HttpResponse, HttpServer, Result,
@@ -1299,6 +1294,8 @@ async fn main() -> io::Result<()> {
         .await
         .unwrap();
 
+    let private_key = actix_web::cookie::Key::generate();
+
     HttpServer::new(move || {
         let mut handlebars = Handlebars::new();
         handlebars.register_helper("image_url_helper", Box::new(image_url));
@@ -1316,7 +1313,7 @@ async fn main() -> io::Result<()> {
                     .supports_credentials()
                     .allowed_origin("http://localhost")
             })
-            .wrap(CookieSession::signed(&[0; 32]).secure(false))
+            .wrap(CookieSession::signed(private_key.encryption()).secure(false))
             .app_data(Data::new(db.clone()))
             .app_data(Data::new(handlebars))
             .service(get_initialize)
