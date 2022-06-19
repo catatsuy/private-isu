@@ -369,9 +369,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	session.Values["user_id"] = uid
-	rstr := secureRandomStr(16)
-	log.Print(rstr)
-	session.Values["csrf_token"] = rstr
+	session.Values["csrf_token"] = secureRandomStr(16)
 	session.Save(r, w)
 
 	http.Redirect(w, r, "/", http.StatusFound)
