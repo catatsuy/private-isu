@@ -55,7 +55,7 @@ Ubuntu 20.04 / 22.04
 
 ### AMI
 
-セキュリティのアップデートなどは行わないので自己責任で利用してください。Node.jsのセットアップはskipしているので、Ruby/PHP/Goのみ利用可能。OSはUbuntu 20.04。
+セキュリティのアップデートなどは行わないので自己責任で利用してください。Node.jsのセットアップはskipしているので、Ruby/PHP/Goのみ利用可能。
 
 * 競技者用インスタンスはSecurity groupで80番ポートを公開する必要がある
   * Network settingsで「Allow HTTP traffic from the internet」にチェックを入れてもよい
