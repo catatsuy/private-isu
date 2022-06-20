@@ -16,7 +16,6 @@ use actix_web::{
 use anyhow::{bail, Context};
 use chrono::{DateTime, FixedOffset, Utc};
 use derive_more::Constructor;
-use duct::cmd;
 use futures_util::TryStreamExt;
 use handlebars::{handlebars_helper, to_json, Handlebars};
 use log::LevelFilter;
@@ -190,12 +189,12 @@ async fn try_login(account_name: &str, password: &str, pool: &Pool<MySql>) -> an
     }
 }
 
-fn escapeshellarg(arg: &str) -> String {
+fn _escapeshellarg(arg: &str) -> String {
     format!("'{}'", arg.replace('\'', "'\\''"))
 }
 
 fn digest(src: &str) -> anyhow::Result<String> {
-    let output = duct_sh::sh(r#"printf "%s" $SRC | openssl dgst -sha512 | sed 's/^.*= //'"#)
+    let output = duct_sh::sh(r#"printf "%s" "$SRC" | openssl dgst -sha512 | sed 's/^.*= //'"#)
         .env("SRC", src)
         .read()
         .context("Failed to cmd")?;
