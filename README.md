@@ -47,6 +47,7 @@ Ubuntu 20.04 / 22.04
 
 * Ruby/Go/PHPの3言語が用意されており、デフォルトはRubyが起動する
   * Node.jsは現状メンテナンスされていない
+  * Rustは現在、Docker Composeでのみ用意されている
   * AMI・Vagrantで他の言語の実装を動かす場合は[manual.md](/manual.md)を参考にする
 * AMI・Docker Compose・Vagrantが用意されている
   * 手元で適当に動かすことも難しくない
