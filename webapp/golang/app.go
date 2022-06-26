@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	crand "crypto/rand"
 	"fmt"
 	"html/template"
@@ -19,12 +18,10 @@ import (
 
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
+	"github.com/go-chi/chi/v5"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
-	goji "goji.io"
-	"goji.io/pat"
-	"goji.io/pattern"
 )
 
 var (
@@ -419,7 +416,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func getAccountName(w http.ResponseWriter, r *http.Request) {
-	accountName := pat.Param(r, "accountName")
+	accountName := chi.URLParam(r, "accountName")
 	user := User{}
 
 	err := db.Get(&user, "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0", accountName)
@@ -551,7 +548,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 }
 
 func getPostsID(w http.ResponseWriter, r *http.Request) {
-	pidStr := pat.Param(r, "id")
+	pidStr := chi.URLParam(r, "id")
 	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -674,7 +671,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func getImage(w http.ResponseWriter, r *http.Request) {
-	pidStr := pat.Param(r, "id")
+	pidStr := chi.URLParam(r, "id")
 	pid, err := strconv.Atoi(pidStr)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
@@ -688,7 +685,7 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ext := pat.Param(r, "ext")
+	ext := chi.URLParam(r, "ext")
 
 	if ext == "jpg" && post.Mime == "image/jpeg" ||
 		ext == "png" && post.Mime == "image/png" ||
@@ -794,31 +791,6 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/banned", http.StatusFound)
 }
 
-type RegexpPattern struct {
-	regexp *regexp.Regexp
-}
-
-func Regexp(reg *regexp.Regexp) *RegexpPattern {
-	return &RegexpPattern{regexp: reg}
-}
-
-func (reg *RegexpPattern) Match(r *http.Request) *http.Request {
-	ctx := r.Context()
-	uPath := pattern.Path(ctx)
-	if reg.regexp.MatchString(uPath) {
-		values := reg.regexp.FindStringSubmatch(uPath)
-		keys := reg.regexp.SubexpNames()
-
-		for i := 1; i < len(keys); i++ {
-			ctx = context.WithValue(ctx, pattern.Variable(keys[i]), values[i])
-		}
-
-		return r.WithContext(ctx)
-	}
-
-	return nil
-}
-
 func main() {
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
@@ -857,24 +829,26 @@ func main() {
 	}
 	defer db.Close()
 
-	mux := goji.NewMux()
+	r := chi.NewRouter()
 
-	mux.HandleFunc(pat.Get("/initialize"), getInitialize)
-	mux.HandleFunc(pat.Get("/login"), getLogin)
-	mux.HandleFunc(pat.Post("/login"), postLogin)
-	mux.HandleFunc(pat.Get("/register"), getRegister)
-	mux.HandleFunc(pat.Post("/register"), postRegister)
-	mux.HandleFunc(pat.Get("/logout"), getLogout)
-	mux.HandleFunc(pat.Get("/"), getIndex)
-	mux.HandleFunc(pat.Get("/posts"), getPosts)
-	mux.HandleFunc(pat.Get("/posts/:id"), getPostsID)
-	mux.HandleFunc(pat.Post("/"), postIndex)
-	mux.HandleFunc(pat.Get("/image/:id.:ext"), getImage)
-	mux.HandleFunc(pat.Post("/comment"), postComment)
-	mux.HandleFunc(pat.Get("/admin/banned"), getAdminBanned)
-	mux.HandleFunc(pat.Post("/admin/banned"), postAdminBanned)
-	mux.HandleFunc(Regexp(regexp.MustCompile(`^/@(?P<accountName>[a-zA-Z]+)$`)), getAccountName)
-	mux.Handle(pat.Get("/*"), http.FileServer(http.Dir("../public")))
+	r.Get("/initialize", getInitialize)
+	r.Get("/login", getLogin)
+	r.Post("/login", postLogin)
+	r.Get("/register", getRegister)
+	r.Post("/register", postRegister)
+	r.Get("/logout", getLogout)
+	r.Get("/", getIndex)
+	r.Get("/posts", getPosts)
+	r.Get("/posts/{id}", getPostsID)
+	r.Post("/", postIndex)
+	r.Get("/image/{id}.{ext}", getImage)
+	r.Post("/comment", postComment)
+	r.Get("/admin/banned", getAdminBanned)
+	r.Post("/admin/banned", postAdminBanned)
+	r.Get(`/@{accountName:[a-zA-Z]+}`, getAccountName)
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		http.FileServer(http.Dir("../public")).ServeHTTP(w, r)
+	})
 
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
