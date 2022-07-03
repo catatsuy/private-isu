@@ -60,11 +60,19 @@ Ubuntu 20.04 / 22.04
 * 競技者用インスタンスはSecurity groupで80番ポートを公開する必要がある
   * Network settingsで「Allow HTTP traffic from the internet」にチェックを入れてもよい
 * ベンチマーカー用インスタンスはコンピューティング最適化インスタンスでそれなりのスペックでの利用を推奨
-  * 以下のコマンドでベンチマーカーが実行できる
+
+ベンチマーカー用インスタンスのベンチマーカー実行方法
 
 ```sh
 $ sudo su - isucon
 $ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://<target IP>
+```
+
+競技者用インスタンス上でのベンチマーカー実行方法（アプリケーションと同居する形になるため非推奨）
+
+```sh
+$ sudo su - isucon
+$ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_isu/benchmarker/userdata -t http://localhost
 ```
 
 最初はRuby実装が起動しているので、他の言語を使用する場合は[manual.md](/manual.md)を見て作業すること。
@@ -75,22 +83,14 @@ $ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/priva
 
 | 用途   |        AMI ID         |                 AMI name                 | 推奨インスタンスタイプ |
 | ------ | :-------------------: | :--------------------------------------: | ---------------------- |
-| x86_64 | ami-06131fec48ac3cd17 | catatsuy_private_isu_amd64_2204_20220618 | c4.large               |
-| arm64  | ami-061f008820446dd4a | catatsuy_private_isu_arm64_2204_20220618 | c6g.large              |
-
-競技者用 (Ubuntu 20.04):
-
-| 用途   |        AMI ID         |              AMI name               | 推奨インスタンスタイプ |
-| ------ | :-------------------: | :---------------------------------: | ---------------------- |
-| x86_64 | ami-0b37d5c92add6d0d5 | catatsuy_private_isu_amd64_20220529 | c4.large               |
-| arm64  | ami-06c591d563bfd1665 | catatsuy_private_isu_arm64_20220529 | c6g.large              |
-
+| x86_64 | ami-06c39e451ff9930db | catatsuy_private_isu_amd64_2204_20220703 | c6i.large              |
+| arm64  | ami-08ece261e7317422f | catatsuy_private_isu_arm64_2204_20220703 | c6g.large              |
 
 ベンチマーカー (Ubuntu 20.04):
 
 | 用途   |        AMI ID         |                 AMI name                  | 推奨インスタンスタイプ |
 | ------ | :-------------------: | :---------------------------------------: | ---------------------- |
-| x86_64 | ami-024cfcacc753fa53e | catatsuy_private_isu_bench_amd64_20220529 | c5.xlarge              |
+| x86_64 | ami-024cfcacc753fa53e | catatsuy_private_isu_bench_amd64_20220529 | c6i.xlarge             |
 | arm64  | ami-035922e4d248319af | catatsuy_private_isu_bench_arm64_20220529 | c6g.xlarge             |
 
 
