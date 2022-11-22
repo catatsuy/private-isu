@@ -3,7 +3,7 @@ GEM
   specs:
     backports (3.23.0)
     connection_pool (2.2.5)
-    dalli (3.2.1)
+    dalli (3.2.3)
     foreman (0.87.2)
     kgio (2.11.4)
     multi_json (1.15.0)
