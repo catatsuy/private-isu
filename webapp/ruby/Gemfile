@@ -4,7 +4,7 @@ source "https://rubygems.org"
 gem "sinatra"
 gem "sinatra-contrib"
 # cf: https://github.com/rack/rack/issues/1603
-gem "rack", '>= 2.1.0', '< 2.2.0'
+gem "rack", '>= 2.1.0', '< 2.3.0'
 gem "foreman"
 gem "unicorn"
 gem "mysql2"
