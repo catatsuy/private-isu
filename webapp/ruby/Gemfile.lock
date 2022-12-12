@@ -1,35 +1,33 @@
 GEM
   remote: https://rubygems.org/
   specs:
-    backports (3.23.0)
-    connection_pool (2.2.5)
+    connection_pool (2.3.0)
     dalli (3.2.3)
     foreman (0.87.2)
     kgio (2.11.4)
     multi_json (1.15.0)
-    mustermann (1.1.1)
+    mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
-    mysql2 (0.5.3)
-    rack (2.1.4.1)
+    mysql2 (0.5.4)
+    rack (2.2.4)
     rack-flash3 (1.0.5)
       rack
-    rack-protection (2.0.8.1)
+    rack-protection (3.0.4)
       rack
     raindrops (0.20.0)
     ruby2_keywords (0.0.5)
-    sinatra (2.0.8.1)
-      mustermann (~> 1.0)
-      rack (~> 2.0)
-      rack-protection (= 2.0.8.1)
+    sinatra (3.0.4)
+      mustermann (~> 3.0)
+      rack (~> 2.2, >= 2.2.4)
+      rack-protection (= 3.0.4)
       tilt (~> 2.0)
-    sinatra-contrib (2.0.8.1)
-      backports (>= 2.8.2)
+    sinatra-contrib (3.0.4)
       multi_json
-      mustermann (~> 1.0)
-      rack-protection (= 2.0.8.1)
-      sinatra (= 2.0.8.1)
+      mustermann (~> 3.0)
+      rack-protection (= 3.0.4)
+      sinatra (= 3.0.4)
       tilt (~> 2.0)
-    tilt (2.0.10)
+    tilt (2.0.11)
     unicorn (6.1.0)
       kgio (~> 2.6)
       raindrops (~> 0.7)
@@ -42,11 +40,11 @@ DEPENDENCIES
   dalli
   foreman
   mysql2
-  rack (>= 2.1.0, < 2.2.0)
+  rack
   rack-flash3
   sinatra
   sinatra-contrib
   unicorn
 
 BUNDLED WITH
-   2.3.7
+   2.3.26
