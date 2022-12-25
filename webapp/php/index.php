@@ -74,6 +74,8 @@ $container->set('flash', function () {
 
 $container->set('helper', function ($c) {
     return new class($c) {
+        public PDO $db;
+
         public function __construct($c) {
             $this->db = $c->get('db');
         }
