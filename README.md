@@ -125,8 +125,8 @@ cd ../..
 
 cd benchmarker
 make
-./bin/benchmarker -t "http://localhost:8080" -u $PWD/userdata
-# ./bin/benchmarker -t "http://<競技者用インスタンスのグローバルIPアドレス>/" -u $PWD/userdata
+./bin/benchmarker -t "http://localhost:8080" -u ./userdata
+# ./bin/benchmarker -t "http://<競技者用インスタンスのグローバルIPアドレス>/" -u ./userdata
 
 # Output
 # {"pass":true,"score":1710,"success":1434,"fail":0,"messages":[]}
