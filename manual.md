@@ -82,11 +82,11 @@ $ sudo systemctl disable isu-ruby
 $ sudo rm /etc/nginx/sites-enabled/isucon.conf
 $ sudo ln -s /etc/nginx/sites-available/isucon-php.conf /etc/nginx/sites-enabled/
 $ sudo systemctl reload nginx
-$ sudo systemctl start php7.4-fpm
-$ sudo systemctl enable php7.4-fpm
+$ sudo systemctl start php8.1-fpm
+$ sudo systemctl enable php8.1-fpm
 ```
 
-php-fpmの設定については、/etc/php/7.4/fpm/以下にあります。
+php-fpmの設定については、/etc/php/8.1/fpm/以下にあります。
 
 #### Goへの切り替え方
 
