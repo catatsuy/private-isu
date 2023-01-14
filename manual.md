@@ -50,7 +50,7 @@ EC2インスタンスのパブリックIPアドレスにブラウザでアクセ
 
 ### 参考実装の言語切り替え方法
 
-参考実装の言語はRuby/PHP/Go/Node.jsが用意されており、初期状態ではRubyの実装が起動しています。
+参考実装の言語はRuby/PHP/Goが用意されており、初期状態ではRubyの実装が起動しています。
 
 80番ポートでアクセスできるので、ブラウザから動作確認をすることができます。
 
@@ -88,9 +88,18 @@ $ sudo systemctl enable php8.1-fpm
 
 php-fpmの設定については、/etc/php/8.1/fpm/以下にあります。
 
+エラーなどの出力については、
+
+```
+$ sudo journalctl -f -u php8.1-fpm
+$ sudo tail -f /var/log/nginx/error.log
+```
+
+などで見ることができます。
+
 #### Goへの切り替え方
 
-起動する実装をGOに切り替えるには、以下の操作を行います。
+起動する実装をGoに切り替えるには、以下の操作を行います。
 
 ```
 $ sudo systemctl stop isu-ruby
@@ -105,27 +114,6 @@ $ sudo systemctl enable isu-go
 
 ```
 $ sudo journalctl -f -u isu-go
-```
-
-などで見ることができます。
-
-#### node.jsへの切り替え方
-
-起動する実装をnode.jsに切り替えるには、以下の操作を行います。
-
-```
-$ sudo systemctl stop isu-ruby
-$ sudo systemctl disable isu-ruby
-$ sudo systemctl start isu-node
-$ sudo systemctl enable isu-node
-```
-
-プログラムの詳しい起動方法は、 /etc/systemd/system/isu-node.service を参照してください。
-
-エラーなどの出力については、
-
-```
-$ sudo journalctl -f -u isu-node
 ```
 
 などで見ることができます。
