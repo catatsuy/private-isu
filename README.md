@@ -83,8 +83,8 @@ $ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_i
 
 | 用途   |        AMI ID         |              AMI name               | 推奨インスタンスタイプ |
 | ------ | :-------------------: | :---------------------------------: | ---------------------- |
-| x86_64 | ami-0292ee6a6d9e72345 | catatsuy_private_isu_amd64_20221231 | c6i.large              |
-| arm64  | ami-06993b00c8a3efc0d | catatsuy_private_isu_arm64_20221231 | c6g.large              |
+| x86_64 | ami-08bde596066780be7 | catatsuy_private_isu_amd64_20230114 | c6i.large              |
+| arm64  | ami-02e8056293b4a722e | catatsuy_private_isu_arm64_20230114 | c6g.large              |
 
 ベンチマーカー (Ubuntu 22.04):
 
