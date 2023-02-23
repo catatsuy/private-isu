@@ -1,4 +1,4 @@
-FROM golang:1.19
+FROM golang:1.20
 
 RUN mkdir -p /opt/go
 COPY . /opt/go
