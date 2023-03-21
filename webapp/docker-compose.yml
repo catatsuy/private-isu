@@ -25,6 +25,7 @@ services:
       - memcached
     volumes:
       - ./public:/home/public
+      - ./golang:/home/webapp
     init: true
     deploy:
       resources:

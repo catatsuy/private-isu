@@ -18,3 +18,4 @@ portal/tmp
 .vagrant
 
 *.log
+webapp/golang/tmp
