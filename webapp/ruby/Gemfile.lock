@@ -2,7 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     connection_pool (2.3.0)
-    dalli (3.2.3)
+    dalli (3.2.4)
     foreman (0.87.2)
     kgio (2.11.4)
     multi_json (1.15.0)
