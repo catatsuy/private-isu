@@ -1,4 +1,4 @@
-FROM ruby:3.1-buster
+FROM ruby:3.2-buster
 
 RUN mkdir -p /home/webapp
 COPY Gemfile /home/webapp
