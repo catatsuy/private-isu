@@ -8,7 +8,7 @@
         "provisioning/image/ansible/04_xbuild.yml"
       ],
       "matchStrings": [
-        "datasource=(?<datasource>.*?)( depName=(?<depName>.*?))?( versioning=(?<versioning>.*?))?\n.*?-install (?<currentValue>[0-9.]*).*\n"
+        "datasource=(?<datasource>.*?)\n.*?-install (?<currentValue>[0-9.]*).*\n"
       ]
     }
   ],
