@@ -10,6 +10,7 @@
         dest=/home/isucon/.xbuild
         update=yes
     # ruby
+    # datasource=ruby-version depName=ruby
     - command: /home/isucon/.xbuild/ruby-install 3.1.3 /home/isucon/.local/ruby
       args:
         creates: /home/isucon/.local/ruby/bin/ruby
