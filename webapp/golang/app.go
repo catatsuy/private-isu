@@ -703,6 +703,7 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func postComment(w http.ResponseWriter, r *http.Request) {
+	log.Printf("trace: this is a trace log.")
 	me := getSessionUser(r)
 	if !isLogin(me) {
 		http.Redirect(w, r, "/login", http.StatusFound)
