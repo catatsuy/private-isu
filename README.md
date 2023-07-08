@@ -166,9 +166,11 @@ cd ..
 
 docker build -t private-isu-benchmarker .
 docker run --network host -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata
+# Linuxの場合
+docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata
 ```
 
-Linuxの場合は`host.docker.internal`が使用できないので、`ip a`してdocker0のインタフェースでホストのIPアドレスを調べて指定する。以下の場合は`172.17.0.1`を指定する。
+動かない場合は`ip a`してdocker0のインタフェースでホストのIPアドレスを調べて`host.docker.internal`の代わりに指定する。以下の場合は`172.17.0.1`を指定する。
 
 ```
 3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default
