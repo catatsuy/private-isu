@@ -223,6 +223,7 @@ ISUCON過去問題の環境を「さくらのクラウド」で構築する | �
 
 ## 他の言語実装
 
-* Rust実装 https://github.com/Romira915/private-isu-rust
 * Python実装 https://github.com/methane/pixiv-isucon2016-python
+  * provisioning code https://github.com/x-tech5/aws-isucon-book-tutorial
+* Rust実装 https://github.com/Romira915/private-isu-rust
 * Scala実装 https://github.com/catatsuy/private-isu/pull/140
