@@ -15,6 +15,6 @@
       check_mode: no
     - name: download go binary
       unarchive:
-        src="https://golang.org/dl/go1.20.5.{{ uname_res.stdout }}-{{ arch_res.stdout }}.tar.gz"
+        src="https://golang.org/dl/go1.20.6.{{ uname_res.stdout }}-{{ arch_res.stdout }}.tar.gz"
         dest=/usr/local/
         remote_src=yes
