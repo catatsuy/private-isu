@@ -22,7 +22,7 @@
         - nodejs
     # golang
     # datasource=golang-version depName=golang
-    - shell: /home/isucon/.xbuild/go-install 1.20.6 /home/isucon/.local/go $(uname -s | tr [A-Z] [a-z]) $(dpkg --print-architecture)
+    - shell: /home/isucon/.xbuild/go-install 1.20.7 /home/isucon/.local/go $(uname -s | tr [A-Z] [a-z]) $(dpkg --print-architecture)
       args:
         creates: /home/isucon/.local/go/bin/go
 
