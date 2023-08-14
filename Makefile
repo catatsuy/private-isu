@@ -18,5 +18,4 @@ rotate_nginx:
 	cd webapp && docker-compose exec nginx bash -c "mv /var/log/nginx/access.log /var/log/nginx/access.log.$$(date +%Y%m%d%H%M%S)" && cd ..
 	cd webapp && docker-compose exec nginx bash -c "nginx -s reopen" && cd ..
 alp:
-	cat webapp/logs/nginx/access.log | alp json --sort=sum -r \
-		-m "/image/[0-9]+\.(jpg|png|gif),/posts/[0-9]+,/@[a-z]"
+	cat webapp/logs/nginx/access.log | alp json --sort=sum -r -m "/image/[0-9]+\.(jpg|png|gif),/posts/[0-9]+,/@[a-z]"
