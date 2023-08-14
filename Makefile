@@ -6,3 +6,5 @@ start:
 	cd webapp && docker-compose up -d && cd ..
 stop:
 	cd webapp && docker-compose down && cd ..
+mysql:
+	docker-compose exec mysql bash
