@@ -100,12 +100,22 @@ module Isuconp
 
       def make_posts(results, all_comments: false)
         posts = []
+
+        user_ids = results.to_a.map{|post| post[:user_id]}
+        stmt = db.prepare("SELECT * FROM `users` WHERE `id` IN (#{user_ids.join(',')})")
+        users = stmt.execute()
+        user_hash = {}
+        users.each do |user|
+          user_hash[user[:id]] = user
+        end
+
         results.to_a.each do |post|
           post[:comment_count] = db.prepare('SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?').execute(
             post[:id]
           ).first[:count]
 
-          query = 'SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC'
+          query = 'SELECT * FROM `comments` LEFT JOIN `users` ON `comments`.`user_id` = `users`.`id` WHERE `comments`.`post_id` = ? ORDER BY `comments`.`created_at` DESC'
+
           unless all_comments
             query += ' LIMIT 3'
           end
@@ -113,15 +123,16 @@ module Isuconp
             post[:id]
           ).to_a
           comments.each do |comment|
-            comment[:user] = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-              comment[:user_id]
-            ).first
+            comment[:user] = {}
+            comment[:user][:id] = comment[:user_id]
+            comment[:user][:passhash] = comment[:passhash]
+            comment[:user][:authority] = comment[:authority]
+            comment[:user][:account_name] = comment[:account_name]
+            comment[:user][:del_flg] = comment[:del_flg]
           end
           post[:comments] = comments.reverse
 
-          post[:user] = db.prepare('SELECT * FROM `users` WHERE `id` = ?').execute(
-            post[:user_id]
-          ).first
+          post[:user] = user_hash[post[:user_id]]
 
           posts.push(post) if post[:user][:del_flg] == 0
           break if posts.length >= POSTS_PER_PAGE
@@ -224,7 +235,21 @@ module Isuconp
     get '/' do
       me = get_session_user()
 
-      results = db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC')
+      results = db.query(
+        <<~SQL
+          SELECT
+            posts.id AS id,
+            posts.user_id AS user_id,
+            posts.body AS body,
+            posts.created_at AS created_at,
+            posts.mime AS mime
+          FROM posts LEFT OUTER JOIN users ON posts.user_id = users.id
+          WHERE users.del_flg = 0
+          ORDER BY posts.created_at DESC
+          LIMIT #{POSTS_PER_PAGE}
+        SQL
+      )
+      #results = db.query('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC')
       posts = make_posts(results)
 
       erb :index, layout: :layout, locals: { posts: posts, me: me }
