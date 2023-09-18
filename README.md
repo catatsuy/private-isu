@@ -217,6 +217,10 @@ https://github.com/matsuu/cloud-init-isucon/tree/main/private-isu
 
 ISUCON過去問題の環境を「さくらのクラウド」で構築する | さくらのナレッジ https://knowledge.sakura.ad.jp/31520/
 
+#### Cloud Formationを利用して構築する
+
+https://gist.github.com/tohutohu/024551682a9004da286b0abd6366fa55 を参照
+
 ### 競技者用・ベンチマーカーインスタンスのセットアップ方法
 
 自分で立ち上げたい人向け。`provisioning/`ディレクトリ以下参照。
