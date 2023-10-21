@@ -4,6 +4,7 @@ require 'rack-flash'
 require 'shellwords'
 require 'rack/session/dalli'
 
+
 module Isuconp
   class App < Sinatra::Base
     use Rack::Session::Dalli, autofix_keys: true, secret: ENV['ISUCONP_SESSION_SECRET'] || 'sendagaya', memcache_server: ENV['ISUCONP_MEMCACHED_ADDRESS'] || 'localhost:11211'
