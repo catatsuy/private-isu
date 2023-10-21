@@ -40,7 +40,11 @@ services:
     volumes:
       - mysql:/var/lib/mysql
       - ./etc/my.cnf:/etc/my.cnf
+      # docker-entrypoint-initdb.d配下にある.sqlファイルを自動で実行する
+      # DBが存在するとdocker-entrypoint-initdb.dは実行しないので注意。mysqlのvolumeを削除すればOK
+      # sqlファイルはアルファベット順で実行されるので、dumpより後に実行されるようにファイル名を決める
       - ./sql:/docker-entrypoint-initdb.d
+      - ./logs/mysql:/var/log/mysql # 追記
     ports:
       - "3306:3306"
     deploy:
