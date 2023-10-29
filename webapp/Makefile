@@ -3,7 +3,7 @@ ARCH=$(shell uname -m)
 
 prepare:
 	docker-compose exec mysql /bin/bash -c "echo -n > /var/log/mysql/mysql-slow.log"
-	docker-compose exec nginx /bin/bash -c "echo -n > /var/log/nginx/access.log"
+	docker-compose exec nginx /bin/bash -c "echo -n > /var/log/nginx/_access.log"
 
 analyze:
 	make slowquery & make accesslog
