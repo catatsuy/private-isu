@@ -614,15 +614,19 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mime := ""
+	ext := ""
 	if file != nil {
 		// 投稿のContent-Typeからファイルのタイプを決定する
 		contentType := header.Header["Content-Type"][0]
 		if strings.Contains(contentType, "jpeg") {
 			mime = "image/jpeg"
+			ext = "jpg"
 		} else if strings.Contains(contentType, "png") {
 			mime = "image/png"
+			ext = "png"
 		} else if strings.Contains(contentType, "gif") {
 			mime = "image/gif"
+			ext = "gif"
 		} else {
 			session := getSession(r)
 			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
@@ -653,7 +657,8 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		query,
 		me.ID,
 		mime,
-		filedata,
+		//filedata,
+		0, // 画像データは保存しない
 		r.FormValue("body"),
 	)
 	if err != nil {
@@ -662,6 +667,19 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pid, err := result.LastInsertId()
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	imgFile := fmt.Sprintf("/home/public/image/%d.%s", pid, ext)
+	f, err := os.Create(imgFile)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer f.Close()
+	_, err = f.Write(filedata)
 	if err != nil {
 		log.Print(err)
 		return
@@ -691,7 +709,22 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 		ext == "png" && post.Mime == "image/png" ||
 		ext == "gif" && post.Mime == "image/gif" {
 		w.Header().Set("Content-Type", post.Mime)
-		_, err := w.Write(post.Imgdata)
+
+		imgFile := fmt.Sprintf("/home/public/image/%d.%s", pid, ext)
+		f, err := os.Create(imgFile)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		defer f.Close()
+
+		_, err = f.Write(post.Imgdata)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+
+		_, err = w.Write(post.Imgdata)
 		if err != nil {
 			log.Print(err)
 			return
@@ -828,6 +861,10 @@ func main() {
 		log.Fatalf("Failed to connect to DB: %s.", err.Error())
 	}
 	defer db.Close()
+
+	if err := os.Mkdir("/home/public/image", 0777); err != nil && !os.IsExist(err) {
+		log.Fatal(err)
+	}
 
 	r := chi.NewRouter()
 
