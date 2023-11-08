@@ -1,3 +1,4 @@
 bin
 log
 public/image
+.env
