@@ -1,5 +1,0 @@
----
-- include: packages.yml
-- include: user.yml
-- include: ruby.yml
-- include: env.yml

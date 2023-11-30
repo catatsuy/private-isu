@@ -1,9 +1,0 @@
----
-mysql_user: isucon
-mysql_pass: bfirvuvniinonb
-mysql_db: isucon_portal_production
-mysql_host: 172.31.0.105
-mysql_port: 3306
-redis_pass: ub787n98n90fhh
-redis_host: 172.31.0.105
-redis_port: 6379
