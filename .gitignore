@@ -7,3 +7,4 @@ webapp/mysql/*
 # logs
 webapp/logs/mysql/*
 webapp/logs/nginx/*
+webapp/logs/benchmark/*
