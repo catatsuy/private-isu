@@ -1,5 +1,7 @@
 #!/bin/sh
 
 alp json --file logs/nginx/access.log \
-  -m "/image/[0-9]+.(jpg|png|gif), /@[a-z]+, /posts/[0-9]+" \
+  -r \
+  --sort=avg \
+  -m "/image/[0-9]+.(jpg|png|gif), /@[a-zA-Z]+, /posts/[0-9]+" \
   | tee logs/nginx/digest.log.$(date +%Y%m%d-%H%M%S)
