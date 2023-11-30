@@ -1,115 +1,8 @@
-# 社内ISUCON 当日マニュアル
-
-## 当日の流れ
-
-  * 12:30 競技開始
-  * 19:00 競技終了
-
-## ポータルサイト
-
-上記リンクを開いてください。計測ツールで測定したスコアはこのポータルに送られ、集計結果を見ることができます。
+# マニュアル
 
 ## Getting Started
 
-はじめに以下の操作を行い、問題なく動くかを確認して下さい。
-
-### 2. 起動したEC2インスタンスに `ubuntu` ユーザで SSH ログインする
-
-例:
-
-```
-ssh -i <設定した鍵ファイル> ubuntu@xx.xx.xx.xx
-```
-
-ログイン後に`isucon`ユーザーでログインできるようにすることをおすすめします。
-
-### 3. アプリケーションの動作を確認
-
-EC2インスタンスのパブリックIPアドレスにブラウザでアクセスし、動作を確認してください。以下の画面が表示されるはずです。
-
-例として、「アカウント名」は `mary`、 「パスワード」は `marymary` を入力することでログインが行えます。
-
-ブラウザでアクセスできない場合、主催者に確認してください。
-
-### 4. 負荷走行を実行
-
-この操作後、ポータルにて、あなたのチームのスコアが反映されているか確認して下さい。
-
-### ディレクトリ構成
-
-参考実装のアプリケーションコードおよび、スコア計測用プログラムは `/home/isucon` ディレクトリ以下にあります。
-
-```
-/home/isucon/
-  ├ env.sh       # アプリケーション用の環境変数
-  └ private_isu/
-     ├ webapp/    # 各言語の参考実装
-     ├ manual.md    # 本マニュアル
-     └ public_manual.md # 当日レギュレーション
-```
-
-### 参考実装の言語切り替え方法
-
-参考実装の言語はRuby/PHP/Goが用意されており、初期状態ではRubyの実装が起動しています。
-
-80番ポートでアクセスできるので、ブラウザから動作確認をすることができます。
-
-プログラムの詳しい起動方法は、 /etc/systemd/system/isu-ruby.service を参照してください。
-
-エラーなどの出力については、
-
-```
-$ sudo journalctl -f -u isu-ruby
-```
-
-などで見ることができます。
-
-また、unicornの再起動は、
-
-```
-$ sudo systemctl restart isu-ruby
-```
-
-などですることができます。
-
-#### PHPへの切り替え方
-
-起動する実装をPHPに切り替えるには、以下の操作を行います。
-
-```
-$ sudo systemctl stop isu-ruby
-$ sudo systemctl disable isu-ruby
-$ sudo rm /etc/nginx/sites-enabled/isucon.conf
-$ sudo ln -s /etc/nginx/sites-available/isucon-php.conf /etc/nginx/sites-enabled/
-$ sudo systemctl reload nginx
-$ sudo systemctl start php8.1-fpm
-$ sudo systemctl enable php8.1-fpm
-```
-
-php-fpmの設定については、/etc/php/8.1/fpm/以下にあります。
-
-エラーなどの出力については、
-
-```
-$ sudo journalctl -f -u php8.1-fpm
-$ sudo tail -f /var/log/nginx/error.log
-```
-
-などで見ることができます。
-
-#### Goへの切り替え方
-
-起動する実装をGoに切り替えるには、以下の操作を行います。
-
-```
-$ sudo systemctl stop isu-ruby
-$ sudo systemctl disable isu-ruby
-$ sudo systemctl start isu-go
-$ sudo systemctl enable isu-go
-```
-
-プログラムの詳しい起動方法は、 /etc/systemd/system/isu-go.service を参照してください。
-
+### Go
 エラーなどの出力については、
 
 ```
@@ -122,7 +15,7 @@ $ sudo journalctl -f -u isu-go
 
 3306番ポートでMySQLが起動しています。初期状態では以下のユーザが設定されています。
 
-  * ユーザ名: `isuconp`, パスワード: `isuconp`
+  * ユーザ名: `root`, パスワード: `root`
 
 ### memcached
 
@@ -165,9 +58,3 @@ $ sudo journalctl -f -u isu-go
 
   * GET /initialize へのレスポンスが10秒以内に終わらない
   * 存在するべきDOM要素がレスポンスHTMLに存在しない
-
-## 当日サポートについて
-
-競技中、別途アナウンスされるSlackのチャットルームにて、サポートを行います。
-
-ルールについてや、基本的なトラブルの質問にはお答えできますが、計測ツールおよびアプリケーションに関する質問には原則として回答しません。予めご了承ください。
