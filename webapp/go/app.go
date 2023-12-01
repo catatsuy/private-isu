@@ -2,6 +2,7 @@ package main
 
 import (
 	crand "crypto/rand"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"os/exec"
 	"path"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -22,11 +24,16 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
+
+	// profiler
+	_ "net/http/pprof"
 )
 
 var (
-	db    *sqlx.DB
-	store *gsm.MemcacheStore
+	db             *sqlx.DB
+	store          *gsm.MemcacheStore
+	memcacheClient *memcache.Client
+	deletedUserIDs []int
 )
 
 const (
@@ -53,7 +60,7 @@ type Post struct {
 	CreatedAt    time.Time `db:"created_at"`
 	CommentCount int
 	Comments     []Comment
-	User         User
+	User         User `db:"users"`
 	CSRFToken    string
 }
 
@@ -63,7 +70,7 @@ type Comment struct {
 	UserID    int       `db:"user_id"`
 	Comment   string    `db:"comment"`
 	CreatedAt time.Time `db:"created_at"`
-	User      User
+	User      User      `db:"users"`
 }
 
 func init() {
@@ -71,7 +78,7 @@ func init() {
 	if memdAddr == "" {
 		memdAddr = "localhost:11211"
 	}
-	memcacheClient := memcache.New(memdAddr)
+	memcacheClient = memcache.New(memdAddr)
 	store = gsm.NewMemcacheStore(memcacheClient, "iscogram_", []byte("sendagaya"))
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
@@ -81,18 +88,32 @@ func dbInitialize() {
 		"DELETE FROM users WHERE id > 1000",
 		"DELETE FROM posts WHERE id > 10000",
 		"DELETE FROM comments WHERE id > 100000",
-		"UPDATE users SET del_flg = 0",
-		"UPDATE users SET del_flg = 1 WHERE id % 50 = 0",
 	}
 
 	for _, sql := range sqls {
 		db.Exec(sql)
 	}
+
+	query := "SELECT id FROM users WHERE id % 50 = 0"
+	err := db.Select(&deletedUserIDs, query)
+	if err != nil {
+		log.Print(err)
+		return
+	}
 }
 
 func tryLogin(accountName, password string) *User {
 	u := User{}
-	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
+	query := "SELECT * FROM users WHERE account_name = ? AND id NOT IN (?)"
+
+	query, args, err := sqlx.In(query, accountName, deletedUserIDs)
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
+
+	query = db.Rebind(query)
+	err = db.Get(&u, query, args...)
 	if err != nil {
 		return nil
 	}
@@ -150,7 +171,7 @@ func getSessionUser(r *http.Request) User {
 
 	u := User{}
 
-	err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
+	err := db.Get(&u, "SELECT * FROM users WHERE id = ?", uid)
 	if err != nil {
 		return User{}
 	}
@@ -174,49 +195,140 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, error) {
 	var posts []Post
 
+	var cachedCommentCountKeys []string
+	var cachedCommentKeys []string
+	var postIDs []int
 	for _, p := range results {
-		err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
+		cachedCommentCountKeys = append(cachedCommentCountKeys, fmt.Sprintf("comment_count_%d", p.ID))
+		cachedCommentKeys = append(cachedCommentKeys, fmt.Sprintf("comments_%d_%t", p.ID, !allComments))
+		postIDs = append(postIDs, p.ID)
+	}
+
+	commentCounts := make(map[int]int, len(results))
+	var missCachedCommentCountPostIDs []int
+	cachedCommentCounts, err := memcacheClient.GetMulti(cachedCommentCountKeys)
+	if err == nil {
+		for _, p := range results {
+			cachedCommentCount, ok := cachedCommentCounts[fmt.Sprintf("comment_count_%d", p.ID)]
+			if ok {
+				commentCount, _ := strconv.Atoi(string(cachedCommentCount.Value))
+
+				commentCounts[p.ID] = commentCount
+			} else {
+				missCachedCommentCountPostIDs = append(missCachedCommentCountPostIDs, p.ID)
+			}
+		}
+	} else if err == memcache.ErrCacheMiss {
+		missCachedCommentCountPostIDs = postIDs
+	} else {
+		return nil, err
+	}
+
+	if len(missCachedCommentCountPostIDs) > 0 {
+		type Count struct {
+			PostID int `db:"post_id"`
+			Count  int `db:"count"`
+		}
+
+		query := "SELECT post_id, COUNT(*) AS count FROM comments WHERE post_id IN (?) GROUP BY post_id"
+		query, args, err := sqlx.In(query, missCachedCommentCountPostIDs)
 		if err != nil {
 			return nil, err
 		}
 
-		query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
-		if !allComments {
-			query += " LIMIT 3"
-		}
-		var comments []Comment
-		err = db.Select(&comments, query, p.ID)
+		query = db.Rebind(query)
+		var counts []Count
+		err = db.Select(&counts, query, args...)
 		if err != nil {
 			return nil, err
 		}
 
-		for i := 0; i < len(comments); i++ {
-			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
+		for _, count := range counts {
+			commentCounts[count.PostID] = count.Count
+
+			err := memcacheClient.Set(&memcache.Item{
+				Key:        fmt.Sprintf("comment_count_%d", count.PostID),
+				Value:      []byte(strconv.Itoa(count.Count)),
+				Expiration: 10,
+			})
 			if err != nil {
 				return nil, err
 			}
 		}
+	}
 
-		// reverse
-		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
-			comments[i], comments[j] = comments[j], comments[i]
+	comments := make(map[int][]Comment, len(results))
+	var missCachedCommentsPostIDs []int
+	cachedComments, err := memcacheClient.GetMulti(cachedCommentKeys)
+	if err == nil {
+		for _, p := range results {
+			cachedComment, ok := cachedComments[fmt.Sprintf("comments_%d_%t", p.ID, !allComments)]
+			if ok {
+				var cs []Comment
+				err := json.Unmarshal(cachedComment.Value, &cs)
+				if err != nil {
+					return nil, err
+				}
+
+				comments[p.ID] = cs
+			} else {
+				missCachedCommentsPostIDs = append(missCachedCommentsPostIDs, p.ID)
+			}
 		}
+	} else if err == memcache.ErrCacheMiss {
+		missCachedCommentsPostIDs = postIDs
+	} else {
+		return nil, err
+	}
 
-		p.Comments = comments
+	if len(missCachedCommentsPostIDs) > 0 {
+		for _, postID := range missCachedCommentsPostIDs {
+			query := `
+			SELECT comments.id, comments.post_id, comments.user_id, comments.comment, comments.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+			FROM comments
+			JOIN users ON comments.user_id = users.id
+			WHERE post_id = ?
+			ORDER BY created_at DESC
+			`
+			if !allComments {
+				query += " LIMIT 3"
+			}
 
-		err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		if err != nil {
-			return nil, err
+			var cs []Comment
+			err := db.Select(&cs, query, postID)
+			if err != nil {
+				return nil, err
+			}
+
+			// reverse comments
+			for i, j := 0, len(cs)-1; i < j; i, j = i+1, j-1 {
+				cs[i], cs[j] = cs[j], cs[i]
+			}
+
+			comments[postID] = cs
+
+			b, err := json.Marshal(cs)
+			if err != nil {
+				return nil, err
+			}
+
+			err = memcacheClient.Set(&memcache.Item{
+				Key:        fmt.Sprintf("comments_%d_%t", postID, !allComments),
+				Value:      b,
+				Expiration: 10,
+			})
+			if err != nil {
+				return nil, err
+			}
 		}
+	}
 
+	for _, p := range results {
+		p.CommentCount = commentCounts[p.ID]
+		p.Comments = comments[p.ID]
 		p.CSRFToken = csrfToken
 
-		if p.User.DelFlg == 0 {
-			posts = append(posts, p)
-		}
-		if len(posts) >= postsPerPage {
-			break
-		}
+		posts = append(posts, p)
 	}
 
 	return posts, nil
@@ -341,7 +453,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 
 	exists := 0
 	// ユーザーが存在しない場合はエラーになるのでエラーチェックはしない
-	db.Get(&exists, "SELECT 1 FROM users WHERE `account_name` = ?", accountName)
+	db.Get(&exists, "SELECT 1 FROM users WHERE account_name = ?", accountName)
 
 	if exists == 1 {
 		session := getSession(r)
@@ -352,7 +464,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)"
+	query := "INSERT INTO users (account_name, passhash) VALUES (?,?)"
 	result, err := db.Exec(query, accountName, calculatePasshash(accountName, password))
 	if err != nil {
 		log.Print(err)
@@ -386,7 +498,23 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 
-	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
+	query := `
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		FROM posts
+		JOIN users ON posts.user_id = users.id
+		WHERE users.id NOT IN (?)
+		ORDER BY posts.created_at DESC
+		LIMIT ?
+		`
+
+	query, args, err := sqlx.In(query, deletedUserIDs, postsPerPage)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Select(&results, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -419,7 +547,15 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	accountName := chi.URLParam(r, "accountName")
 	user := User{}
 
-	err := db.Get(&user, "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0", accountName)
+	query := "SELECT * FROM users WHERE account_name = ? AND id NOT IN (?)"
+	query, args, err := sqlx.In(query, accountName, deletedUserIDs)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Get(&user, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -432,7 +568,23 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 
-	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC", user.ID)
+	query = `
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		FROM posts
+		JOIN users ON posts.user_id = users.id
+		WHERE user_id = ? AND users.id NOT IN (?)
+		ORDER BY posts.created_at DESC
+		LIMIT ?
+		`
+
+	query, args, err = sqlx.In(query, user.ID, deletedUserIDs, postsPerPage)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Select(&results, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -445,14 +597,14 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	}
 
 	commentCount := 0
-	err = db.Get(&commentCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?", user.ID)
+	err = db.Get(&commentCount, "SELECT COUNT(*) AS count FROM comments WHERE user_id = ?", user.ID)
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
 	postIDs := []int{}
-	err = db.Select(&postIDs, "SELECT `id` FROM `posts` WHERE `user_id` = ?", user.ID)
+	err = db.Select(&postIDs, "SELECT id FROM posts WHERE user_id = ?", user.ID)
 	if err != nil {
 		log.Print(err)
 		return
@@ -460,24 +612,16 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	postCount := len(postIDs)
 
 	commentedCount := 0
-	if postCount > 0 {
-		s := []string{}
-		for range postIDs {
-			s = append(s, "?")
-		}
-		placeholder := strings.Join(s, ", ")
-
-		// convert []int -> []interface{}
-		args := make([]interface{}, len(postIDs))
-		for i, v := range postIDs {
-			args[i] = v
-		}
-
-		err = db.Get(&commentedCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ("+placeholder+")", args...)
-		if err != nil {
-			log.Print(err)
-			return
-		}
+	query = `
+	SELECT COUNT(*)
+	FROM comments
+	JOIN posts ON comments.post_id = posts.id
+	WHERE posts.user_id = ?
+	`
+	err = db.Get(&commentedCount, query, user.ID)
+	if err != nil {
+		log.Print(err)
+		return
 	}
 
 	me := getSessionUser(r)
@@ -520,7 +664,23 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601Format))
+	query := `
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		FROM posts
+		JOIN users ON posts.user_id = users.id
+		WHERE posts.created_at <= ? AND users.id NOT IN (?)
+		ORDER BY posts.created_at DESC
+		LIMIT ?
+		`
+
+	query, args, err := sqlx.In(query, t.Format(ISO8601Format), deletedUserIDs, postsPerPage)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Select(&results, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -556,7 +716,21 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	query := `
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		FROM posts 
+		JOIN users ON posts.user_id = users.id
+		WHERE posts.id = ? AND users.id NOT IN (?)
+		`
+
+	query, args, err := sqlx.In(query, pid, deletedUserIDs)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Select(&results, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -614,15 +788,19 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mime := ""
+	ext := ""
 	if file != nil {
 		// 投稿のContent-Typeからファイルのタイプを決定する
 		contentType := header.Header["Content-Type"][0]
 		if strings.Contains(contentType, "jpeg") {
 			mime = "image/jpeg"
+			ext = "jpg"
 		} else if strings.Contains(contentType, "png") {
 			mime = "image/png"
+			ext = "png"
 		} else if strings.Contains(contentType, "gif") {
 			mime = "image/gif"
+			ext = "gif"
 		} else {
 			session := getSession(r)
 			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
@@ -648,12 +826,12 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
+	query := "INSERT INTO posts (user_id, mime, imgdata, body) VALUES (?,?,?,?)"
 	result, err := db.Exec(
 		query,
 		me.ID,
 		mime,
-		filedata,
+		[]byte(""),
 		r.FormValue("body"),
 	)
 	if err != nil {
@@ -662,6 +840,20 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pid, err := result.LastInsertId()
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	// write filedata to image file in /public/img
+	f, err := os.Create(fmt.Sprintf("../public/img/%d.%s", pid, ext))
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer f.Close()
+
+	_, err = f.Write(filedata)
 	if err != nil {
 		log.Print(err)
 		return
@@ -679,7 +871,7 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	post := Post{}
-	err = db.Get(&post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	err = db.Get(&post, "SELECT mime FROM posts WHERE id = ?", pid)
 	if err != nil {
 		log.Print(err)
 		return
@@ -691,11 +883,32 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 		ext == "png" && post.Mime == "image/png" ||
 		ext == "gif" && post.Mime == "image/gif" {
 		w.Header().Set("Content-Type", post.Mime)
-		_, err := w.Write(post.Imgdata)
+
+		err = db.Get(&post, "SELECT imgdata FROM posts WHERE id = ?", pid)
 		if err != nil {
 			log.Print(err)
 			return
 		}
+
+		f, err := os.Create(fmt.Sprintf("../public/img/%d.%s", pid, ext))
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		defer f.Close()
+
+		_, err = f.Write(post.Imgdata)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+
+		_, err = w.Write(post.Imgdata)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+
 		return
 	}
 
@@ -720,12 +933,16 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)"
+	query := "INSERT INTO comments (post_id, user_id, comment) VALUES (?,?,?)"
 	_, err = db.Exec(query, postID, me.ID, r.FormValue("comment"))
 	if err != nil {
 		log.Print(err)
 		return
 	}
+
+	memcacheClient.Delete(fmt.Sprintf("comment_count_%d", postID))
+	memcacheClient.Delete(fmt.Sprintf("comments_%d_%t", postID, true))
+	memcacheClient.Delete(fmt.Sprintf("comments_%d_%t", postID, false))
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }
@@ -743,7 +960,15 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 	}
 
 	users := []User{}
-	err := db.Select(&users, "SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC")
+	query := "SELECT * FROM users WHERE authority = 0 AND id NOT IN (?) ORDER BY created_at DESC"
+	query, args, err := sqlx.In(query, deletedUserIDs)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Select(&users, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -760,38 +985,59 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 }
 
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {
-	me := getSessionUser(r)
-	if !isLogin(me) {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
+	log.Print("[ERROR] 叩かれてなかったので封鎖している")
 
-	if me.Authority == 0 {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
+	w.WriteHeader(http.StatusGone)
 
-	if r.FormValue("csrf_token") != getCSRFToken(r) {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
-	}
+	// me := getSessionUser(r)
+	// if !isLogin(me) {
+	// 	http.Redirect(w, r, "/", http.StatusFound)
+	// 	return
+	// }
 
-	query := "UPDATE `users` SET `del_flg` = ? WHERE `id` = ?"
+	// if me.Authority == 0 {
+	// 	w.WriteHeader(http.StatusForbidden)
+	// 	return
+	// }
 
-	err := r.ParseForm()
-	if err != nil {
-		log.Print(err)
-		return
-	}
+	// if r.FormValue("csrf_token") != getCSRFToken(r) {
+	// 	w.WriteHeader(http.StatusUnprocessableEntity)
+	// 	return
+	// }
 
-	for _, id := range r.Form["uid[]"] {
-		db.Exec(query, 1, id)
-	}
+	// query := "UPDATE `users` SET `del_flg` = ? WHERE `id` = ?"
 
-	http.Redirect(w, r, "/admin/banned", http.StatusFound)
+	// err := r.ParseForm()
+	// if err != nil {
+	// 	log.Print(err)
+	// 	return
+	// }
+
+	// IDs := []int{}
+	// for _, id := range r.Form["uid[]"] {
+	// 	db.Exec(query, 1, id)
+
+	// 	i, err := strconv.Atoi(id)
+	// 	if err != nil {
+	// 		log.Print(err)
+	// 		return
+	// 	}
+	// 	IDs = append(IDs, i)
+	// }
+
+	// deletedUserIDs = append(deletedUserIDs, IDs...)
+
+	// http.Redirect(w, r, "/admin/banned", http.StatusFound)
 }
 
 func main() {
+	// profiler
+	runtime.SetBlockProfileRate(1)
+	runtime.SetMutexProfileFraction(1)
+	go func() {
+		log.Fatal(http.ListenAndServe(":6060", nil))
+	}()
+
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
 		host = "localhost"
@@ -815,7 +1061,7 @@ func main() {
 	}
 
 	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local",
+		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local&interpolateParams=true",
 		user,
 		password,
 		host,

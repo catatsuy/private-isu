@@ -25,6 +25,8 @@ services:
     volumes:
       - ./public:/home/public
     init: true
+    ports:
+      - "127.0.0.1:1080:1080"
     deploy:
       resources:
         limits:
