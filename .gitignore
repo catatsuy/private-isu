@@ -1,4 +1,5 @@
 webapp/go/app
+webapp/public/img/*
 
 # mysql
 webapp/sql/*
