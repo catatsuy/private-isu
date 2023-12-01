@@ -166,7 +166,7 @@ func getSessionUser(r *http.Request) User {
 
 	u := User{}
 
-	err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
+	err := db.Get(&u, "SELECT * FROM users WHERE id = ?", uid)
 	if err != nil {
 		return User{}
 	}
@@ -191,12 +191,12 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 	var posts []Post
 
 	for _, p := range results {
-		err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
+		err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS count FROM comments WHERE post_id = ?", p.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
+		query := "SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC"
 		if !allComments {
 			query += " LIMIT 3"
 		}
@@ -207,7 +207,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 		}
 
 		for i := 0; i < len(comments); i++ {
-			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
+			err := db.Get(&comments[i].User, "SELECT * FROM users WHERE id = ?", comments[i].UserID)
 			if err != nil {
 				return nil, err
 			}
@@ -347,7 +347,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 
 	exists := 0
 	// ユーザーが存在しない場合はエラーになるのでエラーチェックはしない
-	db.Get(&exists, "SELECT 1 FROM users WHERE `account_name` = ?", accountName)
+	db.Get(&exists, "SELECT 1 FROM users WHERE account_name = ?", accountName)
 
 	if exists == 1 {
 		session := getSession(r)
@@ -358,7 +358,7 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "INSERT INTO `users` (`account_name`, `passhash`) VALUES (?,?)"
+	query := "INSERT INTO users (account_name, passhash) VALUES (?,?)"
 	result, err := db.Exec(query, accountName, calculatePasshash(accountName, password))
 	if err != nil {
 		log.Print(err)
@@ -491,14 +491,14 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	}
 
 	commentCount := 0
-	err = db.Get(&commentCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?", user.ID)
+	err = db.Get(&commentCount, "SELECT COUNT(*) AS count FROM comments WHERE user_id = ?", user.ID)
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
 	postIDs := []int{}
-	err = db.Select(&postIDs, "SELECT `id` FROM `posts` WHERE `user_id` = ?", user.ID)
+	err = db.Select(&postIDs, "SELECT id FROM posts WHERE user_id = ?", user.ID)
 	if err != nil {
 		log.Print(err)
 		return
@@ -519,7 +519,7 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 			args[i] = v
 		}
 
-		err = db.Get(&commentedCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ("+placeholder+")", args...)
+		err = db.Get(&commentedCount, "SELECT COUNT(*) AS count FROM comments WHERE post_id IN ("+placeholder+")", args...)
 		if err != nil {
 			log.Print(err)
 			return
@@ -724,7 +724,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
+	query := "INSERT INTO posts (user_id, mime, imgdata, body) VALUES (?,?,?,?)"
 	result, err := db.Exec(
 		query,
 		me.ID,
@@ -755,7 +755,7 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	post := Post{}
-	err = db.Get(&post, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	err = db.Get(&post, "SELECT * FROM posts WHERE id = ?", pid)
 	if err != nil {
 		log.Print(err)
 		return
@@ -796,7 +796,7 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)"
+	query := "INSERT INTO comments (post_id, user_id, comment) VALUES (?,?,?)"
 	_, err = db.Exec(query, postID, me.ID, r.FormValue("comment"))
 	if err != nil {
 		log.Print(err)
