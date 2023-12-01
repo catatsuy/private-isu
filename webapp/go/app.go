@@ -2,6 +2,7 @@ package main
 
 import (
 	crand "crypto/rand"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -211,28 +212,53 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 			return nil, err
 		}
 
-		query := `
-		SELECT comments.id, comments.post_id, comments.user_id, comments.comment, comments.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
-		FROM comments
-		JOIN users ON comments.user_id = users.id
-		WHERE post_id = ?
-		ORDER BY created_at DESC
-		`
-		if !allComments {
-			query += " LIMIT 3"
-		}
-		var comments []Comment
-		err = db.Select(&comments, query, p.ID)
-		if err != nil {
+		cachedComments, err := memcacheClient.Get(fmt.Sprintf("comments_%d_%t", p.ID, !allComments))
+		if err == nil {
+			err := json.Unmarshal(cachedComments.Value, &p.Comments)
+			if err != nil {
+				return nil, err
+			}
+		} else if err == memcache.ErrCacheMiss {
+			query := `
+			SELECT comments.id, comments.post_id, comments.user_id, comments.comment, comments.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+			FROM comments
+			JOIN users ON comments.user_id = users.id
+			WHERE post_id = ?
+			ORDER BY created_at DESC
+			`
+			if !allComments {
+				query += " LIMIT 3"
+			}
+
+			var comments []Comment
+			err := db.Select(&comments, query, p.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			p.Comments = comments
+
+			b, err := json.Marshal(comments)
+			if err != nil {
+				return nil, err
+			}
+
+			err = memcacheClient.Set(&memcache.Item{
+				Key:        fmt.Sprintf("comments_%d_%t", p.ID, !allComments),
+				Value:      b,
+				Expiration: 10,
+			})
+			if err != nil {
+				return nil, err
+			}
+		} else {
 			return nil, err
 		}
 
 		// reverse
-		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
-			comments[i], comments[j] = comments[j], comments[i]
+		for i, j := 0, len(p.Comments)-1; i < j; i, j = i+1, j-1 {
+			p.Comments[i], p.Comments[j] = p.Comments[j], p.Comments[i]
 		}
-
-		p.Comments = comments
 
 		p.CSRFToken = csrfToken
 
@@ -849,6 +875,8 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	memcacheClient.Delete(fmt.Sprintf("comment_count_%d", postID))
+	memcacheClient.Delete(fmt.Sprintf("comments_%d_%t", postID, true))
+	memcacheClient.Delete(fmt.Sprintf("comments_%d_%t", postID, false))
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }
