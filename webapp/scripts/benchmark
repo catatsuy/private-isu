@@ -1,0 +1,24 @@
+#!/bin/sh
+
+../webapp/scripts/rotate_logs
+sleep 5
+
+cd ../benchmarker
+BENCHMARK_RESULT_FILE=$(date +%Y%m%d-%H%M%S)
+docker run --network host -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata | tee ../webapp/logs/benchmark/$BENCHMARK_RESULT_FILE
+
+cd ../webapp
+
+touch result.tmp
+echo '```' > result.tmp
+cat logs/benchmark/$BENCHMARK_RESULT_FILE >> result.tmp
+echo '```' >> result.tmp
+echo '```' >> result.tmp
+../webapp/scripts/analyze_access >> result.tmp
+echo '```' >> result.tmp
+echo '```' >> result.tmp
+../webapp/scripts/analyze_slow_query >> result.tmp
+echo '```' >> result.tmp
+
+cat result.tmp | pbcopy
+rm result.tmp

@@ -1,18 +1,10 @@
-vendor/
-portal/log
-portal/tmp
+webapp/go/app
 
-### Portal
-# Ignore bundler config.
-/portal/.bundle
-/portal/vendor/bundle
+# mysql
+webapp/sql/*
+webapp/mysql/*
 
-# Ignore the default SQLite database.
-/portal/db/*.sqlite3
-/portal/db/*.sqlite3-journal
-
-# Ignore all logfiles and tempfiles.
-/portal/log/*
-!/portal/log/.keep
-/portal/tmp
-.vagrant
+# logs
+webapp/logs/mysql/*
+webapp/logs/nginx/*
+webapp/logs/benchmark/*
