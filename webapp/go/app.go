@@ -857,23 +857,7 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cachedCommentCount, err := memcacheClient.Get(fmt.Sprintf("comment_count_%d", postID))
-	if err == nil {
-		commentCount, err := strconv.Atoi(string(cachedCommentCount.Value))
-		if err != nil {
-			log.Print(err)
-			return
-		}
-
-		err = memcacheClient.Set(&memcache.Item{
-			Key:        fmt.Sprintf("comment_count_%d", postID),
-			Value:      []byte(strconv.Itoa(commentCount + 1)),
-			Expiration: 10,
-		})
-		if err != nil {
-			return
-		}
-	}
+	memcacheClient.Delete(fmt.Sprintf("comment_count_%d", postID))
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }
