@@ -83,7 +83,6 @@ func dbInitialize() {
 		"DELETE FROM users WHERE id > 1000",
 		"DELETE FROM posts WHERE id > 10000",
 		"DELETE FROM comments WHERE id > 100000",
-		"UPDATE users SET del_flg = 0",
 	}
 
 	for _, sql := range sqls {
@@ -892,41 +891,49 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 }
 
 func postAdminBanned(w http.ResponseWriter, r *http.Request) {
-	me := getSessionUser(r)
-	if !isLogin(me) {
-		http.Redirect(w, r, "/", http.StatusFound)
-		return
-	}
+	log.Print("[ERROR] 叩かれてなかったので封鎖している")
 
-	if me.Authority == 0 {
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
+	w.WriteHeader(http.StatusGone)
 
-	if r.FormValue("csrf_token") != getCSRFToken(r) {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		return
-	}
+	// me := getSessionUser(r)
+	// if !isLogin(me) {
+	// 	http.Redirect(w, r, "/", http.StatusFound)
+	// 	return
+	// }
 
-	err := r.ParseForm()
-	if err != nil {
-		log.Print(err)
-		return
-	}
+	// if me.Authority == 0 {
+	// 	w.WriteHeader(http.StatusForbidden)
+	// 	return
+	// }
 
-	IDs := []int{}
-	for _, id := range r.Form["uid[]"] {
-		i, err := strconv.Atoi(id)
-		if err != nil {
-			log.Print(err)
-			return
-		}
-		IDs = append(IDs, i)
-	}
+	// if r.FormValue("csrf_token") != getCSRFToken(r) {
+	// 	w.WriteHeader(http.StatusUnprocessableEntity)
+	// 	return
+	// }
 
-	deletedUserIDs = append(deletedUserIDs, IDs...)
+	// query := "UPDATE `users` SET `del_flg` = ? WHERE `id` = ?"
 
-	http.Redirect(w, r, "/admin/banned", http.StatusFound)
+	// err := r.ParseForm()
+	// if err != nil {
+	// 	log.Print(err)
+	// 	return
+	// }
+
+	// IDs := []int{}
+	// for _, id := range r.Form["uid[]"] {
+	// 	db.Exec(query, 1, id)
+
+	// 	i, err := strconv.Atoi(id)
+	// 	if err != nil {
+	// 		log.Print(err)
+	// 		return
+	// 	}
+	// 	IDs = append(IDs, i)
+	// }
+
+	// deletedUserIDs = append(deletedUserIDs, IDs...)
+
+	// http.Redirect(w, r, "/admin/banned", http.StatusFound)
 }
 
 func main() {
