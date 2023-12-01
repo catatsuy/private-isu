@@ -25,8 +25,9 @@ import (
 )
 
 var (
-	db    *sqlx.DB
-	store *gsm.MemcacheStore
+	db             *sqlx.DB
+	store          *gsm.MemcacheStore
+	deletedUserIDs []int
 )
 
 const (
@@ -53,7 +54,7 @@ type Post struct {
 	CreatedAt    time.Time `db:"created_at"`
 	CommentCount int
 	Comments     []Comment
-	User         User
+	User         User `db:"users"`
 	CSRFToken    string
 }
 
@@ -82,17 +83,32 @@ func dbInitialize() {
 		"DELETE FROM posts WHERE id > 10000",
 		"DELETE FROM comments WHERE id > 100000",
 		"UPDATE users SET del_flg = 0",
-		"UPDATE users SET del_flg = 1 WHERE id % 50 = 0",
 	}
 
 	for _, sql := range sqls {
 		db.Exec(sql)
 	}
+
+	query := "SELECT id FROM users WHERE id % 50 = 0"
+	err := db.Select(&deletedUserIDs, query)
+	if err != nil {
+		log.Print(err)
+		return
+	}
 }
 
 func tryLogin(accountName, password string) *User {
 	u := User{}
-	err := db.Get(&u, "SELECT * FROM users WHERE account_name = ? AND del_flg = 0", accountName)
+	query := "SELECT * FROM users WHERE account_name = ? AND id NOT IN (?)"
+
+	query, args, err := sqlx.In(query, accountName, deletedUserIDs)
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
+
+	query = db.Rebind(query)
+	err = db.Get(&u, query, args...)
 	if err != nil {
 		return nil
 	}
@@ -204,19 +220,9 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 		p.Comments = comments
 
-		err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		if err != nil {
-			return nil, err
-		}
-
 		p.CSRFToken = csrfToken
 
-		if p.User.DelFlg == 0 {
-			posts = append(posts, p)
-		}
-		if len(posts) >= postsPerPage {
-			break
-		}
+		posts = append(posts, p)
 	}
 
 	return posts, nil
@@ -386,7 +392,23 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 
-	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
+	query := `
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		FROM posts
+		JOIN users ON posts.user_id = users.id
+		WHERE users.id NOT IN (?)
+		ORDER BY posts.created_at DESC
+		LIMIT ?
+		`
+
+	query, args, err := sqlx.In(query, deletedUserIDs, postsPerPage)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Select(&results, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -419,7 +441,15 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	accountName := chi.URLParam(r, "accountName")
 	user := User{}
 
-	err := db.Get(&user, "SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0", accountName)
+	query := "SELECT * FROM users WHERE account_name = ? AND id NOT IN (?)"
+	query, args, err := sqlx.In(query, accountName, deletedUserIDs)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Get(&user, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -432,7 +462,23 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 
-	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC", user.ID)
+	query = `
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		FROM posts
+		JOIN users ON posts.user_id = users.id
+		WHERE user_id = ? AND users.id NOT IN (?)
+		ORDER BY posts.created_at DESC
+		LIMIT ?
+		`
+
+	query, args, err = sqlx.In(query, user.ID, deletedUserIDs, postsPerPage)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Select(&results, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -520,7 +566,23 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601Format))
+	query := `
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		FROM posts
+		JOIN users ON posts.user_id = users.id
+		WHERE posts.created_at <= ? AND users.id NOT IN (?)
+		ORDER BY posts.created_at DESC
+		LIMIT ?
+		`
+
+	query, args, err := sqlx.In(query, t.Format(ISO8601Format), deletedUserIDs, postsPerPage)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Select(&results, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -556,7 +618,21 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	query := `
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		FROM posts 
+		JOIN users ON posts.user_id = users.id
+		WHERE posts.id = ? AND users.id NOT IN (?)
+		`
+
+	query, args, err := sqlx.In(query, pid, deletedUserIDs)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Select(&results, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -743,7 +819,15 @@ func getAdminBanned(w http.ResponseWriter, r *http.Request) {
 	}
 
 	users := []User{}
-	err := db.Select(&users, "SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC")
+	query := "SELECT * FROM users WHERE authority = 0 AND id NOT IN (?) ORDER BY created_at DESC"
+	query, args, err := sqlx.In(query, deletedUserIDs)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+
+	query = db.Rebind(query)
+	err = db.Select(&users, query, args...)
 	if err != nil {
 		log.Print(err)
 		return
@@ -776,17 +860,23 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "UPDATE `users` SET `del_flg` = ? WHERE `id` = ?"
-
 	err := r.ParseForm()
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
+	IDs := []int{}
 	for _, id := range r.Form["uid[]"] {
-		db.Exec(query, 1, id)
+		i, err := strconv.Atoi(id)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		IDs = append(IDs, i)
 	}
+
+	deletedUserIDs = append(deletedUserIDs, IDs...)
 
 	http.Redirect(w, r, "/admin/banned", http.StatusFound)
 }
