@@ -20,5 +20,5 @@ echo '```' >> result.tmp
 ../webapp/scripts/analyze_slow_query >> result.tmp
 echo '```' >> result.tmp
 
-cat result.tmp | pbcopy
+cat result.tmp | tee logs/benchmark/analyze_$(date +%Y%m%d-%H%M%S).md | pbcopy
 rm result.tmp
