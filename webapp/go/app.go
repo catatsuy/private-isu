@@ -64,7 +64,7 @@ type Comment struct {
 	UserID    int       `db:"user_id"`
 	Comment   string    `db:"comment"`
 	CreatedAt time.Time `db:"created_at"`
-	User      User
+	User      User      `db:"users"`
 }
 
 func init() {
@@ -196,7 +196,13 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 			return nil, err
 		}
 
-		query := "SELECT * FROM comments WHERE post_id = ? ORDER BY created_at DESC"
+		query := `
+		SELECT comments.id, comments.post_id, comments.user_id, comments.comment, comments.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		FROM comments
+		JOIN users ON comments.user_id = users.id
+		WHERE post_id = ?
+		ORDER BY created_at DESC
+		`
 		if !allComments {
 			query += " LIMIT 3"
 		}
@@ -204,13 +210,6 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 		err = db.Select(&comments, query, p.ID)
 		if err != nil {
 			return nil, err
-		}
-
-		for i := 0; i < len(comments); i++ {
-			err := db.Get(&comments[i].User, "SELECT * FROM users WHERE id = ?", comments[i].UserID)
-			if err != nil {
-				return nil, err
-			}
 		}
 
 		// reverse
