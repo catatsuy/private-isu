@@ -2,7 +2,7 @@ package main
 
 import (
 	crand "crypto/rand"
-	"encoding/json"
+	_ "encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -195,143 +195,152 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, error) {
 	var posts []Post
 
-	var cachedCommentCountKeys []string
-	var cachedCommentKeys []string
-	var postIDs []int
 	for _, p := range results {
-		cachedCommentCountKeys = append(cachedCommentCountKeys, fmt.Sprintf("comment_count_%d", p.ID))
-		cachedCommentKeys = append(cachedCommentKeys, fmt.Sprintf("comments_%d_%t", p.ID, !allComments))
-		postIDs = append(postIDs, p.ID)
-	}
-
-	commentCounts := make(map[int]int, len(results))
-	var missCachedCommentCountPostIDs []int
-	cachedCommentCounts, err := memcacheClient.GetMulti(cachedCommentCountKeys)
-	if err == nil {
-		for _, p := range results {
-			cachedCommentCount, ok := cachedCommentCounts[fmt.Sprintf("comment_count_%d", p.ID)]
-			if ok {
-				commentCount, _ := strconv.Atoi(string(cachedCommentCount.Value))
-
-				commentCounts[p.ID] = commentCount
-			} else {
-				missCachedCommentCountPostIDs = append(missCachedCommentCountPostIDs, p.ID)
-			}
-		}
-	} else if err == memcache.ErrCacheMiss {
-		missCachedCommentCountPostIDs = postIDs
-	} else {
-		return nil, err
-	}
-
-	if len(missCachedCommentCountPostIDs) > 0 {
-		type Count struct {
-			PostID int `db:"post_id"`
-			Count  int `db:"count"`
-		}
-
-		query := "SELECT post_id, COUNT(*) AS count FROM comments WHERE post_id IN (?) GROUP BY post_id"
-		query, args, err := sqlx.In(query, missCachedCommentCountPostIDs)
-		if err != nil {
-			return nil, err
-		}
-
-		query = db.Rebind(query)
-		var counts []Count
-		err = db.Select(&counts, query, args...)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, count := range counts {
-			commentCounts[count.PostID] = count.Count
-
-			err := memcacheClient.Set(&memcache.Item{
-				Key:        fmt.Sprintf("comment_count_%d", count.PostID),
-				Value:      []byte(strconv.Itoa(count.Count)),
-				Expiration: 10,
-			})
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	comments := make(map[int][]Comment, len(results))
-	var missCachedCommentsPostIDs []int
-	cachedComments, err := memcacheClient.GetMulti(cachedCommentKeys)
-	if err == nil {
-		for _, p := range results {
-			cachedComment, ok := cachedComments[fmt.Sprintf("comments_%d_%t", p.ID, !allComments)]
-			if ok {
-				var cs []Comment
-				err := json.Unmarshal(cachedComment.Value, &cs)
-				if err != nil {
-					return nil, err
-				}
-
-				comments[p.ID] = cs
-			} else {
-				missCachedCommentsPostIDs = append(missCachedCommentsPostIDs, p.ID)
-			}
-		}
-	} else if err == memcache.ErrCacheMiss {
-		missCachedCommentsPostIDs = postIDs
-	} else {
-		return nil, err
-	}
-
-	if len(missCachedCommentsPostIDs) > 0 {
-		for _, postID := range missCachedCommentsPostIDs {
-			query := `
-			SELECT comments.id, comments.post_id, comments.user_id, comments.comment, comments.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
-			FROM comments
-			JOIN users ON comments.user_id = users.id
-			WHERE post_id = ?
-			ORDER BY created_at DESC
-			`
-			if !allComments {
-				query += " LIMIT 3"
-			}
-
-			var cs []Comment
-			err := db.Select(&cs, query, postID)
-			if err != nil {
-				return nil, err
-			}
-
-			// reverse comments
-			for i, j := 0, len(cs)-1; i < j; i, j = i+1, j-1 {
-				cs[i], cs[j] = cs[j], cs[i]
-			}
-
-			comments[postID] = cs
-
-			b, err := json.Marshal(cs)
-			if err != nil {
-				return nil, err
-			}
-
-			err = memcacheClient.Set(&memcache.Item{
-				Key:        fmt.Sprintf("comments_%d_%t", postID, !allComments),
-				Value:      b,
-				Expiration: 10,
-			})
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	for _, p := range results {
-		p.CommentCount = commentCounts[p.ID]
-		p.Comments = comments[p.ID]
 		p.CSRFToken = csrfToken
 
 		posts = append(posts, p)
 	}
 
 	return posts, nil
+
+	// var cachedCommentCountKeys []string
+	// var cachedCommentKeys []string
+	// var postIDs []int
+	// for _, p := range results {
+	// 	cachedCommentCountKeys = append(cachedCommentCountKeys, fmt.Sprintf("comment_count_%d", p.ID))
+	// 	cachedCommentKeys = append(cachedCommentKeys, fmt.Sprintf("comments_%d_%t", p.ID, !allComments))
+	// 	postIDs = append(postIDs, p.ID)
+	// }
+
+	// commentCounts := make(map[int]int, len(results))
+	// var missCachedCommentCountPostIDs []int
+	// cachedCommentCounts, err := memcacheClient.GetMulti(cachedCommentCountKeys)
+	// if err == nil {
+	// 	for _, p := range results {
+	// 		cachedCommentCount, ok := cachedCommentCounts[fmt.Sprintf("comment_count_%d", p.ID)]
+	// 		if ok {
+	// 			commentCount, _ := strconv.Atoi(string(cachedCommentCount.Value))
+
+	// 			commentCounts[p.ID] = commentCount
+	// 		} else {
+	// 			missCachedCommentCountPostIDs = append(missCachedCommentCountPostIDs, p.ID)
+	// 		}
+	// 	}
+	// } else if err == memcache.ErrCacheMiss {
+	// 	missCachedCommentCountPostIDs = postIDs
+	// } else {
+	// 	return nil, err
+	// }
+
+	// if len(missCachedCommentCountPostIDs) > 0 {
+	// 	type Count struct {
+	// 		PostID int `db:"post_id"`
+	// 		Count  int `db:"count"`
+	// 	}
+
+	// 	query := "SELECT post_id, COUNT(*) AS count FROM comments WHERE post_id IN (?) GROUP BY post_id"
+	// 	query, args, err := sqlx.In(query, missCachedCommentCountPostIDs)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	// 	query = db.Rebind(query)
+	// 	var counts []Count
+	// 	err = db.Select(&counts, query, args...)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	// 	for _, count := range counts {
+	// 		commentCounts[count.PostID] = count.Count
+
+	// 		err := memcacheClient.Set(&memcache.Item{
+	// 			Key:        fmt.Sprintf("comment_count_%d", count.PostID),
+	// 			Value:      []byte(strconv.Itoa(count.Count)),
+	// 			Expiration: 10,
+	// 		})
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 	}
+	// }
+
+	// comments := make(map[int][]Comment, len(results))
+	// var missCachedCommentsPostIDs []int
+	// cachedComments, err := memcacheClient.GetMulti(cachedCommentKeys)
+	// if err == nil {
+	// 	for _, p := range results {
+	// 		cachedComment, ok := cachedComments[fmt.Sprintf("comments_%d_%t", p.ID, !allComments)]
+	// 		if ok {
+	// 			var cs []Comment
+	// 			err := json.Unmarshal(cachedComment.Value, &cs)
+	// 			if err != nil {
+	// 				return nil, err
+	// 			}
+
+	// 			comments[p.ID] = cs
+	// 		} else {
+	// 			missCachedCommentsPostIDs = append(missCachedCommentsPostIDs, p.ID)
+	// 		}
+	// 	}
+	// } else if err == memcache.ErrCacheMiss {
+	// 	missCachedCommentsPostIDs = postIDs
+	// } else {
+	// 	return nil, err
+	// }
+
+	// if len(missCachedCommentsPostIDs) > 0 {
+	// 	for _, postID := range missCachedCommentsPostIDs {
+	// 		query := `
+	// 		SELECT comments.id, comments.post_id, comments.user_id, comments.comment, comments.created_at,
+	// 		 users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+	// 		FROM comments
+	// 		JOIN users ON comments.user_id = users.id
+	// 		WHERE post_id = ?
+	// 		ORDER BY created_at DESC
+	// 		`
+	// 		if !allComments {
+	// 			query += " LIMIT 3"
+	// 		}
+
+	// 		var cs []Comment
+	// 		err := db.Select(&cs, query, postID)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+
+	// 		// reverse comments
+	// 		for i, j := 0, len(cs)-1; i < j; i, j = i+1, j-1 {
+	// 			cs[i], cs[j] = cs[j], cs[i]
+	// 		}
+
+	// 		comments[postID] = cs
+
+	// 		b, err := json.Marshal(cs)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+
+	// 		err = memcacheClient.Set(&memcache.Item{
+	// 			Key:        fmt.Sprintf("comments_%d_%t", postID, !allComments),
+	// 			Value:      b,
+	// 			Expiration: 10,
+	// 		})
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+	// 	}
+	// }
+
+	// for _, p := range results {
+	// 	p.CommentCount = commentCounts[p.ID]
+	// 	p.Comments = comments[p.ID]
+	// 	p.CSRFToken = csrfToken
+
+	// 	posts = append(posts, p)
+	// }
+
+	// return posts, nil
 }
 
 func imageURL(p Post) string {
