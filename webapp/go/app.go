@@ -499,7 +499,8 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	results := []Post{}
 
 	query := `
-		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at,
+		 users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
 		FROM posts
 		JOIN users ON posts.user_id = users.id
 		WHERE users.id NOT IN (?)
@@ -569,7 +570,8 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 	results := []Post{}
 
 	query = `
-		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at,
+		 users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
 		FROM posts
 		JOIN users ON posts.user_id = users.id
 		WHERE user_id = ? AND users.id NOT IN (?)
@@ -665,7 +667,8 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 	query := `
-		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at,
+		 users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
 		FROM posts
 		JOIN users ON posts.user_id = users.id
 		WHERE posts.created_at <= ? AND users.id NOT IN (?)
@@ -717,7 +720,8 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 	query := `
-		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at, users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
+		SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at,
+		 users.id AS "users.id", users.account_name AS "users.account_name", users.authority AS "users.authority", users.created_at AS "users.created_at"
 		FROM posts 
 		JOIN users ON posts.user_id = users.id
 		WHERE posts.id = ? AND users.id NOT IN (?)
