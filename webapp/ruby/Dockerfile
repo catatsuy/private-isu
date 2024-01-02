@@ -1,4 +1,8 @@
-FROM ruby:3.2-buster
+FROM ruby:3.3-slim
+
+RUN apt-get update -qq && apt-get install -y build-essential
+
+RUN apt-get install -y default-libmysqlclient-dev
 
 RUN mkdir -p /home/webapp
 COPY Gemfile /home/webapp
