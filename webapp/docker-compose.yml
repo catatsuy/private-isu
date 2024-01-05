@@ -25,6 +25,9 @@ services:
     volumes:
       - ./public:/home/public
     init: true
+    depends_on:
+      mysql:
+        condition: service_healthy
     deploy:
       resources:
         limits:
@@ -43,6 +46,12 @@ services:
       - ./sql:/docker-entrypoint-initdb.d
     ports:
       - "3306:3306"
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER -p$$MYSQL_PASSWORD
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
     deploy:
       resources:
         limits:

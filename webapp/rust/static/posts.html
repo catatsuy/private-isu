@@ -1,0 +1,8 @@
+{{#*inline "posts_html"}}
+<div class="isu-posts">
+  {{#each posts}}
+  {{> post_html}}
+  {{/each}}
+</div>
+{{/inline}}
+{{> (lookup this "posts_parent")}}
