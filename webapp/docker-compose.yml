@@ -1,3 +1,4 @@
+name: private-isu
 services:
   nginx:
     image: nginx:1.24
@@ -6,8 +7,8 @@ services:
       - ./public:/public
     ports:
       - "80:80"
-    links:
-      - app
+    networks:
+      - my_network
 
   app:
     # Go実装の場合は golang/ PHP実装の場合は php/
@@ -19,9 +20,8 @@ services:
       ISUCONP_DB_PASSWORD: root
       ISUCONP_DB_NAME: isuconp
       ISUCONP_MEMCACHED_ADDRESS: memcached:11211
-    links:
-      - mysql
-      - memcached
+    networks:
+      - my_network
     volumes:
       - ./public:/home/public
     init: true
@@ -43,6 +43,8 @@ services:
       - ./sql:/docker-entrypoint-initdb.d
     ports:
       - "3306:3306"
+    networks:
+      - my_network
     deploy:
       resources:
         limits:
@@ -54,3 +56,6 @@ services:
 
 volumes:
   mysql:
+
+networks:
+  my_network:
