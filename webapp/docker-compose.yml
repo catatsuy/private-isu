@@ -12,7 +12,7 @@ services:
 
   app:
     # Go実装の場合は golang/ PHP実装の場合は php/
-    build: ruby/
+    build: php/
     environment:
       ISUCONP_DB_HOST: mysql
       ISUCONP_DB_PORT: 3306
@@ -53,6 +53,8 @@ services:
 
   memcached:
     image: memcached:1.6
+    networks:
+        - my_network
 
 volumes:
   mysql:
