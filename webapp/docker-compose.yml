@@ -53,6 +53,8 @@ services:
 
   memcached:
     image: memcached:1.6
+    networks:
+        - my_network
 
 volumes:
   mysql:
