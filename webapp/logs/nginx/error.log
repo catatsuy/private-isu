@@ -1,0 +1,2 @@
+2024/01/15 11:10:30 [warn] 31#31: *10 a client request body is buffered to a temporary file /var/cache/nginx/client_temp/0000000001, client: 192.168.65.1, server: , request: "POST / HTTP/1.1", host: "host.docker.internal"
+2024/01/15 11:10:32 [warn] 28#28: *30 a client request body is buffered to a temporary file /var/cache/nginx/client_temp/0000000002, client: 192.168.65.1, server: , request: "POST / HTTP/1.1", host: "host.docker.internal"
