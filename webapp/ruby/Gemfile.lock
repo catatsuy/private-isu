@@ -3,7 +3,8 @@ GEM
   specs:
     base64 (0.2.0)
     connection_pool (2.4.1)
-    dalli (3.2.6)
+    dalli (3.2.7)
+      base64
     foreman (0.87.2)
     kgio (2.11.4)
     multi_json (1.15.0)
