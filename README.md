@@ -102,6 +102,14 @@ __いずれの手順もディスク容量が十分にあるマシン上で行う
 * ベンチマーカーはGoの開発環境とuserdataがあれば動く
 * Dockerとvagrantはメモリが潤沢なマシンで実行すること
 
+#### 初期データを用意する
+
+必要になるので、以下の手順を行う前に必ず実行すること。
+
+```sh
+make init
+```
+
 #### MacやLinux上で適当に動かす
 
 MySQLとmemcachedを起動した上で以下の手順を実行。
@@ -110,17 +118,11 @@ MySQLとmemcachedを起動した上で以下の手順を実行。
 * MySQLのrootユーザーのパスワードが設定されていない前提になっているので、設定されている場合は適宜読み替えること
 
 ```sh
-curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
-bzcat dump.sql.bz2 | mysql -uroot
+cat webapp/sql/dump.sql | mysql -uroot
 
 cd webapp/ruby
 bundle install --path=vendor/bundle
 bundle exec foreman start
-cd ../..
-
-cd benchmarker/userdata
-curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/img.zip
-unzip img.zip
 cd ../..
 
 cd benchmarker
@@ -137,11 +139,7 @@ make
 アプリケーションは以下の手順で実行できる。dump.sqlを配置しないとMySQLに初期データがimportされないので注意。
 
 ```sh
-cd webapp/sql
-curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
-bunzip2 dump.sql.bz2
-
-cd ..
+cd webapp
 docker compose up
 ```
 
@@ -158,12 +156,7 @@ mv nginx/conf.d/php.conf.org nginx/conf.d/php.conf
 ベンチマーカーは以下の手順で実行できる。
 
 ```sh
-cd benchmarker/userdata
-curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/img.zip
-unzip img.zip
-rm img.zip
-cd ..
-
+cd benchmarker
 docker build -t private-isu-benchmarker .
 docker run --network host -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata
 # Linuxの場合
