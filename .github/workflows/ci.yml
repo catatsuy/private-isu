@@ -1,0 +1,57 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Cache Docker layers
+      uses: actions/cache@v2
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
+    - name: Cache make init results
+      uses: actions/cache@v2
+      with:
+        path: |
+          webapp/sql/dump.sql
+          benchmarker/userdata/img
+        key: ${{ runner.os }}-make-init-${{ hashFiles('Makefile')}}
+        restore-keys: |
+          ${{ runner.os }}-make-init-
+
+    - name: Initialize the project
+      run: make init
+
+    - name: Check for changes in golang directory
+      id: check-changes
+      run: |
+        if git diff --name-only ${{ github.sha }} | grep 'golang/'; then
+          echo "Changes detected in golang directory"
+          echo "::set-output name=go_changes_detected::true"
+        fi
+
+    - name: Update compose.yml if changes are detected
+      if: steps.check-changes.outputs.go_changes_detected == 'true'
+      run: |
+        sed -i 's|build: ruby/|build: golang/|' ./webapp/compose.yml
+
+    - name: Start the server
+      run: |
+        cd webapp
+        docker compose up -d
+
+    - name: Run the benchmark
+      run: |
+        cd benchmarker
+        docker build -t private-isu-benchmarker .
