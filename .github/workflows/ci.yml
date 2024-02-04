@@ -33,6 +33,19 @@ jobs:
     - name: Initialize the project
       run: make init
 
+    - name: Check for changes in golang directory
+      id: check-changes
+      run: |
+        if git diff --name-only ${{ github.sha }} | grep 'golang/'; then
+          echo "Changes detected in golang directory"
+          echo "::set-output name=go_changes_detected::true"
+        fi
+
+    - name: Update compose.yml if changes are detected
+      if: steps.check-changes.outputs.go_changes_detected == 'true'
+      run: |
+        sed -i 's|build: ruby/|build: golang/|' ./webapp/compose.yml
+
     - name: Start the server
       run: |
         cd webapp
