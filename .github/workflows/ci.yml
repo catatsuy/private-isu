@@ -52,11 +52,22 @@ jobs:
           echo "Changes detected in golang directory"
           echo "go_changes_detected=true" >> $GITHUB_OUTPUT
         fi
+        if git diff --name-only origin/master...${{ github.sha }} | grep 'php/'; then
+          echo "Changes detected in php directory"
+          echo "php_changes_detected=true" >> $GITHUB_OUTPUT
+        fi
 
     - name: Update compose.yml if changes are detected
       if: steps.check-changes.outputs.go_changes_detected == 'true'
       run: |
         sed -i 's|build: ruby/|build: golang/|' ./webapp/docker-compose.yml
+
+    - name: Update compose.yml if changes are detected
+      if: steps.check-changes.outputs.php_changes_detected == 'true'
+      run: |
+        perl -i -pe 's@build: (ruby|golang)/@build: php/@g' ./webapp/docker-compose.yml
+        mv webapp/etc/nginx/conf.d/default.conf webapp/etc/nginx/conf.d/default.conf.org
+        mv webapp/etc/nginx/conf.d/php.conf.org webapp/etc/nginx/conf.d/php.conf
 
     - name: Start the server
       run: |
