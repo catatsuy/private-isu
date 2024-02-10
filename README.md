@@ -118,7 +118,7 @@ MySQLとmemcachedを起動した上で以下の手順を実行。
 * MySQLのrootユーザーのパスワードが設定されていない前提になっているので、設定されている場合は適宜読み替えること
 
 ```sh
-cat webapp/sql/dump.sql | mysql -uroot
+bunzip2 -c webapp/sql/dump.sql.bz2 | mysql -uroot
 
 cd webapp/ruby
 bundle install --path=vendor/bundle
@@ -136,7 +136,7 @@ make
 
 #### Docker Compose
 
-アプリケーションは以下の手順で実行できる。dump.sqlを配置しないとMySQLに初期データがimportされないので注意。
+アプリケーションは以下の手順で実行できる。dump.sql.bz2を配置しないとMySQLに初期データがimportされないので注意。
 
 ```sh
 cd webapp
