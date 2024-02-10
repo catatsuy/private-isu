@@ -9,6 +9,7 @@ on:
       - 'benchmarker/**'
       - '.github/workflows/ci.yml'
       - 'Makefile'
+      - 'webapp/docker-compose.yml'
 
 jobs:
   build-and-test:
