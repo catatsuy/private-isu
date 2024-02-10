@@ -56,3 +56,8 @@ jobs:
         cd benchmarker
         docker build -t private-isu-benchmarker .
         docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata
+
+    - name: Show logs
+      run: |
+        cd webapp
+        docker compose logs
