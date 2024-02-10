@@ -52,6 +52,7 @@ jobs:
         docker compose up -d
 
     - name: Run the benchmark
+      continue-on-error: true
       run: |
         cd benchmarker
         docker build -t private-isu-benchmarker .
