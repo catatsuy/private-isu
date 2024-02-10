@@ -63,6 +63,15 @@ jobs:
           echo "Waiting for database initialization..."
           sleep 10
         done
+        until docker compose exec -T mysql mysql -uroot -proot -e "SELECT 1 FROM users LIMIT 1;" isuconp; do
+          echo "Waiting for database initialization..."
+          sleep 10
+        done
+        until docker compose exec -T mysql mysql -uroot -proot -e "SELECT 1 FROM comments LIMIT 1;" isuconp; do
+          echo "Waiting for database initialization..."
+          sleep 10
+        done
+        sleep 10
 
     - name: Run the benchmark
       continue-on-error: true
