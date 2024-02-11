@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -68,7 +67,7 @@ func prepareUserdata(userdata string) ([]user, []user, []user, []string, []*chec
 	images := []*checker.Asset{}
 
 	for _, img := range imgs {
-		data, err := ioutil.ReadFile(img)
+		data, err := os.ReadFile(img)
 		if err != nil {
 			return nil, nil, nil, nil, nil, err
 		}

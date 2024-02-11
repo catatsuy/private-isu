@@ -4,7 +4,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
-	"io/ioutil"
 	mrand "math/rand"
 	"time"
 )
@@ -14,7 +13,7 @@ func GetMD5(data []byte) string {
 }
 
 func GetMD5ByIO(r io.Reader) string {
-	bytes, err := ioutil.ReadAll(r)
+	bytes, err := io.ReadAll(r)
 	if err != nil {
 		fmt.Println(err)
 	}
