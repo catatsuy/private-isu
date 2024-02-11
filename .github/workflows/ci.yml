@@ -100,9 +100,15 @@ jobs:
       continue-on-error: true
       run: |
         cd benchmarker
-        docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata
+        docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata || echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV
 
     - name: Show logs
       run: |
         cd webapp
         docker compose logs
+
+    - name: Fail if benchmark failed
+      if: env.BENCHMARK_FAILED == 'true'
+      run: |
+        echo "Benchmark failed"
+        exit 1
