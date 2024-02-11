@@ -173,7 +173,7 @@ func (a *AssetAction) Play(s *Session) error {
 		return s.Fail(failExceptionScore, req, errors.New("リクエストに失敗しました"))
 	}
 
-	// 2回ioutil.ReadAllを呼ぶとおかしくなる
+	// 2回io.ReadAllを呼ぶとおかしくなる
 	uc, md5 := cache.NewURLCache(res)
 	if uc != nil {
 		cache.GetInstance().Set(a.Path, uc)
