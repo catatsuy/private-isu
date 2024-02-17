@@ -72,7 +72,7 @@ jobs:
     - name: Start the server
       run: |
         cd webapp
-        docker compose up -d
+        docker compose up --build -d
 
     - name: Build the benchmark
       run: |
