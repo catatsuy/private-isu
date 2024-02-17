@@ -20,16 +20,6 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Cache make init results
-      uses: actions/cache@v4
-      with:
-        path: |
-          webapp/sql/dump.sql.bz2
-          benchmarker/userdata/img
-        key: ${{ runner.os }}-make-init-${{ hashFiles('Makefile')}}
-        restore-keys: |
-          ${{ runner.os }}-make-init-
-
     - name: Initialize the project
       run: make init
 
