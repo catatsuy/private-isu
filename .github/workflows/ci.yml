@@ -3,91 +3,91 @@ name: CI
 on:
   pull_request:
     paths:
-      - 'webapp/golang/**'
-      - 'webapp/ruby/**'
-      - 'webapp/php/**'
-      - 'benchmarker/**'
-      - '.github/workflows/ci.yml'
-      - 'Makefile'
-      - 'webapp/docker-compose.yml'
+      - "webapp/golang/**"
+      - "webapp/ruby/**"
+      - "webapp/php/**"
+      - "benchmarker/**"
+      - ".github/workflows/ci.yml"
+      - "Makefile"
+      - "webapp/docker-compose.yml"
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Initialize the project
-      run: make init
+      - name: Initialize the project
+        run: make init
 
-    - name: Check for changes in golang directory
-      id: check-changes
-      run: |
-        git fetch origin
-        if git diff --name-only origin/master...${{ github.sha }} | grep 'golang/'; then
-          echo "Changes detected in golang directory"
-          echo "go_changes_detected=true" >> $GITHUB_OUTPUT
-        fi
-        if git diff --name-only origin/master...${{ github.sha }} | grep 'php/'; then
-          echo "Changes detected in php directory"
-          echo "php_changes_detected=true" >> $GITHUB_OUTPUT
-        fi
+      - name: Check for changes in golang directory
+        id: check-changes
+        run: |
+          git fetch origin
+          if git diff --name-only origin/master...${{ github.sha }} | grep 'golang/'; then
+            echo "Changes detected in golang directory"
+            echo "go_changes_detected=true" >> $GITHUB_OUTPUT
+          fi
+          if git diff --name-only origin/master...${{ github.sha }} | grep 'php/'; then
+            echo "Changes detected in php directory"
+            echo "php_changes_detected=true" >> $GITHUB_OUTPUT
+          fi
 
-    - name: Update compose.yml if changes are detected
-      if: steps.check-changes.outputs.go_changes_detected == 'true'
-      run: |
-        sed -i 's|build: ruby/|build: golang/|' ./webapp/docker-compose.yml
+      - name: Update compose.yml if changes are detected
+        if: steps.check-changes.outputs.go_changes_detected == 'true'
+        run: |
+          sed -i 's|build: ruby/|build: golang/|' ./webapp/docker-compose.yml
 
-    - name: Update compose.yml if changes are detected
-      if: steps.check-changes.outputs.php_changes_detected == 'true'
-      run: |
-        perl -i -pe 's@build: (ruby|golang)/@build: php/@g' ./webapp/docker-compose.yml
-        mv webapp/etc/nginx/conf.d/default.conf webapp/etc/nginx/conf.d/default.conf.org
-        mv webapp/etc/nginx/conf.d/php.conf.org webapp/etc/nginx/conf.d/php.conf
+      - name: Update compose.yml if changes are detected
+        if: steps.check-changes.outputs.php_changes_detected == 'true'
+        run: |
+          perl -i -pe 's@build: (ruby|golang)/@build: php/@g' ./webapp/docker-compose.yml
+          mv webapp/etc/nginx/conf.d/default.conf webapp/etc/nginx/conf.d/default.conf.org
+          mv webapp/etc/nginx/conf.d/php.conf.org webapp/etc/nginx/conf.d/php.conf
 
-    - name: Start the server
-      run: |
-        cd webapp
-        docker compose up --build -d
+      - name: Start the server
+        run: |
+          cd webapp
+          docker compose up --build -d
 
-    - name: Build the benchmark
-      run: |
-        cd benchmarker
-        docker build -t private-isu-benchmarker .
+      - name: Build the benchmark
+        run: |
+          cd benchmarker
+          docker build -t private-isu-benchmarker .
 
-    - name: Wait for data initialization to complete
-      run: |
-        cd webapp
-        until docker compose exec -T mysql mysql -uroot -proot -e "SELECT 1 FROM posts LIMIT 1;" isuconp; do
-          echo "Waiting for database initialization..."
+      - name: Wait for data initialization to complete
+        run: |
+          cd webapp
+          until docker compose exec -T mysql mysql -uroot -proot -e "SELECT 1 FROM posts LIMIT 1;" isuconp; do
+            echo "Waiting for database initialization..."
+            sleep 10
+          done
+          until docker compose exec -T mysql mysql -uroot -proot -e "SELECT 1 FROM users LIMIT 1;" isuconp; do
+            echo "Waiting for database initialization..."
+            sleep 10
+          done
+          until docker compose exec -T mysql mysql -uroot -proot -e "SELECT 1 FROM comments LIMIT 1;" isuconp; do
+            echo "Waiting for database initialization..."
+            sleep 10
+          done
           sleep 10
-        done
-        until docker compose exec -T mysql mysql -uroot -proot -e "SELECT 1 FROM users LIMIT 1;" isuconp; do
-          echo "Waiting for database initialization..."
-          sleep 10
-        done
-        until docker compose exec -T mysql mysql -uroot -proot -e "SELECT 1 FROM comments LIMIT 1;" isuconp; do
-          echo "Waiting for database initialization..."
-          sleep 10
-        done
-        sleep 10
 
-    - name: Run the benchmark
-      continue-on-error: true
-      run: |
-        cd benchmarker
-        docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata || echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV
+      - name: Run the benchmark
+        continue-on-error: true
+        run: |
+          cd benchmarker
+          docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata || echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV
 
-    - name: Show logs
-      run: |
-        cd webapp
-        docker compose logs
+      - name: Show logs
+        run: |
+          cd webapp
+          docker compose logs
 
-    - name: Fail if benchmark failed
-      if: env.BENCHMARK_FAILED == 'true'
-      run: |
-        echo "Benchmark failed"
-        exit 1
+      - name: Fail if benchmark failed
+        if: env.BENCHMARK_FAILED == 'true'
+        run: |
+          echo "Benchmark failed"
+          exit 1
