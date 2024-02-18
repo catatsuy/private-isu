@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'renovate.json'
-      - '.github/workflows/renovate-config-validator-ci.yml'
+      - "renovate.json"
+      - ".github/workflows/renovate-config-validator-ci.yml"
 
 jobs:
   renovate-config-validator:
