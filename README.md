@@ -218,6 +218,11 @@ https://gist.github.com/tohutohu/024551682a9004da286b0abd6366fa55 を参照
 
 自分で立ち上げたい人向け。`provisioning/`ディレクトリ以下参照。
 
+### 事例集
+
+* private-isuのベンチマーカーをLambdaで実行する仕組みを公開しました | PR TIMES 開発者ブログ https://developers.prtimes.jp/2024/01/29/private-isu-bench-lambda/
+* 日本CTO協会による合同ISUCON研修の紹介 - Pepabo Tech Portal https://tech.pepabo.com/2024/02/16/isucon-2023/
+
 ## 他の言語実装
 
 * Python実装 https://github.com/methane/pixiv-isucon2016-python
