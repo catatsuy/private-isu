@@ -12,7 +12,7 @@ services:
 
   app:
     # Go実装の場合は golang/ PHP実装の場合は php/
-    build: ruby/
+    build: golang/
     environment:
       ISUCONP_DB_HOST: mysql
       ISUCONP_DB_PORT: 3306
@@ -40,6 +40,8 @@ services:
     volumes:
       - mysql:/var/lib/mysql
       - ./sql:/docker-entrypoint-initdb.d
+      - ./logs/nginx:/var/log/nginx
+      - ./logs/mysql:/var/log/mysql
     ports:
       - "3306:3306"
     networks:
