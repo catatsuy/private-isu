@@ -1,6 +1,5 @@
 - hosts: bench
   become: yes
-  become_user: isucon
   gather_facts: no
   tasks:
     - name: Increase file limits for sysctl
@@ -10,14 +9,12 @@
           fs.file-max=655360
 
     - name: Tune up network
-      become: yes
       copy:
         dest: /etc/sysctl.d/92-net.conf
         content: |
           net.core.somaxconn=65535
 
     - name: Increase file limits
-      become: yes
       copy:
         dest: /etc/security/limits.d/50-nofile.conf
         content: |
