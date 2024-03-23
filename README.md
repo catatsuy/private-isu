@@ -83,15 +83,15 @@ $ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_i
 
 | 用途   |        AMI ID         |              AMI name               | 推奨インスタンスタイプ |
 | ------ | :-------------------: | :---------------------------------: | ---------------------- |
-| x86_64 | ami-0d92a4724cae6f07b | catatsuy_private_isu_amd64_20230917 | c6i.large              |
-| arm64  | ami-0a435708a83cc3ee5 | catatsuy_private_isu_arm64_20230917 | c6g.large              |
+| x86_64 | ami-0937f4bab7bea4382 | catatsuy_private_isu_amd64_20240323 | c7a.large              |
+| arm64  | ami-0b2a760e0651797cc | catatsuy_private_isu_arm64_20240323 | c7g.large              |
 
 ベンチマーカー (Ubuntu 22.04):
 
 | 用途   |        AMI ID         |                 AMI name                  | 推奨インスタンスタイプ |
 | ------ | :-------------------: | :---------------------------------------: | ---------------------- |
-| x86_64 | ami-0582a2a7fbe79a30d | catatsuy_private_isu_bench_amd64_20230514 | c6i.xlarge             |
-| arm64  | ami-01888a2782271061e | catatsuy_private_isu_bench_arm64_20230514 | c6g.xlarge             |
+| x86_64 | ami-015450874c83c16e5 | catatsuy_private_isu_bench_amd64_20240323 | c7a.xlarge             |
+| arm64  | ami-024e477078b82c382 | catatsuy_private_isu_bench_arm64_20240323 | c7g.xlarge             |
 
 
 ### 手元で動かす
