@@ -5,3 +5,4 @@
 - import_playbook: 03_bench.yml
 - import_playbook: 04_userdata.yml
 - import_playbook: 05_build.yml
+- import_playbook: 06_kernel.yml
