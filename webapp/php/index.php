@@ -4,8 +4,13 @@ use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 use Slim\Factory\AppFactory;
 use DI\Container;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 
 require 'vendor/autoload.php';
+
+$log = new Logger('name');
+$log->pushHandler(new StreamHandler('./slim.log'));
 
 $_SERVER += ['PATH_INFO' => $_SERVER['REQUEST_URI']];
 $_SERVER['SCRIPT_NAME'] = '/' . basename($_SERVER['SCRIPT_FILENAME']);
