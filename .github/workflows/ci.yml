@@ -40,15 +40,23 @@ jobs:
             echo "php_changes_detected=true" >> $GITHUB_OUTPUT
           fi
 
+      - name: Download purl
+        run: |
+          curl -sL https://github.com/catatsuy/purl/releases/latest/download/purl-linux-amd64.tar.gz | tar xz -C /tmp
+
+      - name: Move files to /usr/local/bin for purl
+        run: |
+          sudo mv /tmp/purl /usr/local/bin/
+
       - name: Update compose.yml if changes are detected
         if: steps.check-changes.outputs.go_changes_detected == 'true'
         run: |
-          sed -i 's|build: ruby/|build: golang/|' ./webapp/docker-compose.yml
+          purl -overwrite -replace '@build: ruby/@build: golang/@' ./webapp/docker-compose.yml
 
       - name: Update compose.yml if changes are detected
         if: steps.check-changes.outputs.php_changes_detected == 'true'
         run: |
-          perl -i -pe 's@build: (ruby|golang)/@build: php/@g' ./webapp/docker-compose.yml
+          purl -overwrite -replace '@build: (ruby|golang)/@build: php/@' ./webapp/docker-compose.yml
           mv webapp/etc/nginx/conf.d/default.conf webapp/etc/nginx/conf.d/default.conf.org
           mv webapp/etc/nginx/conf.d/php.conf.org webapp/etc/nginx/conf.d/php.conf
 
