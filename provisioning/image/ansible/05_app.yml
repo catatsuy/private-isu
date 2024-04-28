@@ -34,11 +34,11 @@
     - name: remove .git
       file: path=/home/isucon/private_isu/.git state=absent
     - name: Copy repository
-      copy:
+      ansible.builtin.synchronize:
         src: /home/isucon/repos/private_isu.git/
-        dest: /home/isucon/private_isu
-        remote_src: yes
-        mode: '0755'
+        dest: /home/isucon/private_isu/
+        recursive: yes
+        archive: yes
     - name: remove .git
       file: path=/home/isucon/private_isu/.git state=absent
     - name: remove repos
