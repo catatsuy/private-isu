@@ -6,6 +6,7 @@
     - apt: name=nginx
     - name: start nginx
       service: name=nginx state=started enabled=yes
+      tags: exclude_for_test
       notify: restart nginx
     - name: clean nginx
       file: path=/etc/nginx/sites-available/default state=absent

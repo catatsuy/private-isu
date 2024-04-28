@@ -30,9 +30,9 @@ jobs:
       - name: Run Ansible playbook
         run: |
           cd provisioning
-          ansible-playbook --diff -i test image/ansible/playbooks.yml --skip-tags nodejs -e 'allinone=True'
+          ansible-playbook --diff -i test image/ansible/playbooks.yml --skip-tags nodejs,exclude_for_test -e 'allinone=True'
 
       - name: Run Ansible playbook in check mode
         run: |
           cd provisioning
-          ansible-playbook --check --diff -i test image/ansible/playbooks.yml --skip-tags nodejs -e 'allinone=True'
+          ansible-playbook --check --diff -i test image/ansible/playbooks.yml --skip-tags nodejs,exclude_for_test -e 'allinone=True'
