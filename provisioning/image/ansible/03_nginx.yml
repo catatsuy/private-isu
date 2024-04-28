@@ -22,5 +22,4 @@
       notify: reload nginx
   handlers:
     - name: reload nginx
-      tags: exclude_for_test
-      shell: /usr/sbin/nginx -t && systemctl reload nginx
+      shell: /usr/sbin/nginx -t
