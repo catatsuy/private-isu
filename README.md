@@ -206,6 +206,8 @@ matsuuさんの[cloud-initに対応した環境でISUCONの過去問を構築す
 
 cloud-initに対応した環境、例えばAWS、Azure、Google Cloud、Oracle Cloud、さくらのクラウド、Multipass、VMwareなど、クラウドからローカルまで幅広く環境構築が可能です。
 
+Apple Silicon搭載のマシン上で動作させる場合はMultipassを利用することを推奨します。
+
 https://github.com/matsuu/cloud-init-isucon/tree/main/private-isu
 
 ISUCON過去問題の環境を「さくらのクラウド」で構築する | さくらのナレッジ https://knowledge.sakura.ad.jp/31520/
