@@ -17,6 +17,7 @@
           user = root
           password = root
     - name: create database
+      tags: exclude_for_test
       shell: bzcat /home/isucon/backup/mysqldump.sql.bz2 | mysql -u root
     - name: remove temporary file
       become: yes
