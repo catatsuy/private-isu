@@ -31,11 +31,14 @@
       file: path=/home/isucon/repos/private_isu.git/Vagrantfile state=absent
     - name: git init
       shell: "cd /home/isucon/repos/private_isu.git/ && git init && git add . && git config --global user.email 'test@example.com' && git config --global user.name 'admin' && git commit -m 'Initial commit'"
-    - name: create working copy
-      git: repo=file:///home/isucon/repos/private_isu.git
-        dest=/home/isucon/private_isu
-        update=yes
-        force=yes
+    - name: remove .git
+      file: path=/home/isucon/private_isu/.git state=absent
+    - name: Copy repository
+      copy:
+        src: /home/isucon/repos/private_isu.git/
+        dest: /home/isucon/private_isu
+        remote_src: yes
+        mode: '0755'
     - name: remove .git
       file: path=/home/isucon/private_isu/.git state=absent
     - name: remove repos
