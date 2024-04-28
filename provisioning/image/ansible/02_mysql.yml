@@ -1,30 +1,18 @@
 ---
 - hosts: guests:extras
   become: yes
-  gather_facts: yes
+  gather_facts: no
   tasks:
     - apt: name=mysql-server
     - apt: name=memcached
     - apt: name=python3-pymysql
 
-    - name: set temporary password
-      become: yes
-      become_user: root
-      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "22.04"
-      blockinfile:
-        create: yes
-        dest: &myCnf /root/.my.cnf
-        content: |
-          [client]
-          user = root
-          password = root
-
-    - name: create mysql user
-      mysql_user:
-        login_user: root
-        name: isuconp
-        password: isuconp
-        priv: '*.*:ALL'
-        check_implicit_admin: yes
-        state: present
-        login_unix_socket: /var/run/mysqld/mysqld.sock
+    # - name: create mysql user
+    #   mysql_user:
+    #     login_user: root
+    #     name: isuconp
+    #     password: isuconp
+    #     priv: '*.*:ALL'
+    #     check_implicit_admin: yes
+    #     state: present
+    #     login_unix_socket: /var/run/mysqld/mysqld.sock
