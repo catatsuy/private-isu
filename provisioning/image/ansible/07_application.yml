@@ -5,7 +5,7 @@
   gather_facts: no
   tasks:
     - name: bundle install
-      shell: cd /home/isucon/private_isu/webapp/ruby; bash -lc "bundle install"
+      shell: cd /home/isucon/private_isu/webapp/ruby; bash -lc "/home/isucon/.local/ruby/bin/bundle install"
 
 - hosts: guests:extras
 #- hosts: extras
