@@ -21,4 +21,4 @@
       notify: reload nginx
   handlers:
     - name: reload nginx
-      shell: /usr/sbin/nginx -t && /etc/init.d/nginx reload
+      shell: /usr/sbin/nginx -t && systemctl reload nginx
