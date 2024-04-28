@@ -1,0 +1,5 @@
+[guests]
+localhost ansible_connection=local
+
+[bench]
+localhost ansible_connection=local

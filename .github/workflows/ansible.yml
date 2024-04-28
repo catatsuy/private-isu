@@ -1,0 +1,38 @@
+name: Ansible CI
+
+on:
+  pull_request:
+    paths:
+      - "provisioning/**"
+      - ".github/workflows/ansible.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Initialize the project
+        run: make init
+
+      - name: Run Ansible playbook
+        run: |
+          cd provisioning
+          ansible-playbook --diff -i test image/ansible/playbooks.yml --skip-tags nodejs -e 'allinone=True'
+
+      - name: Run Ansible playbook in check mode
+        run: |
+          cd provisioning
+          ansible-playbook --check --diff -i test image/ansible/playbooks.yml --skip-tags nodejs -e 'allinone=True'
