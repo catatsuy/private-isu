@@ -1,7 +1,7 @@
 name: private-isu
 services:
   nginx:
-    image: nginx:1.26
+    image: nginx:1.27
     volumes:
       - ./etc/nginx/conf.d:/etc/nginx/conf.d
       - ./public:/public
