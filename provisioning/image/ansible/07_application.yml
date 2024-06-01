@@ -18,13 +18,46 @@
 
 - hosts: guests:extras
   become: yes
+  gather_facts: no
+  tasks:
+    - name: Download Composer installer
+      get_url:
+        url: https://getcomposer.org/installer
+        dest: /tmp/composer-setup.php
+      tags:
+        - composer
+
+    - name: Verify Composer installer
+      shell: |
+        HASH=$(wget -q -O - https://composer.github.io/installer.sig)
+        php -r "if (hash_file('SHA384', '/tmp/composer-setup.php') === '$HASH') { echo 'Installer verified'; } else { echo 'Installer corrupt'; unlink('/tmp/composer-setup.php'); } echo PHP_EOL;"
+      register: composer_setup_verify
+      changed_when: "'Installer corrupt' not in composer_setup_verify.stdout"
+      tags:
+        - composer
+
+    - name: Install Composer
+      shell: php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+      when: "'Installer verified' in composer_setup_verify.stdout"
+      tags:
+        - composer
+
+    - name: Cleanup Composer installer
+      file:
+        path: /tmp/composer-setup.php
+        state: absent
+      tags:
+        - composer
+
+- hosts: guests:extras
+  become: yes
   become_user: isucon
   gather_facts: no
   tasks:
-    - name: download composer.phar
-      get_url: url=https://getcomposer.org/composer.phar dest=/home/isucon/private_isu/webapp/php/composer.phar force=1 mode=755
     - name: composer install
-      shell: cd /home/isucon/private_isu/webapp/php; bash -lc "./composer.phar install"
+      shell: cd /home/isucon/private_isu/webapp/php; bash -lc "composer install"
+      tags:
+        - composer
 
 - hosts: guests:extras
   become: yes
