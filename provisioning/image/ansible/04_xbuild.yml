@@ -32,25 +32,49 @@
   tasks:
     - name: Apt update
       apt: update_cache=yes
-      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "20.04"
-      tags: php7
-    - name: PHP7 install
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
+      tags: php8
+    - name: PHP8 install
       apt: name="{{item}}"
-      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "20.04"
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
       with_items:
-        - php7.4-cli
-        - php7.4-fpm
-        - php7.4-mysql
+        - php8.3-cli
+        - php8.3-fpm
+        - php8.3-mysql
         - php-memcached
-      tags: php7
-    - name: copy www.conf (php-fpm)
-      copy: src=../files/etc/php/7.4/fpm/pool.d/www.conf dest=/etc/php/7.4/fpm/pool.d/www.conf owner=root mode=644
-      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "20.04"
-      tags: php7
+      tags: php8
+    - name: Update user and group in PHP-FPM config
+      replace:
+        path: /etc/php/8.3/fpm/pool.d/www.conf
+        regexp: '^user = www-data'
+        replace: 'user = isucon'
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
+      tags: php8
+    - name: Update group in PHP-FPM config
+      replace:
+        path: /etc/php/8.3/fpm/pool.d/www.conf
+        regexp: '^group = www-data'
+        replace: 'group = isucon'
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
+      tags: php8
+    - name: Comment out old listen directive in PHP-FPM config
+      replace:
+        path: /etc/php/8.3/fpm/pool.d/www.conf
+        regexp: '^listen = /run/php/php8.3-fpm.sock'
+        replace: ';listen = /run/php/php8.3-fpm.sock'
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
+      tags: php8
+    - name: Add new listen directive in PHP-FPM config
+      lineinfile:
+        path: /etc/php/8.3/fpm/pool.d/www.conf
+        insertafter: '^;listen = /run/php/php8.3-fpm.sock'
+        line: 'listen = 127.0.0.1:9000'
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
+      tags: php8
     - name: stop php-fpm
-      service: name=php7.4-fpm state=stopped enabled=no
-      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "20.04"
-      tags: php7
+      service: name=php8.3-fpm state=stopped enabled=no
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
+      tags: php8
 
 - hosts: guests:extras
   become: yes

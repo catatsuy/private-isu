@@ -50,9 +50,9 @@
       tags:
         - nodejs
     - name: php app (systemd)
-      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "20.04"
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
       lineinfile:
-        path: /lib/systemd/system/php7.4-fpm.service
+        path: /lib/systemd/system/php8.3-fpm.service
         line: 'EnvironmentFile=/home/isucon/env.sh'
         insertafter: 'ExecReload=.*'
     - name: php app (systemd)
