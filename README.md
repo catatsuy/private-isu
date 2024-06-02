@@ -79,19 +79,19 @@ $ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_i
 
 以下のAMI IDで起動する。リージョンは『Asia Pacific (Tokyo)』。
 
-競技者用 (Ubuntu 22.04):
+競技者用 (Ubuntu 24.04):
 
 | 用途   |        AMI ID         |              AMI name               | 推奨インスタンスタイプ |
 | ------ | :-------------------: | :---------------------------------: | ---------------------- |
-| x86_64 | ami-0937f4bab7bea4382 | catatsuy_private_isu_amd64_20240323 | c7a.large              |
-| arm64  | ami-0b2a760e0651797cc | catatsuy_private_isu_arm64_20240323 | c7g.large              |
+| x86_64 | ami-047fdc2b851e73cad | catatsuy_private_isu_amd64_20240602 | c7a.large              |
+| arm64  | ami-0bed62bba4100a4b7 | catatsuy_private_isu_arm64_20240602 | c7g.large              |
 
-ベンチマーカー (Ubuntu 22.04):
+ベンチマーカー (Ubuntu 24.04):
 
 | 用途   |        AMI ID         |                 AMI name                  | 推奨インスタンスタイプ |
 | ------ | :-------------------: | :---------------------------------------: | ---------------------- |
-| x86_64 | ami-015450874c83c16e5 | catatsuy_private_isu_bench_amd64_20240323 | c7a.xlarge             |
-| arm64  | ami-024e477078b82c382 | catatsuy_private_isu_bench_arm64_20240323 | c7g.xlarge             |
+| x86_64 | ami-037be39355baf1f2e | catatsuy_private_isu_bench_amd64_20240602 | c7a.xlarge             |
+| arm64  | ami-034a457f6af55d65d | catatsuy_private_isu_bench_arm64_20240602 | c7g.xlarge             |
 
 
 ### 手元で動かす

@@ -82,16 +82,16 @@ $ sudo systemctl disable isu-ruby
 $ sudo rm /etc/nginx/sites-enabled/isucon.conf
 $ sudo ln -s /etc/nginx/sites-available/isucon-php.conf /etc/nginx/sites-enabled/
 $ sudo systemctl reload nginx
-$ sudo systemctl start php8.1-fpm
-$ sudo systemctl enable php8.1-fpm
+$ sudo systemctl start php8.3-fpm
+$ sudo systemctl enable php8.3-fpm
 ```
 
-php-fpmの設定については、/etc/php/8.1/fpm/以下にあります。
+php-fpmの設定については、/etc/php/8.3/fpm/以下にあります。
 
 エラーなどの出力については、
 
 ```
-$ sudo journalctl -f -u php8.1-fpm
+$ sudo journalctl -f -u php8.3-fpm
 $ sudo tail -f /var/log/nginx/error.log
 ```
 
