@@ -722,26 +722,27 @@
         },
         {
             "name": "slim/php-view",
-            "version": "3.2.0",
+            "version": "3.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/slimphp/PHP-View.git",
-                "reference": "67f2a616a9336350834013485361f2b2aa049f6e"
+                "reference": "b392338224501bd8b71016ade04f335486cda3fd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/slimphp/PHP-View/zipball/67f2a616a9336350834013485361f2b2aa049f6e",
-                "reference": "67f2a616a9336350834013485361f2b2aa049f6e",
+                "url": "https://api.github.com/repos/slimphp/PHP-View/zipball/b392338224501bd8b71016ade04f335486cda3fd",
+                "reference": "b392338224501bd8b71016ade04f335486cda3fd",
                 "shasum": ""
             },
             "require": {
                 "php": "^7.4 || ^8.0",
-                "psr/http-message": "^1.0"
+                "psr/http-message": "^1.1"
             },
             "require-dev": {
-                "phpunit/phpunit": "^9.5",
-                "slim/psr7": "^1.5",
-                "squizlabs/php_codesniffer": "^3.7"
+                "phpstan/phpstan": "^1",
+                "phpunit/phpunit": "^9 || ^10",
+                "slim/psr7": "^1.6",
+                "squizlabs/php_codesniffer": "^3.10"
             },
             "type": "library",
             "autoload": {
@@ -771,9 +772,9 @@
             ],
             "support": {
                 "issues": "https://github.com/slimphp/PHP-View/issues",
-                "source": "https://github.com/slimphp/PHP-View/tree/3.2.0"
+                "source": "https://github.com/slimphp/PHP-View/tree/3.3.0"
             },
-            "time": "2022-07-01T18:27:31+00:00"
+            "time": "2024-07-13T12:38:15+00:00"
         },
         {
             "name": "slim/psr7",
