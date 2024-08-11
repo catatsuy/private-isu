@@ -1,7 +1,10 @@
+# syntax=docker/dockerfile:1
 FROM php:8.3-fpm-bookworm
 
-RUN apt update && apt install -y \
-  unzip libmemcached-dev zlib1g-dev libssl-dev
+RUN \
+  --mount=type=cache,target=/var/lib/apt,sharing=locked \
+  --mount=type=cache,target=/var/cache/apt,sharing=locked \
+  apt-get update -qq && apt-get install -y unzip libmemcached-dev zlib1g-dev libssl-dev
 
 RUN docker-php-ext-install pdo pdo_mysql
 
