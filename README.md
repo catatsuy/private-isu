@@ -158,9 +158,9 @@ mv nginx/conf.d/php.conf.org nginx/conf.d/php.conf
 ```sh
 cd benchmarker
 docker build -t private-isu-benchmarker .
-docker run --network host -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata
+docker run --network host -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata
 # Linuxの場合
-docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /opt/go/bin/benchmarker -t http://host.docker.internal -u /opt/go/userdata
+docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata
 ```
 
 動かない場合は`ip a`してdocker0のインタフェースでホストのIPアドレスを調べて`host.docker.internal`の代わりに指定する。以下の場合は`172.17.0.1`を指定する。
