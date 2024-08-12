@@ -51,12 +51,12 @@ jobs:
       - name: Update compose.yml if changes are detected
         if: steps.check-changes.outputs.go_changes_detected == 'true'
         run: |
-          purl -overwrite -replace '@context: ruby/@context: golang/@' ./webapp/docker-compose.yml
+          purl -fail -overwrite -replace '@context: ruby/@context: golang/@' ./webapp/docker-compose.yml
 
       - name: Update compose.yml if changes are detected
         if: steps.check-changes.outputs.php_changes_detected == 'true'
         run: |
-          purl -overwrite -replace '@context: (ruby|golang)/@context: php/@' ./webapp/docker-compose.yml
+          purl -fail -overwrite -replace '@context: (ruby|golang)/@context: php/@' ./webapp/docker-compose.yml
           mv webapp/etc/nginx/conf.d/default.conf webapp/etc/nginx/conf.d/default.conf.org
           mv webapp/etc/nginx/conf.d/php.conf.org webapp/etc/nginx/conf.d/php.conf
 
