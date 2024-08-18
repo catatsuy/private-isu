@@ -94,7 +94,11 @@ jobs:
         continue-on-error: true
         run: |
           cd benchmarker
-          docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata || echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV
+          docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata | tee benchmark_output.json || echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV
+
+      - name: Check benchmark result
+        run: |
+          cat benchmark_output.json | jq '.pass' | grep false && echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV || true
 
       - name: Show logs
         run: |
