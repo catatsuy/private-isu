@@ -98,7 +98,15 @@ jobs:
 
       - name: Check benchmark result
         run: |
-          cat benchmark_output.json | jq '.pass' | grep false && echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV || true
+          cd benchmarker
+          if [ ! -f benchmark_output.json ]; then
+            echo "benchmark_output.json not found"
+            exit 1
+          fi
+          if ! jq -e '.pass == true' benchmark_output.json > /dev/null; then
+            echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV
+            exit 1
+          fi
 
       - name: Show logs
         run: |
