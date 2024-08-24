@@ -85,10 +85,6 @@ jobs:
             echo "Waiting for database initialization..."
             sleep 10
           done
-          # for avoiding "Lock wait timeout exceeded; try restarting transaction" error
-          docker compose exec -T mysql mysql -uroot -proot -e "OPTIMIZE table posts;" isuconp
-          docker compose exec -T mysql mysql -uroot -proot -e "OPTIMIZE table users;" isuconp
-          docker compose exec -T mysql mysql -uroot -proot -e "OPTIMIZE table comments;" isuconp
 
       - name: Run the benchmark
         continue-on-error: true
