@@ -24,11 +24,7 @@ var (
 )
 
 func RandomNumber(max int) int {
-	return mrand.Int() % max
-}
-
-func RandomNumberRange(min, max int) int {
-	return mrand.Int()%(max-min+1) + min
+	return mrand.IntN(max)
 }
 
 func RandomLUNStr(n int) string {
@@ -36,9 +32,9 @@ func RandomLUNStr(n int) string {
 }
 
 func randomStr(n int, s []rune) string {
-	buf := make([]byte, 0, n)
+	buf := make([]byte, n)
 	for i := 0; i < n; i++ {
-		buf = append(buf, byte(s[mrand.Int()%len(s)]))
+		buf[i] = byte(s[mrand.IntN(len(s))])
 	}
 	return string(buf)
 }
