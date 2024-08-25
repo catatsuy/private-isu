@@ -4,8 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"io"
-	mrand "math/rand"
-	"time"
+	mrand "math/rand/v2"
 )
 
 func GetMD5(data []byte) string {
@@ -22,15 +21,10 @@ func GetMD5ByIO(r io.Reader) string {
 
 var (
 	lunRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	random   = mrand.New(mrand.NewSource(time.Now().UnixNano()))
 )
 
 func RandomNumber(max int) int {
-	return random.Int() % max
-}
-
-func RandomNumberRange(min, max int) int {
-	return random.Int()%(max-min+1) + min
+	return mrand.IntN(max)
 }
 
 func RandomLUNStr(n int) string {
@@ -38,9 +32,9 @@ func RandomLUNStr(n int) string {
 }
 
 func randomStr(n int, s []rune) string {
-	buf := make([]byte, 0, n)
+	buf := make([]byte, n)
 	for i := 0; i < n; i++ {
-		buf = append(buf, byte(s[random.Int()%len(s)]))
+		buf[i] = byte(s[mrand.IntN(len(s))])
 	}
 	return string(buf)
 }
