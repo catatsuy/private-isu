@@ -1,13 +1,15 @@
 module github.com/catatsuy/private-isu/benchmarker
 
-go 1.19
+go 1.23
+
+toolchain go1.23.1
 
 require (
-	github.com/PuerkitoBio/goquery v1.9.2
+	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/marcw/cachecontrol v0.0.0-20140722115028-30341fe9a7d5
 )
 
 require (
 	github.com/andybalholm/cascadia v1.3.2 // indirect
-	golang.org/x/net v0.24.0 // indirect
+	golang.org/x/net v0.29.0 // indirect
 )
