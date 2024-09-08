@@ -2,8 +2,6 @@ module github.com/catatsuy/private-isu/webapp/golang
 
 go 1.23
 
-toolchain go1.23.0
-
 require (
 	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874
 	github.com/bradleypeabody/gorilla-sessions-memcache v0.0.0-20181103040241-659414f458e1
