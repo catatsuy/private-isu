@@ -34,25 +34,25 @@ func loadImages(s *checker.Session, imageURLs []string) {
 }
 
 func extractImages(doc *goquery.Document) []string {
-	imageURLs := []string{}
+	imageURLs := make([]string, 0, PostsPerPage)
 
-	doc.Find("img.isu-image").Each(func(_ int, selection *goquery.Selection) {
-		if url, ok := selection.Attr("src"); ok {
+	for _, el := range doc.Find("img.isu-image").EachIter() {
+		if url, ok := el.Attr("src"); ok {
 			imageURLs = append(imageURLs, url)
 		}
-	}).Length()
+	}
 
 	return imageURLs
 }
 
 func extractPostLinks(doc *goquery.Document) []string {
-	postLinks := []string{}
+	postLinks := make([]string, 0, PostsPerPage)
 
-	doc.Find("a.isu-post-permalink").Each(func(_ int, selection *goquery.Selection) {
-		if url, ok := selection.Attr("href"); ok {
+	for _, el := range doc.Find("a.isu-post-permalink").EachIter() {
+		if url, ok := el.Attr("href"); ok {
 			postLinks = append(postLinks, url)
 		}
-	}).Length()
+	}
 
 	return postLinks
 }
