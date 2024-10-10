@@ -10,6 +10,8 @@ log_format json escape=json '{"time":"$time_iso8601",'
     '"request_time":"$request_time",'
     '"response_time":"$upstream_response_time"}';
 
+access_log /var/log/nginx/access.log json;
+
 server {
   listen 80;
 

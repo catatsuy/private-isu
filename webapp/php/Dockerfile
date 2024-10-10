@@ -20,4 +20,6 @@ WORKDIR /var/www/html
 
 RUN composer install --no-dev
 
+# php.iniファイルをコンテナ内にコピー
+COPY ./php.ini /usr/local/etc/php/
 COPY . /var/www/html

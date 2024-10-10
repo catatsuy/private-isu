@@ -16,6 +16,8 @@ portal/tmp
 !/portal/log/.keep
 /portal/tmp
 .vagrant
+
+webapp/logs/
 *.DS_Store
 *.sql
 
