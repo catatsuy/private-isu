@@ -5,6 +5,7 @@ services:
     volumes:
       - ./etc/nginx/conf.d:/etc/nginx/conf.d
       - ./public:/public
+      - ./logs/nginx:/var/log/nginx
     ports:
       - "80:80"
     networks:
@@ -13,7 +14,7 @@ services:
   app:
     build:
       # Go実装の場合は golang/ PHP実装の場合は php/
-      context: ruby/
+      context: php/
       dockerfile: Dockerfile
     depends_on:
       - mysql
