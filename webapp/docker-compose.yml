@@ -10,6 +10,8 @@ services:
       - "80:80"
     networks:
       - my_network
+    depends_on:
+      - app
 
   app:
     build:
@@ -45,7 +47,9 @@ services:
       - "MYSQL_ROOT_PASSWORD=root"
     volumes:
       - mysql:/var/lib/mysql
+      - ./etc/mysql/conf.d/my.cnf:/etc/my.cnf
       - ./sql:/docker-entrypoint-initdb.d
+      - ./logs/mysql:/var/log/mysql
     ports:
       - "3306:3306"
     networks:
