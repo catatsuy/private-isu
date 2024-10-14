@@ -8,7 +8,7 @@ services:
     ports:
       - "80:80"
     networks:
-      - my_network
+      - isucon_network
 
   app:
     build:
@@ -26,7 +26,7 @@ services:
       ISUCONP_DB_NAME: isuconp
       ISUCONP_MEMCACHED_ADDRESS: memcached:11211
     networks:
-      - my_network
+      - isucon_network
     volumes:
       - ./public:/home/public
     init: true
@@ -37,7 +37,7 @@ services:
           memory: 1g
 
   mysql:
-    image: mysql:8.4
+    image: mysql:8.0
     environment:
       #- "TZ=Asia/Tokyo"
       - "MYSQL_ROOT_HOST=%"
@@ -48,7 +48,7 @@ services:
     ports:
       - "3306:3306"
     networks:
-      - my_network
+      - isucon_network
     deploy:
       resources:
         limits:
@@ -58,10 +58,10 @@ services:
   memcached:
     image: memcached:1.6
     networks:
-      - my_network
+      - isucon_network
 
 volumes:
   mysql:
 
 networks:
-  my_network:
+  isucon_network:
