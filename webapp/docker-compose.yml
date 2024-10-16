@@ -37,7 +37,7 @@ services:
           memory: 1g
 
   mysql:
-    image: mysql:8.4
+    image: mysql:9.1
     environment:
       #- "TZ=Asia/Tokyo"
       - "MYSQL_ROOT_HOST=%"
