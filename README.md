@@ -81,18 +81,17 @@ $ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_i
 
 競技者用 (Ubuntu 24.04):
 
-| 用途   |        AMI ID         |              AMI name               | 推奨インスタンスタイプ |
-| ------ | :-------------------: | :---------------------------------: | ---------------------- |
-| x86_64 | ami-047fdc2b851e73cad | catatsuy_private_isu_amd64_20240602 | c7a.large              |
-| arm64  | ami-0bed62bba4100a4b7 | catatsuy_private_isu_arm64_20240602 | c7g.large              |
+| Arch   |                                                                      AMI ID                                                                      | 推奨インスタンスタイプ |
+| ------ | :----------------------------------------------------------------------------------------------------------------------------------------------: | ---------------------- |
+| x86_64 | [ami-047fdc2b851e73cad](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-047fdc2b851e73cad) | c7a.large              |
+| arm64  | [ami-0bed62bba4100a4b7](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-0bed62bba4100a4b7) | c7g.large              |
 
 ベンチマーカー (Ubuntu 24.04):
 
-| 用途   |        AMI ID         |                 AMI name                  | 推奨インスタンスタイプ |
-| ------ | :-------------------: | :---------------------------------------: | ---------------------- |
-| x86_64 | ami-037be39355baf1f2e | catatsuy_private_isu_bench_amd64_20240602 | c7a.xlarge             |
-| arm64  | ami-034a457f6af55d65d | catatsuy_private_isu_bench_arm64_20240602 | c7g.xlarge             |
-
+| Arch   |                                                                      AMI ID                                                                      | 推奨インスタンスタイプ |
+| ------ | :----------------------------------------------------------------------------------------------------------------------------------------------: | ---------------------- |
+| x86_64 | [ami-037be39355baf1f2e](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-037be39355baf1f2e) | c7a.xlarge             |
+| arm64  | [ami-034a457f6af55d65d](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-034a457f6af55d65d) | c7g.xlarge             |
 
 ### 手元で動かす
 
