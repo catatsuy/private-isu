@@ -85,8 +85,20 @@ func dbInitialize() {
 		"UPDATE users SET del_flg = 1 WHERE id % 50 = 0",
 	}
 
+	tx, err := db.Begin()
+	if err != nil {
+		log.Fatalf("Failed to begin transaction: %v", err)
+	}
+
 	for _, sql := range sqls {
-		db.Exec(sql)
+		if _, err := tx.Exec(sql); err != nil {
+			tx.Rollback()
+			log.Fatalf("Failed to execute query: %v", err)
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Fatalf("Failed to commit transaction: %v", err)
 	}
 }
 
