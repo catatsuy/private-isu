@@ -31,11 +31,6 @@ services:
     volumes:
       - ./public:/home/public
     init: true
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1g
 
   mysql:
     image: mysql:8.4
@@ -52,11 +47,6 @@ services:
       - "3306:3306"
     networks:
       - my_network
-    deploy:
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1g
 
   memcached:
     image: memcached:1.6
