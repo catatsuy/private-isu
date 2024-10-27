@@ -12,3 +12,6 @@ benchmarker/userdata/img.zip:
 benchmarker/userdata/img: benchmarker/userdata/img.zip
 	cd benchmarker/userdata && \
 	unzip -qq -o img.zip
+
+analyze/accesslog:
+	cat webapp/log/nginx/access.log | alp json -m "/image/.+,/@.+,/posts/.+"
