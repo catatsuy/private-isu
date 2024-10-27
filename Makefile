@@ -15,3 +15,6 @@ benchmarker/userdata/img: benchmarker/userdata/img.zip
 
 analyze/accesslog:
 	cat webapp/log/nginx/access.log | alp json -m "/image/.+,/@.+,/posts/.+"
+
+benchmark:
+	docker run --network host -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata
