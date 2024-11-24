@@ -1,9 +1,10 @@
 {
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
-  "regexManagers": [
+  "customManagers": [
     {
+      "customType": "regex",
       "fileMatch": [
         "provisioning/image/ansible/04_xbuild.yml"
       ],
@@ -12,6 +13,7 @@
       ]
     },
     {
+      "customType": "regex",
       "fileMatch": [
         "provisioning/bench/ansible/02_golang.yml"
       ],
