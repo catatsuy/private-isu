@@ -10,6 +10,9 @@ module Isuconp
     use Rack::Flash
     set :public_folder, File.expand_path('../../public', __FILE__)
 
+    # refs: https://github.com/advisories/GHSA-hxx2-7vcw-mqr3
+    set :host_authorization, { permitted_hosts: [] }
+
     UPLOAD_LIMIT = 10 * 1024 * 1024 # 10mb
 
     POSTS_PER_PAGE = 20
