@@ -2,6 +2,8 @@ name: private-isu
 services:
   nginx:
     image: nginx:1.26
+    depends_on:
+      - app
     volumes:
       - ./etc/nginx/conf.d:/etc/nginx/conf.d
       - ./public:/public
