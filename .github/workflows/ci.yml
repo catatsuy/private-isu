@@ -92,6 +92,11 @@ jobs:
           cd benchmarker
           docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata | tee benchmark_output.json || echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV
 
+      - name: Show logs
+        run: |
+          cd webapp
+          docker compose logs
+
       - name: Check benchmark result
         run: |
           cd benchmarker
@@ -103,11 +108,6 @@ jobs:
             echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV
             exit 1
           fi
-
-      - name: Show logs
-        run: |
-          cd webapp
-          docker compose logs
 
       - name: Fail if benchmark failed
         if: env.BENCHMARK_FAILED == 'true'
