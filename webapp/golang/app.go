@@ -3,8 +3,8 @@ package main
 import (
 	crand "crypto/rand"
 	"fmt"
+	"io"
 	"log"
-	"net/http"
 	"net/url"
 	"os"
 	"os/exec"
@@ -13,19 +13,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bradfitz/gomemcache/memcache"
-	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/session"
+	"github.com/gofiber/storage/memcache"
 	"github.com/gofiber/template/html/v2"
-	"github.com/gorilla/sessions"
+
 	"github.com/jmoiron/sqlx"
 )
 
 var (
-	db    *sqlx.DB
-	store *gsm.MemcacheStore
+	db            *sqlx.DB
+	memcacheStore *memcache.Storage
+	store         *session.Store
+	sessKeyLookup string
 )
 
 const (
@@ -63,16 +65,6 @@ type Comment struct {
 	Comment   string    `db:"comment"`
 	CreatedAt time.Time `db:"created_at"`
 	User      User
-}
-
-func init() {
-	memdAddr := os.Getenv("ISUCONP_MEMCACHED_ADDRESS")
-	if memdAddr == "" {
-		memdAddr = "localhost:11211"
-	}
-	memcacheClient := memcache.New(memdAddr)
-	store = gsm.NewMemcacheStore(memcacheClient, "iscogram_", []byte("sendagaya"))
-	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 }
 
 func dbInitialize() {
@@ -134,44 +126,18 @@ func calculatePasshash(accountName, password string) string {
 	return digest(password + ":" + calculateSalt(accountName))
 }
 
-func getSession(c *fiber.Ctx) *sessions.Session {
-    // FastHTTPをnet/httpに変換
-    var req http.Request
-    
-    // URLの設定
-    req.URL = &url.URL{
-        Path: string(c.Path()),
-        RawQuery: string(c.Context().QueryArgs().QueryString()),
-    }
-    
-    // ヘッダーの設定
-    req.Header = make(http.Header)
-    c.Context().Request.Header.VisitAll(func(key, value []byte) {
-        req.Header.Add(string(key), string(value))
-    })
-    
-    // Cookieの設定
-    var cookies []http.Cookie
-    c.Context().Request.Header.VisitAllCookie(func(key, value []byte) {
-        cookies = append(cookies, http.Cookie{Name: string(key), Value: string(value)})
-    })
-    
-    // Cookieヘッダーを正しく設定
-    var cookieStrings []string
-    for _, cookie := range cookies {
-        cookieStrings = append(cookieStrings, cookie.String())
-    }
-    req.Header.Set("Cookie", strings.Join(cookieStrings, "; "))
-    
-    session, _ := store.Get(&req, "isuconp-go.session")
-
-	return session
+func getSession(c *fiber.Ctx) *session.Session {
+	sess, err := store.Get(c)
+	if err != nil {
+		return nil
+	}
+	return sess
 }
 
 func getSessionUser(c *fiber.Ctx) User {
-	session := getSession(c)
-	uid, ok := session.Values["user_id"]
-	if !ok || uid == nil {
+	sess := getSession(c)
+	uid := sess.Get("user_id")
+	if uid == nil {
 		return User{}
 	}
 
@@ -185,78 +151,15 @@ func getSessionUser(c *fiber.Ctx) User {
 	return u
 }
 
-func converFiberRequestToHttpRequest(c *fiber.Ctx) *http.Request {
-	return &http.Request{
-		Method: string(c.Method()),
-		URL: &url.URL{
-			Path: string(c.Path()),
-			RawQuery: string(c.Context().QueryArgs().String()),
-		},
-		Header: make(http.Header),
-	}
-}
-
-type responseWriter struct {
-    c *fiber.Ctx
-}
-
-func (rw *responseWriter) Header() http.Header {
-    h := make(http.Header)
-    rw.c.Context().Response.Header.VisitAll(func(key, value []byte) {
-        h.Add(string(key), string(value))
-    })
-    return h
-}
-
-func (rw *responseWriter) Write(b []byte) (int, error) {
-    return rw.c.Write(b)
-}
-
-func (rw *responseWriter) WriteHeader(statusCode int) {
-    rw.c.Status(statusCode)
-}
-
-// セッション保存のヘルパー関数
-func saveSession(c *fiber.Ctx, session *sessions.Session) error {
-    req := &http.Request{
-        Header: make(http.Header),
-    }
-    c.Context().Request.Header.VisitAll(func(key, value []byte) {
-        req.Header.Add(string(key), string(value))
-    })
-    
-    rw := &responseWriter{c: c}
-    err := session.Save(req, rw)
-    if err != nil {
-        return err
-    }
-    
-    // セッションクッキーをFiberのレスポンスに設定
-    for _, cookie := range req.Response.Cookies() {
-        c.Cookie(&fiber.Cookie{
-            Name:     cookie.Name,
-            Value:    cookie.Value,
-            Path:     cookie.Path,
-            Domain:   cookie.Domain,
-            MaxAge:   cookie.MaxAge,
-            Expires:  cookie.Expires,
-            Secure:   cookie.Secure,
-            HTTPOnly: cookie.HttpOnly,
-        })
-    }
-    
-    return nil
-}
 
 func getFlash(c *fiber.Ctx, key string) string {
 	session := getSession(c)
-	value, ok := session.Values[key]
+	value := session.Get(key)
 
-	if !ok || value == nil {
+	if value == nil {
 		return ""
 	} else {
-		delete(session.Values, key)
-		saveSession(c, session)
+		session.Delete(key)
 		return value.(string)
 	}
 }
@@ -331,8 +234,8 @@ func isLogin(u User) bool {
 
 func getCSRFToken(c *fiber.Ctx) string {
 	session := getSession(c)
-	csrfToken, ok := session.Values["csrf_token"]
-	if !ok {
+	csrfToken := session.Get("csrf_token")
+	if csrfToken == nil {
 		return ""
 	}
 	return csrfToken.(string)
@@ -373,15 +276,19 @@ func postLogin(c *fiber.Ctx) error {
 
 	if u != nil {
 		session := getSession(c)
-		session.Values["user_id"] = u.ID
-		session.Values["csrf_token"] = secureRandomStr(16)
-		saveSession(c, session)
+		session.Set("user_id", u.ID)
+		session.Set("csrf_token", secureRandomStr(16))
+		if err := session.Save(); err != nil {
+			panic(err)
+		}
 
 		return c.Redirect("/", fiber.StatusFound)
 	} else {
 		session := getSession(c)
-		session.Values["notice"] = "アカウント名かパスワードが間違っています"
-		saveSession(c, session)
+		session.Set("notice", "アカウント名かパスワードが間違っています")
+		if err := session.Save(); err != nil {
+			panic(err)
+		}
 
 		return c.Redirect("/login", fiber.StatusFound)
 	}
@@ -408,8 +315,10 @@ func postRegister(c *fiber.Ctx) error {
 	validated := validateUser(accountName, password)
 	if !validated {
 		session := getSession(c)
-		session.Values["notice"] = "アカウント名は3文字以上、パスワードは6文字以上である必要があります"
-		saveSession(c, session)
+		session.Set("notice", "アカウント名は3文字以上、パスワードは6文字以上である必要があります")
+		if err := session.Save(); err != nil {
+			panic(err)
+		}
 
 		return c.Redirect("/register", fiber.StatusFound)
 	}
@@ -420,8 +329,10 @@ func postRegister(c *fiber.Ctx) error {
 
 	if exists == 1 {
 		session := getSession(c)
-		session.Values["notice"] = "アカウント名がすでに使われています"
-		saveSession(c, session)
+		session.Set("notice", "アカウント名がすでに使われています")
+		if err := session.Save(); err != nil {
+			panic(err)
+		}
 
 		return c.Redirect("/register", fiber.StatusFound)
 	}
@@ -440,17 +351,21 @@ func postRegister(c *fiber.Ctx) error {
 	}
 
 	session := getSession(c)
-	session.Values["user_id"] = uid
-	session.Values["csrf_token"] = secureRandomStr(16)
-	saveSession(c, session)
+	session.Set("user_id", uid)
+	session.Set("csrf_token", secureRandomStr(16))
+	if err := session.Save(); err != nil {
+		panic(err)
+	}
 	return c.Redirect("/", fiber.StatusFound)
 }
 
 func getLogout(c *fiber.Ctx) error {
 	session := getSession(c)
-	delete(session.Values, "user_id")
-	session.Options = &sessions.Options{MaxAge: -1}
-	saveSession(c, session)
+	session.Delete("user_id")
+	// session.Options = &sessions.Options{MaxAge: -1}
+	if err := session.Save(); err != nil {
+		panic(err)
+	}
 
 	return c.Redirect("/", fiber.StatusFound)
 }
@@ -620,9 +535,9 @@ func getPostsID(c *fiber.Ctx) error {
 	me := getSessionUser(c)
 
 	return c.Render("layout", fiber.Map{
-		"Posts": posts,
+		"Posts":    posts,
 		"imageURL": imageURL,
-		"Me":    me,
+		"Me":       me,
 	})
 }
 
@@ -640,8 +555,10 @@ func postIndex(c *fiber.Ctx) error {
 	if err != nil {
 		session := getSession(c)
 
-		session.Values["notice"] = "画像が必須です"
-		saveSession(c, session)
+		session.Set("notice", "画像が必須です")
+		if err := session.Save(); err != nil {
+			panic(err)
+		}
 
 		return c.Redirect("/", fiber.StatusFound)
 	}
@@ -658,8 +575,10 @@ func postIndex(c *fiber.Ctx) error {
 			mime = "image/gif"
 		} else {
 			session := getSession(c)
-			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
-			saveSession(c, session)
+			session.Set("notice", "投稿できる画像形式はjpgとpngとgifだけです")
+			if err := session.Save(); err != nil {
+				panic(err)
+			}
 
 			return c.Redirect("/", fiber.StatusFound)
 		}
@@ -676,10 +595,16 @@ func postIndex(c *fiber.Ctx) error {
 	if fileInfo > UploadLimit {
 		session := getSession(c)
 
-		session.Values["notice"] = "ファイルサイズが大きすぎます"
-		saveSession(c, session)
+		session.Set("notice", "ファイルサイズが大きすぎます")
+		if err := session.Save(); err != nil {
+			panic(err)
+		}
 
 		return c.Redirect("/", fiber.StatusFound)
+	}
+	fileBytes, err := io.ReadAll(filedata)
+	if err != nil {
+		return err
 	}
 
 	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
@@ -687,7 +612,7 @@ func postIndex(c *fiber.Ctx) error {
 		query,
 		me.ID,
 		mime,
-		filedata,
+		fileBytes,
 		c.FormValue("body"),
 	)
 	if err != nil {
@@ -722,7 +647,7 @@ func getImage(c *fiber.Ctx) error {
 
 	if ext == "jpg" && post.Mime == "image/jpeg" ||
 		ext == "png" && post.Mime == "image/png" ||
-			ext == "gif" && post.Mime == "image/gif" {
+		ext == "gif" && post.Mime == "image/gif" {
 		c.Set("Content-Type", post.Mime)
 		err = c.Send(post.Imgdata)
 		if err != nil {
@@ -758,7 +683,7 @@ func postComment(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.Redirect("/posts/" + strconv.Itoa(postID), fiber.StatusFound)
+	return c.Redirect("/posts/"+strconv.Itoa(postID), fiber.StatusFound)
 }
 
 func getAdminBanned(c *fiber.Ctx) error {
@@ -804,7 +729,6 @@ func postAdminBanned(c *fiber.Ctx) error {
 	}
 
 	query := "UPDATE `users` SET `del_flg` = ? WHERE `id` = ?"
-
 
 	uids := UidsBody{}
 	if err := c.BodyParser(&uids); err != nil {
@@ -855,16 +779,31 @@ func main() {
 	}
 	defer db.Close()
 
+	memdAddr := os.Getenv("ISUCONP_MEMCACHED_ADDRESS")
+	if memdAddr == "" {
+		memdAddr = "localhost:11211"
+	}
+	memcacheStore = memcache.New(memcache.Config{
+		Servers: memdAddr,
+	})
 	// Fiberアプリケーションの設定
 	engine := html.New("./templates", ".html")
 	engine.AddFunc("imageURL", imageURL)
 	engine.Layout("layout") // レイアウトの設定
 	engine.Load()
 	app := fiber.New(fiber.Config{
-		Views: engine,
-		Prefork: true,
+		Views:   engine,
+		Prefork: false,
 	})
 	app.Use(logger.New())
+
+	sessKeyLookup = "cookie:session_id"
+	// session initialize
+	store = session.New(session.Config{
+		Expiration: time.Hour * 24,
+		Storage:    memcacheStore,
+		KeyLookup:  sessKeyLookup,
+	})
 
 	// ルーティング
 	app.Get("/initialize", getInitialize)
@@ -882,7 +821,7 @@ func main() {
 	app.Get("/admin/banned", getAdminBanned)
 	app.Post("/admin/banned", postAdminBanned)
 	app.Get("/@:accountName", getAccountName)
-	app.Static("/*", "../public")
+	app.Static("/", "../public")
 
 	log.Fatal(app.Listen(":8080"))
 }

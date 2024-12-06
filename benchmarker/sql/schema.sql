@@ -42,6 +42,6 @@ ALTER TABLE posts ADD INDEX idx_user_id (user_id);
 
 -- comments テーブル
 -- post_id に対するINDEXを追加（投稿に紐づくコメント取得の高速化）
-ALTER TABLE comments ADD INDEX idx_post_id (post_id);
+ALTER TABLE comments ADD INDEX idx_post_id (post_id, created_at, desc);
 -- user_id に対するINDEXを追加（ユーザー別コメント数取得の高速化）
 ALTER TABLE comments ADD INDEX idx_user_id (user_id);
