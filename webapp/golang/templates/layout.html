@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>Iscogram</title>
-    <link href="/css/style.css" media="screen" rel="stylesheet" type="text/css">
+    <link
+      href="/css/style.css"
+      media="screen"
+      rel="stylesheet"
+      type="text/css"
+    />
   </head>
   <body>
     <div class="container">
@@ -15,7 +20,11 @@
           {{ if eq .Me.ID 0}}
           <div><a href="/login">ログイン</a></div>
           {{ else }}
-          <div><a href="/@{{.Me.AccountName}}"><span class="isu-account-name">{{.Me.AccountName}}</span>さん</a></div>
+          <div>
+            <a href="/@{{.Me.AccountName}}"
+              ><span class="isu-account-name">{{.Me.AccountName}}</span>さん</a
+            >
+          </div>
           {{ if eq .Me.Authority 1 }}
           <div><a href="/admin/banned">管理者用ページ</a></div>
           {{ end }}

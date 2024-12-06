@@ -1,6 +1,7 @@
+{{define "post"}}
 <div class="isu-post" id="pid_{{ .ID }}" data-created-at="{{.CreatedAt.Format "2006-01-02T15:04:05-07:00"}}">
   <div class="isu-post-header">
-    <a href="/@{{.User.AccountName}} " class="isu-post-account-name">{{ .User.AccountName }}</a>
+    <a href="/@{{.User.AccountName}}" class="isu-post-account-name">{{ .User.AccountName }}</a>
     <a href="/posts/{{.ID}}" class="isu-post-permalink">
       <time class="timeago" datetime="{{.CreatedAt.Format "2006-01-02T15:04:05-07:00"}}"></time>
     </a>
@@ -33,3 +34,4 @@
     </div>
   </div>
 </div>
+{{end}}

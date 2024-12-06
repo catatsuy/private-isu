@@ -1,5 +1,3 @@
-<div class="isu-posts">
-  {{ range . }}
-  {{ template "post.html" . }}
-  {{ end }}
-</div>
+{{define "posts"}}
+<div class="isu-posts">{{range .}} {{template "post" .}} {{end}}</div>
+{{end}}
