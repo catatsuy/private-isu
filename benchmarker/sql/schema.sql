@@ -28,3 +28,20 @@ CREATE TABLE comments (
   `comment` text NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) DEFAULT CHARSET=utf8mb4;
+
+-- users テーブル
+-- account_name にはすでにUNIQUE制約があるのでINDEXは不要
+-- authority と del_flg の組み合わせに対するINDEXを追加
+ALTER TABLE users ADD INDEX idx_authority_del_flg (authority, del_flg);
+
+-- posts テーブル
+-- created_at に対するINDEXを追加（タイムライン表示の高速化）
+ALTER TABLE posts ADD INDEX idx_created_at (created_at);
+-- user_id に対するINDEXを追加（ユーザー別投稿一覧の高速化）
+ALTER TABLE posts ADD INDEX idx_user_id (user_id);
+
+-- comments テーブル
+-- post_id に対するINDEXを追加（投稿に紐づくコメント取得の高速化）
+ALTER TABLE comments ADD INDEX idx_post_id (post_id);
+-- user_id に対するINDEXを追加（ユーザー別コメント数取得の高速化）
+ALTER TABLE comments ADD INDEX idx_user_id (user_id);
