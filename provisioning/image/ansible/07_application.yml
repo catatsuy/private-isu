@@ -37,6 +37,8 @@
         - composer
 
     - name: Install Composer
+      environment:
+        HOME: /home/isucon
       shell: php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
       when: "'Installer verified' in composer_setup_verify.stdout"
       tags:
