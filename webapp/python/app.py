@@ -6,47 +6,53 @@ import subprocess
 import tempfile
 
 import flask
-import jinja2
 import MySQLdb.cursors
+from jinja2 import pass_eval_context
+from markupsafe import Markup, escape
 from pymemcache.client.base import Client as MemcacheClient
 
 import pymc_session
 
 
-UPLOAD_LIMIT = 10 * 1024 * 1024 # 10mb
+UPLOAD_LIMIT = 10 * 1024 * 1024  # 10mb
 POSTS_PER_PAGE = 20
 
 
 _config = None
+
 
 def config():
     global _config
     if _config is None:
         _config = {
             "db": {
-                "host": os.environ.get("ISUCONP_DB_HOST", 'localhost'),
+                "host": os.environ.get("ISUCONP_DB_HOST", "localhost"),
                 "port": int(os.environ.get("ISUCONP_DB_PORT", "3306")),
                 "user": os.environ.get("ISUCONP_DB_USER", "root"),
                 "db": os.environ.get("ISUCONP_DB_NAME", "isuconp"),
             },
             "memcache": {
-                "address": os.environ.get("ISUCONP_MEMCACHED_ADDRESS", "127.0.0.1:11211"),
-            }
+                "address": os.environ.get(
+                    "ISUCONP_MEMCACHED_ADDRESS", "127.0.0.1:11211"
+                ),
+            },
         }
         password = os.environ.get("ISUCONP_DB_PASSWORD")
         if password:
-            _config['db']['passwd'] = password
+            _config["db"]["passwd"] = password
     return _config
 
+
 _db = None
+
 
 def db():
     global _db
     if _db is None:
         conf = config()["db"].copy()
-        conf['charset'] = 'utf8mb4'
-        conf['cursorclass'] = MySQLdb.cursors.DictCursor
-        conf['autocommit'] = True
+        conf["charset"] = "utf8mb4"
+        conf["cursorclass"] = MySQLdb.cursors.DictCursor
+        conf["autocommit"] = True
         _db = MySQLdb.connect(**conf)
     return _db
 
@@ -54,11 +60,11 @@ def db():
 def db_initialize():
     cur = db().cursor()
     sqls = [
-        'DELETE FROM users WHERE id > 1000',
-        'DELETE FROM posts WHERE id > 10000',
-        'DELETE FROM comments WHERE id > 100000',
-        'UPDATE users SET del_flg = 0',
-        'UPDATE users SET del_flg = 1 WHERE id % 50 = 0',
+        "DELETE FROM users WHERE id > 1000",
+        "DELETE FROM posts WHERE id > 10000",
+        "DELETE FROM comments WHERE id > 100000",
+        "UPDATE users SET del_flg = 0",
+        "UPDATE users SET del_flg = 1 WHERE id % 50 = 0",
     ]
     for q in sqls:
         cur.execute(q)
@@ -66,17 +72,22 @@ def db_initialize():
 
 _mcclient = None
 
+
 def memcache():
     global _mcclient
     if _mcclient is None:
         conf = config()["memcache"]
-        _mcclient = MemcacheClient(conf["address"], no_delay=True, default_noreply=False)
+        _mcclient = MemcacheClient(
+            conf["address"], no_delay=True, default_noreply=False
+        )
     return _mcclient
 
 
 def try_login(account_name, password):
     cur = db().cursor()
-    cur.execute("SELECT * FROM users WHERE account_name = %s AND del_flg = 0", (account_name,))
+    cur.execute(
+        "SELECT * FROM users WHERE account_name = %s AND del_flg = 0", (account_name,)
+    )
     user = cur.fetchone()
 
     if user and calculate_passhash(user["account_name"], password) == user["passhash"]:
@@ -93,10 +104,12 @@ def validate_user(account_name: str, password: str):
 
 
 def digest(src: str):
-    out = subprocess.check_output(["openssl", "dgst", "-sha512"], input=src.encode('ascii'))
-    out = out.decode('ascii')
+    out = subprocess.check_output(
+        ["openssl", "dgst", "-sha512"], input=src.encode("ascii")
+    )
+    out = out.decode("ascii")
     # opensslのバージョンによっては (stdin)= というのがつくので取る
-    out = out[out.find('=')+1:]
+    out = out[out.find("=") + 1 :]
     return out.strip()
 
 
@@ -109,10 +122,10 @@ def calculate_passhash(account_name: str, password: str):
 
 
 def get_session_user():
-    user = flask.session.get('user')
+    user = flask.session.get("user")
     if user:
         cur = db().cursor()
-        cur.execute("SELECT * FROM `users` WHERE `id` = %s", (user['id'],))
+        cur.execute("SELECT * FROM `users` WHERE `id` = %s", (user["id"],))
         return cur.fetchone()
     return None
 
@@ -121,26 +134,32 @@ def make_posts(results, all_comments=False):
     posts = []
     cursor = db().cursor()
     for post in results:
-        cursor.execute("SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = %s",
-                       (post['id'],))
-        post['comment_count'] = cursor.fetchone()['count']
-    
-        query = 'SELECT * FROM `comments` WHERE `post_id` = %s ORDER BY `created_at` DESC'
-        if not all_comments:
-            query += ' LIMIT 3'
+        cursor.execute(
+            "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = %s",
+            (post["id"],),
+        )
+        post["comment_count"] = cursor.fetchone()["count"]
 
-        cursor.execute(query, (post['id'],))
+        query = (
+            "SELECT * FROM `comments` WHERE `post_id` = %s ORDER BY `created_at` DESC"
+        )
+        if not all_comments:
+            query += " LIMIT 3"
+
+        cursor.execute(query, (post["id"],))
         comments = list(cursor)
         for comment in comments:
-            cursor.execute("SELECT * FROM `users` WHERE `id` = %s", (comment['user_id'],))
-            comment['user'] = cursor.fetchone()
+            cursor.execute(
+                "SELECT * FROM `users` WHERE `id` = %s", (comment["user_id"],)
+            )
+            comment["user"] = cursor.fetchone()
         comments.reverse()
-        post['comments'] = comments
+        post["comments"] = comments
 
-        cursor.execute("SELECT * FROM `users` WHERE `id` = %s", (post['user_id'],))
-        post['user'] = cursor.fetchone()
+        cursor.execute("SELECT * FROM `users` WHERE `id` = %s", (post["user_id"],))
+        post["user"] = cursor.fetchone()
 
-        if not post['user']['del_flg']:
+        if not post["user"]["del_flg"]:
             posts.append(post)
 
         if len(posts) >= POSTS_PER_PAGE:
@@ -150,15 +169,16 @@ def make_posts(results, all_comments=False):
 
 # app setup
 
-static_path = pathlib.Path(__file__).resolve().parent.parent / 'public'
-app = flask.Flask(__name__, static_folder=str(static_path), static_url_path='')
-#app.debug = True
+static_path = pathlib.Path(__file__).resolve().parent.parent / "public"
+app = flask.Flask(__name__, static_folder=str(static_path), static_url_path="")
+# app.debug = True
 app.session_interface = pymc_session.SessionInterface(memcache())
+
 
 @app.template_global()
 def image_url(post):
     ext = ""
-    mime = post['mime']
+    mime = post["mime"]
     if mime == "image/jpeg":
         ext = ".jpg"
     elif mime == "image/png":
@@ -166,65 +186,74 @@ def image_url(post):
     elif mime == "image/gif":
         ext = ".gif"
 
-    return "/image/%s%s" % (post['id'], ext)
+    return "/image/%s%s" % (post["id"], ext)
+
 
 # http://flask.pocoo.org/snippets/28/
-from jinja2 import pass_eval_context
-from markupsafe import Markup, escape
+_paragraph_re = re.compile(r"(?:\r\n|\r|\n){2,}")
 
-_paragraph_re = re.compile(r'(?:\r\n|\r|\n){2,}')
 
 @app.template_filter()
 @pass_eval_context
 def nl2br(eval_ctx, value):
-    result = u'\n\n'.join(u'<p>%s</p>' % p.replace('\n', '<br>\n') \
-        for p in _paragraph_re.split(escape(value)))
+    result = "\n\n".join(
+        "<p>%s</p>" % p.replace("\n", "<br>\n")
+        for p in _paragraph_re.split(escape(value))
+    )
     if eval_ctx.autoescape:
         result = Markup(result)
     return result
 
+
 # endpoints
 
-@app.route('/initialize')
+
+@app.route("/initialize")
 def get_initialize():
     db_initialize()
-    return ''
+    return ""
 
-@app.route('/login')
+
+@app.route("/login")
 def get_login():
     if get_session_user():
-        return flask.redirect('/')
+        return flask.redirect("/")
     return flask.render_template("login.html", me=None)
 
-@app.route('/login', methods=['POST'])
+
+@app.route("/login", methods=["POST"])
 def post_login():
     if get_session_user():
-        return flask.redirect('/')
+        return flask.redirect("/")
 
-    user = try_login(flask.request.form['account_name'], flask.request.form['password'])
+    user = try_login(flask.request.form["account_name"], flask.request.form["password"])
     if user:
-        flask.session['user'] = {"id": user["id"]}
-        flask.session['csrf_token'] = os.urandom(8).hex()
-        return flask.redirect('/')
+        flask.session["user"] = {"id": user["id"]}
+        flask.session["csrf_token"] = os.urandom(8).hex()
+        return flask.redirect("/")
 
     flask.flash("アカウント名かパスワードが間違っています")
-    return flask.redirect('/login')
+    return flask.redirect("/login")
 
-@app.route('/register')
+
+@app.route("/register")
 def get_register():
     if get_session_user():
-        return flask.redirect('/')
+        return flask.redirect("/")
     return flask.render_template("register.html", me=None)
 
-@app.route('/register', methods=['POST'])
+
+@app.route("/register", methods=["POST"])
 def post_register():
     if get_session_user():
-        return flask.redirect('/')
+        return flask.redirect("/")
 
-    account_name = flask.request.form['account_name']
-    password = flask.request.form['password']
+    account_name = flask.request.form["account_name"]
+    password = flask.request.form["password"]
     if not validate_user(account_name, password):
-        flask.flash("アカウント名は3文字以上、パスワードは6文字以上である必要があります")
+        flask.flash(
+            "アカウント名は3文字以上、パスワードは6文字以上である必要があります"
+        )
         return flask.redirect("/register")
 
     cursor = db().cursor()
@@ -234,53 +263,67 @@ def post_register():
         flask.flash("アカウント名がすでに使われています")
         return flask.redirect("/register")
 
-    query = 'INSERT INTO `users` (`account_name`, `passhash`) VALUES (%s, %s)'
+    query = "INSERT INTO `users` (`account_name`, `passhash`) VALUES (%s, %s)"
     cursor.execute(query, (account_name, calculate_passhash(account_name, password)))
 
-    flask.session['user'] = {'id': cursor.lastrowid}
-    flask.session['csrf_token'] = os.urandom(8).hex()
-    return flask.redirect('/')
+    flask.session["user"] = {"id": cursor.lastrowid}
+    flask.session["csrf_token"] = os.urandom(8).hex()
+    return flask.redirect("/")
 
-@app.route('/logout')
+
+@app.route("/logout")
 def get_logout():
     flask.session.clear()
-    return flask.redirect('/')
+    return flask.redirect("/")
 
-@app.route('/')
+
+@app.route("/")
 def get_index():
     me = get_session_user()
 
     cursor = db().cursor()
-    cursor.execute('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC')
+    cursor.execute(
+        "SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC"
+    )
     posts = make_posts(cursor.fetchall())
 
     return flask.render_template("index.html", posts=posts, me=me)
 
-@app.route('/@<account_name>')
+
+@app.route("/@<account_name>")
 def get_user_list(account_name):
     cursor = db().cursor()
 
-    cursor.execute("SELECT * FROM `users` WHERE `account_name` = %s AND `del_flg` = 0",
-                   (account_name,))
+    cursor.execute(
+        "SELECT * FROM `users` WHERE `account_name` = %s AND `del_flg` = 0",
+        (account_name,),
+    )
     user = cursor.fetchone()
     if not user:
         flask.abort(404)  # raises exception
 
-    cursor.execute("SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = %s ORDER BY `created_at` DESC",
-                   (user['id'],))
+    cursor.execute(
+        "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = %s ORDER BY `created_at` DESC",
+        (user["id"],),
+    )
     posts = make_posts(cursor.fetchall())
 
-    cursor.execute('SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = %s', (user['id'],))
-    comment_count = cursor.fetchone()['count']
+    cursor.execute(
+        "SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = %s", (user["id"],)
+    )
+    comment_count = cursor.fetchone()["count"]
 
-    cursor.execute('SELECT `id` FROM `posts` WHERE `user_id` = %s', (user['id'],))
-    post_ids = [p['id'] for p in cursor]
+    cursor.execute("SELECT `id` FROM `posts` WHERE `user_id` = %s", (user["id"],))
+    post_ids = [p["id"] for p in cursor]
     post_count = len(post_ids)
 
     commented_count = 0
     if post_count > 0:
-        cursor.execute("SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN %s", (post_ids,))
-        commented_count = cursor.fetchone()['count']
+        cursor.execute(
+            "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN %s",
+            (post_ids,),
+        )
+        commented_count = cursor.fetchone()["count"]
 
     me = get_session_user()
 
@@ -298,26 +341,32 @@ def get_user_list(account_name):
 def _parse_iso8601(s):
     # http://bugs.python.org/issue15873
     # Ignore timezone
-    m = re.match(r'(\d{4})-(\d{2})-(\d{2})[ tT](\d{2}):(\d{2}):(\d{2}).*', s)
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})[ tT](\d{2}):(\d{2}):(\d{2}).*", s)
     if not m:
         raise ValueError("Invlaid iso8601 format: %r" % (s,))
     return datetime.datetime(*map(int, m.groups()))
 
-@app.route('/posts')
+
+@app.route("/posts")
 def get_posts():
     cursor = db().cursor()
-    max_created_at = flask.request.args['max_created_at'] or None
+    max_created_at = flask.request.args["max_created_at"] or None
     if max_created_at:
         max_created_at = _parse_iso8601(max_created_at)
-        cursor.execute('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= %s ORDER BY `created_at` DESC', (max_created_at,))
+        cursor.execute(
+            "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= %s ORDER BY `created_at` DESC",
+            (max_created_at,),
+        )
     else:
-        cursor.execute('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE ORDER BY `created_at` DESC')
+        cursor.execute(
+            "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE ORDER BY `created_at` DESC"
+        )
     results = cursor.fetchall()
     posts = make_posts(results)
     return flask.render_template("posts.html", posts=posts)
 
 
-@app.route('/posts/<id>')
+@app.route("/posts/<id>")
 def get_posts_id(id):
     cursor = db().cursor()
 
@@ -329,25 +378,26 @@ def get_posts_id(id):
     me = get_session_user()
     return flask.render_template("post.html", post=posts[0], me=me)
 
-@app.route('/', methods=['POST'])
+
+@app.route("/", methods=["POST"])
 def post_index():
     me = get_session_user()
     if not me:
-        return flask.redirect('/login')
+        return flask.redirect("/login")
 
-    if flask.request.form['csrf_token'] != flask.session['csrf_token']:
+    if flask.request.form["csrf_token"] != flask.session["csrf_token"]:
         flask.abort(422)
 
-    file = flask.request.files.get('file')
+    file = flask.request.files.get("file")
     if not file:
         flask.flash("画像が必要です")
-        return flask.redirect('/')
+        return flask.redirect("/")
 
     # 投稿のContent-Typeからファイルのタイプを決定する
     mime = file.mimetype
     if mime not in ("image/jpeg", "image/png", "image/gif"):
         flask.flash("投稿できる画像形式はjpgとpngとgifだけです")
-        return flask.redirect('/')
+        return flask.redirect("/")
 
     with tempfile.TemporaryFile() as tempf:
         file.save(tempf)
@@ -355,18 +405,19 @@ def post_index():
 
         if tempf.tell() > UPLOAD_LIMIT:
             flask.flash("ファイルサイズが大きすぎます")
-            return flask.redirect('/')
+            return flask.redirect("/")
 
         tempf.seek(0)
         imgdata = tempf.read()
 
-    query = 'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (%s,%s,%s,%s)'
+    query = "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (%s,%s,%s,%s)"
     cursor = db().cursor()
-    cursor.execute(query, (me['id'], mime, imgdata, flask.request.form.get('body')))
+    cursor.execute(query, (me["id"], mime, imgdata, flask.request.form.get("body")))
     pid = cursor.lastrowid
     return flask.redirect("/posts/%d" % pid)
 
-@app.route('/image/<id>.<ext>')
+
+@app.route("/image/<id>.<ext>")
 def get_image(id, ext):
     if not id:
         return ""
@@ -375,67 +426,79 @@ def get_image(id, ext):
         return ""
 
     cursor = db().cursor()
-    cursor.execute('SELECT * FROM `posts` WHERE `id` = %s', (id,))
+    cursor.execute("SELECT * FROM `posts` WHERE `id` = %s", (id,))
     post = cursor.fetchone()
 
-    mime = post['mime']
-    if (ext == 'jpg' and mime == "image/jpeg"
-            or ext == 'png' and mime == "image/png"
-            or ext == 'gif' and mime == "image/gif"):
-        return flask.Response(post['imgdata'], mimetype=mime)
+    mime = post["mime"]
+    if (
+        ext == "jpg"
+        and mime == "image/jpeg"
+        or ext == "png"
+        and mime == "image/png"
+        or ext == "gif"
+        and mime == "image/gif"
+    ):
+        return flask.Response(post["imgdata"], mimetype=mime)
 
     flask.abort(404)
 
-@app.route('/comment', methods=['POST'])
+
+@app.route("/comment", methods=["POST"])
 def post_comment():
     me = get_session_user()
     if not me:
-        return flask.redirect('/login')
+        return flask.redirect("/login")
 
-    if flask.request.form['csrf_token'] != flask.session['csrf_token']:
+    if flask.request.form["csrf_token"] != flask.session["csrf_token"]:
         flask.abort(422)
 
-    post_id = flask.request.form['post_id']
+    post_id = flask.request.form["post_id"]
     if not re.match(r"[0-9]+", post_id):
-        return 'post_idは整数のみです'
+        return "post_idは整数のみです"
     post_id = int(post_id)
 
-    query = 'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (%s, %s, %s)'
+    query = (
+        "INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (%s, %s, %s)"
+    )
     cursor = db().cursor()
-    cursor.execute(query, (post_id, me['id'], flask.request.form['comment']))
+    cursor.execute(query, (post_id, me["id"], flask.request.form["comment"]))
 
     return flask.redirect("/posts/%d" % post_id)
 
-@app.route('/admin/banned')
+
+@app.route("/admin/banned")
 def get_banned():
     me = get_session_user()
     if not me:
-        flask.redirect('/login')
+        flask.redirect("/login")
 
-    if me['authority'] == 0:
+    if me["authority"] == 0:
         flask.abort(403)
 
     cursor = db().cursor()
-    cursor.execute('SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC')
+    cursor.execute(
+        "SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC"
+    )
     users = cursor.fetchall()
 
     flask.render_template("banned.html", users=users, me=me)
 
-@app.route('/admin/banned', methods=['POST'])
+
+@app.route("/admin/banned", methods=["POST"])
 def post_banned():
     me = get_session_user()
     if not me:
-        flask.redirect('/login')
+        flask.redirect("/login")
 
-    if me['authority'] == 0:
+    if me["authority"] == 0:
         flask.abort(403)
 
-    if flask.request.form['csrf_token'] != flask.session['csrf_token']:
+    if flask.request.form["csrf_token"] != flask.session["csrf_token"]:
         flask.abort(422)
 
     cursor = db().cursor()
-    query = 'UPDATE `users` SET `del_flg` = %s WHERE `id` = %s'
-    for id in flask.request.form.getlist('uid', type=int):
+    query = "UPDATE `users` SET `del_flg` = %s WHERE `id` = %s"
+    for id in flask.request.form.getlist("uid", type=int):
         cursor.execute(query, (1, id))
 
-    return flask.redirect('/admin/banned')
+    return flask.redirect("/admin/banned")
