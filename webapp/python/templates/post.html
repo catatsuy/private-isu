@@ -1,0 +1,35 @@
+<div class="isu-post" id="pid_{{ post.id }}" data-created-at="{{ post.created_at }}">
+  <div class="isu-post-header">
+    <a href="/@{{ post.user.account_name | urlencode }}" class="isu-post-account-name">{{ post.user.account_name }}</a>
+    <a href="/posts/{{ post['id'] }}" class="isu-post-permalink">
+      <time class="timeago" datetime="{{ post['created_at'] }}"></time>
+    </a>
+  </div>
+  <div class="isu-post-image">
+    <img src="{{ image_url(post) }}" class="isu-image">
+  </div>
+  <div class="isu-post-text">
+    <a href="/@{{ post['user']['account_name'] | urlencode }}" class="isu-post-account-name">{{ post.user.account_name }}</a>
+    {{ post.body | nl2br }}
+  </div>
+  <div class="isu-post-comment">
+    <div class="isu-post-comment-count">
+      comments: <b>{{ post.comment_count }}</b>
+    </div>
+
+    {% for comment in post['comments'] %}
+    <div class="isu-comment">
+      <a href="/@{{ comment['user']['account_name'] | urlencode }}" class="isu-comment-account-name">{{ comment['user']['account_name'] }}</a>
+      <span class="isu-comment-text">{{ comment['comment'] }}</span>
+    </div>
+    {% endfor %}
+    <div class="isu-comment-form">
+      <form method="post" action="/comment">
+        <input type="text" name="comment">
+        <input type="hidden" name="post_id" value="{{ post['id'] }}">
+        <input type="hidden" name="csrf_token" value="{{ session['csrf_token'] }}">
+        <input type="submit" name="submit" value="submit">
+      </form>
+    </div>
+  </div>
+</div>

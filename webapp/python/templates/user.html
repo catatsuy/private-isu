@@ -1,0 +1,12 @@
+{% extends 'layout.html' %}
+{% block body %}
+<div class="isu-user">
+  <div><span class="isu-user-account-name">{{ user['account_name'] }}さん</span>のページ</div>
+  <div>投稿数 <span class="isu-post-count">{{ post_count }}</span></div>
+  <div>コメント数 <span class="isu-comment-count">{{ comment_count }}</span></div>
+  <div>被コメント数 <span class="isu-commented-count">{{ commented_count }}</span></div>
+</div>
+<div class="isu-posts">
+  {% include 'posts.html' %}
+</div>
+{% endblock %}
