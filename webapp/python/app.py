@@ -335,6 +335,7 @@ def get_user_list(account_name):
         user=user,
         post_count=post_count,
         comment_count=comment_count,
+        commented_count=commented_count,
         me=me,
     )
 
