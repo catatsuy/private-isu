@@ -7,10 +7,10 @@ from werkzeug.datastructures import CallbackDict
 
 
 class Session(CallbackDict, SessionMixin):
-
     def __init__(self, initial=None, sid=None, new=False):
         def on_update(self):
             self.modified = True
+
         CallbackDict.__init__(self, initial, on_update)
         self.sid = sid
         self.new = new
@@ -18,8 +18,7 @@ class Session(CallbackDict, SessionMixin):
 
 
 class SessionInterface(SessionInterface):
-
-    def __init__(self, memcache, prefix='session:'):
+    def __init__(self, memcache, prefix="session:"):
         self.memcache = memcache
         self.prefix = prefix
 
@@ -38,7 +37,7 @@ class SessionInterface(SessionInterface):
             return Session(sid=sid, new=True)
         val = self.memcache.get(self.prefix + sid)
         if val is not None:
-            data = json.loads(val.decode('utf-8'))
+            data = json.loads(val.decode("utf-8"))
             return Session(data, sid=sid)
         return Session(sid=sid, new=True)
 
@@ -47,14 +46,18 @@ class SessionInterface(SessionInterface):
         if not session:
             self.memcache.delete(self.prefix + session.sid)
             if session.modified:
-                response.delete_cookie(app.config["SESSION_COOKIE_NAME"],
-                                       domain=domain)
+                response.delete_cookie(app.config["SESSION_COOKIE_NAME"], domain=domain)
             return
         memcache_exp = self.get_memcache_expiration_time(app, session)
         cookie_exp = self.get_expiration_time(app, session)
         val = json.dumps(dict(session))
-        self.memcache.set(self.prefix + session.sid, val,
-                          int(memcache_exp.total_seconds()))
-        response.set_cookie(app.config["SESSION_COOKIE_NAME"], session.sid,
-                            expires=cookie_exp, httponly=True,
-                            domain=domain)
+        self.memcache.set(
+            self.prefix + session.sid, val, int(memcache_exp.total_seconds())
+        )
+        response.set_cookie(
+            app.config["SESSION_COOKIE_NAME"],
+            session.sid,
+            expires=cookie_exp,
+            httponly=True,
+            domain=domain,
+        )
