@@ -29,6 +29,9 @@ def config():
                 "user": os.environ.get("ISUCONP_DB_USER", "root"),
                 "db": os.environ.get("ISUCONP_DB_NAME", "isuconp"),
             },
+            "memcache": {
+                "address": os.environ.get("ISUCONP_MEMCACHED_ADDRESS", "127.0.0.1:11211"),
+            }
         }
         password = os.environ.get("ISUCONP_DB_PASSWORD")
         if password:
@@ -66,7 +69,8 @@ _mcclient = None
 def memcache():
     global _mcclient
     if _mcclient is None:
-        _mcclient = MemcacheClient(('127.0.0.1', 11211), no_delay=True, default_noreply=False)
+        conf = config()["memcache"]
+        _mcclient = MemcacheClient(conf["address"], no_delay=True, default_noreply=False)
     return _mcclient
 
 
