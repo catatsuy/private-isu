@@ -6,8 +6,9 @@ import subprocess
 import tempfile
 
 import flask
-import jinja2
 import MySQLdb.cursors
+from jinja2 import pass_eval_context
+from markupsafe import Markup, escape
 from pymemcache.client.base import Client as MemcacheClient
 
 import pymc_session
@@ -189,9 +190,6 @@ def image_url(post):
 
 
 # http://flask.pocoo.org/snippets/28/
-from jinja2 import pass_eval_context
-from markupsafe import Markup, escape
-
 _paragraph_re = re.compile(r"(?:\r\n|\r|\n){2,}")
 
 
