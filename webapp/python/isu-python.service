@@ -1,0 +1,16 @@
+[Unit]
+Description=isu-python
+After=syslog.target
+
+[Service]
+WorkingDirectory=/home/isucon/private_isu/webapp/python
+EnvironmentFile=/home/isucon/env.sh
+PIDFile=/home/isucon/private_isu/webapp/python/server.pid
+
+User=isucon
+Group=isucon
+ExecStart=/home/isucon/private_isu/webapp/python/.venv/bin/gunicorn app:app -b 0.0.0.0:8080 --log-file - --access-logfile -
+ExecStop=/bin/kill -s QUIT $MAINPID
+
+[Install]
+WantedBy=multi-user.target
