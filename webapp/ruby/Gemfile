@@ -6,6 +6,7 @@ gem "sinatra-contrib"
 gem "rack"
 gem "foreman"
 gem "unicorn"
+gem 'bigdecimal'
 gem "mysql2"
 gem "rack-flash3"
 gem 'connection_pool'
