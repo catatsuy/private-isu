@@ -115,7 +115,7 @@ jobs:
             exit 1
           fi
           if ! jq -e '.pass == true' benchmark_output.json > /dev/null; then
-            echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV
+            echo "Benchmark failed: pass is not true"
             exit 1
           fi
 
