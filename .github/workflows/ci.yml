@@ -42,6 +42,10 @@ jobs:
             echo "php_changes_detected=true" >> $GITHUB_OUTPUT
             exit 0
           fi
+          if echo "$CHANGED_FILES" | grep 'python/'; then
+            echo "Changes detected in python directory"
+            echo "python_changes_detected=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Download purl
         run: |
@@ -62,6 +66,11 @@ jobs:
           purl -fail -overwrite -replace '@context: ruby/@context: php/@' ./webapp/docker-compose.yml
           mv webapp/etc/nginx/conf.d/default.conf webapp/etc/nginx/conf.d/default.conf.org
           mv webapp/etc/nginx/conf.d/php.conf.org webapp/etc/nginx/conf.d/php.conf
+
+      - name: Update compose.yml if changes are detected
+        if: steps.check-changes.outputs.python_changes_detected == 'true'
+        run: |
+          purl -fail -overwrite -replace '@context: ruby/@context: python/@' ./webapp/docker-compose.yml
 
       - name: Start the server
         run: |
