@@ -9,8 +9,8 @@ RUN mkdir -p /home/webapp
 WORKDIR /home/webapp
 
 COPY pyproject.toml uv.lock .
-RUN uv sync
+RUN --mount=type=cache,target=/root/.cache/uv \
+  uv sync --compile-bytecode
 COPY . .
 
-CMD [ "/home/webapp/.venv/bin/gunicorn", "app:app", "-b", "0.0.0.0:8080", "--log-file", "-", "--access-logfile", "-" ]
-
+ENTRYPOINT [ "/home/webapp/.venv/bin/gunicorn", "app:app", "-b", "0.0.0.0:8080", "--log-file", "-", "--access-logfile", "-" ]
