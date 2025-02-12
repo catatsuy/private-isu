@@ -1,7 +1,8 @@
 import datetime
 import os
-import re
 import pathlib
+import re
+import shlex
 import subprocess
 import tempfile
 
@@ -12,7 +13,6 @@ from markupsafe import Markup, escape
 from pymemcache.client.base import Client as MemcacheClient
 
 import pymc_session
-
 
 UPLOAD_LIMIT = 10 * 1024 * 1024  # 10mb
 POSTS_PER_PAGE = 20
@@ -104,12 +104,12 @@ def validate_user(account_name: str, password: str):
 
 
 def digest(src: str):
-    out = subprocess.check_output(
-        ["openssl", "dgst", "-sha512"], input=src.encode("ascii")
-    )
-    out = out.decode("ascii")
     # opensslのバージョンによっては (stdin)= というのがつくので取る
-    out = out[out.find("=") + 1 :]
+    out = subprocess.check_output(
+        f"printf %s {shlex.quote(src)} | openssl dgst -sha512 | sed 's/^.*= //'",
+        shell=True,
+        encoding="utf-8",
+    )
     return out.strip()
 
 
