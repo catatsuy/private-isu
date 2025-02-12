@@ -299,7 +299,7 @@ def get_user_list(account_name):
         (account_name,),
     )
     user = cursor.fetchone()
-    if not user:
+    if user is None:
         flask.abort(404)  # raises exception
 
     cursor.execute(
