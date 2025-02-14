@@ -1,0 +1,45 @@
+version: "3"
+
+silent: true
+dotenv: [".env"]
+
+vars:
+  project_path:
+    sh: pwd
+
+tasks:
+  default:
+    aliases:
+      - list
+    desc: List all tasks
+    cmd: task -l
+
+  dev:
+    desc: Start development server
+    cmd: docker-compose -f webapp/docker-compose.yml up -d
+
+  benchmark:
+    desc: Run benchmark
+    cmd: "{{.project_path}}/benchmarker/bin/benchmarker -u {{.project_path}}/benchmarker/userdata -t http://localhost"
+
+  init:
+    desc: Initialize project
+    cmds:
+      - task: download-dump
+      - task: download-img
+      - task: unzip-img
+
+  download-dump:
+    desc: Download SQL dump
+    cmds:
+      - cd webapp/sql && curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/dump.sql.bz2
+
+  download-img:
+    desc: Download image zip
+    cmds:
+      - cd benchmarker/userdata && curl -L -O https://github.com/catatsuy/private-isu/releases/download/img/img.zip
+
+  unzip-img:
+    desc: Unzip image zip
+    cmds:
+      - cd benchmarker/userdata && unzip -qq -o img.zip

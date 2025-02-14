@@ -24,8 +24,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Task
+        uses: arduino/setup-task@v2
+
       - name: Initialize the project
-        run: make init
+        run: task init
 
       - name: Check for changes in golang directory
         id: check-changes
