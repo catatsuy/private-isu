@@ -15,7 +15,7 @@ services:
   app:
     build:
       # Go実装の場合は golang/ PHP実装の場合は php/
-      context: ruby/
+      context: go/
       dockerfile: Dockerfile
     depends_on:
       - mysql
