@@ -43,3 +43,7 @@ tasks:
     desc: Unzip image zip
     cmds:
       - cd benchmarker/userdata && unzip -qq -o img.zip
+
+  show-er:
+    desc: Migrate database
+    cmd: atlas schema inspect -u "mysql://root:root@localhost:3306/isuconp?charset=utf8mb4&parseTime=true&loc=Local" --web
