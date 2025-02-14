@@ -8,11 +8,10 @@ import tempfile
 
 import flask
 import MySQLdb.cursors
+from flask_session import Session
 from jinja2 import pass_eval_context
 from markupsafe import Markup, escape
 from pymemcache.client.base import Client as MemcacheClient
-
-import pymc_session
 
 UPLOAD_LIMIT = 10 * 1024 * 1024  # 10mb
 POSTS_PER_PAGE = 20
@@ -168,11 +167,14 @@ def make_posts(results, all_comments=False):
 
 
 # app setup
-
 static_path = pathlib.Path(__file__).resolve().parent.parent / "public"
 app = flask.Flask(__name__, static_folder=str(static_path), static_url_path="")
 # app.debug = True
-app.session_interface = pymc_session.SessionInterface(memcache())
+
+# Flask-Session
+app.config["SESSION_TYPE"] = "memcached"
+app.config["SESSION_MEMCACHED"] = memcache()
+Session(app)
 
 
 @app.template_global()
