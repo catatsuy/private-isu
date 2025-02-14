@@ -47,3 +47,11 @@ tasks:
   show-er:
     desc: Migrate database
     cmd: atlas schema inspect -u "mysql://root:root@localhost:3306/isuconp?charset=utf8mb4&parseTime=true&loc=Local" --web
+
+  loadtest:
+    desc: Load test
+    cmd: ab -c 1 -n 10 http://localhost/
+
+  k6:
+    desc: Load test with k6
+    cmd: k6 run --vus 1 --duration 30s k6.js
