@@ -68,7 +68,7 @@ tasks:
 
   create-migration:
     cmds:
-      - atlas migrate diff create_tests --dir "file://webapp/golang/migrations" --to "file://benchmarker/sql/schema.sql" --dev-url "mysql://root:root@localhost:3306/isuconp?charset=utf8mb4&parseTime=true&loc=Local"
+      - atlas migrate diff {{.CLI_ARGS}} --dir "file://webapp/golang/migrations" --to "file://benchmarker/sql/schema.sql" --dev-url "mysql://root:root@localhost:3306/isuconp?charset=utf8mb4&parseTime=true&loc=Local"
 
   migrate:
      cmds:
