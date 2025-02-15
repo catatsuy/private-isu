@@ -73,3 +73,15 @@ tasks:
   migrate:
      cmds:
      - atlas migrate apply --dir "file://webapp/golang/migrations" --url "mysql://root:root@localhost:3306/isuconp?charset=utf8mb4&parseTime=true&loc=Local"
+
+  create-cloud-migrate:
+    cmds:
+      - atlas migrate diff create_tests --dir "file://webapp/golang/migrations" --to "file://benchmarker/sql/schema.sql" --dev-url "docker://mysql/8/dev"
+
+  cloud-migrate:
+     cmd: atlas migrate apply --dir "file://webapp/golang/migrations" --url "docker://mysql/8/dev"
+
+  init-ms:
+    desc: Initialize project
+    cmds:
+      - atlas migrate diff initial --to file://webapp/golang/migrations --dev-url "docker://mysql/8/dev"
