@@ -54,4 +54,4 @@ tasks:
 
   k6:
     desc: Load test with k6
-    cmd: k6 run --vus 1 --duration 30s k6.js
+    cmd: k6 run k6/integrated.js
