@@ -14,9 +14,15 @@ tasks:
     desc: List all tasks
     cmd: task -l
 
-  dev:
+  run-dev:
     desc: Start development server
-    cmd: docker-compose -f webapp/docker-compose.yml up -d
+    cmds:
+    - docker-compose -f webapp/docker-compose.yml up -d
+    - task: migrate
+
+  down:
+   desc: Start development server
+   cmd: docker-compose -f webapp/docker-compose.yml down
 
   benchmark:
     desc: Run benchmark
@@ -59,3 +65,11 @@ tasks:
   show-gr:
     desc: Show ER diagram
     cmd: echo "http://localhost:3011"
+
+  create-migration:
+    cmds:
+      - atlas migrate diff create_tests --dir "file://webapp/golang/migrations" --to "file://benchmarker/sql/schema.sql" --dev-url "mysql://root:root@localhost:3306/isuconp?charset=utf8mb4&parseTime=true&loc=Local"
+
+  migrate:
+     cmds:
+     - atlas migrate apply --dir "file://webapp/golang/migrations" --url "mysql://root:root@localhost:3306/isuconp?charset=utf8mb4&parseTime=true&loc=Local"
