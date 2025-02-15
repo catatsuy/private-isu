@@ -62,6 +62,13 @@ services:
     networks:
       - my_network
 
+  grafana:
+    image: grafana/grafana-enterprise
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+     - '3011:3000'
+
 volumes:
   mysql:
 
