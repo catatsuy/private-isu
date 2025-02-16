@@ -51,6 +51,13 @@ services:
       - "3306:3306"
     networks:
       - my_network
+    expose:
+      - "3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD"]
+      interval: 1s
+      timeout: 1s
+      retries: 10
     deploy:
       resources:
         limits:
@@ -63,14 +70,28 @@ services:
       - my_network
 
   grafana:
-    image: grafana/grafana-enterprise
-    container_name: grafana
-    restart: unless-stopped
+    image: grafana/grafana-enterprise:8.3.0
     ports:
-     - '3011:3000'
+      - 3000:3000
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_DATABASE_TYPE: mysql
+      GF_DATABASE_HOST: mysql:3306
+      GF_DATABASE_NAME: isuconp
+      GF_DATABASE_USER: root
+      GF_DATABASE_PASSWORD: root
+      GF_DATABASE_SSL_MODE: disable
+    restart: unless-stopped
+    networks:
+      - my_network
+    depends_on:
+     mysql:
+        condition: service_healthy
 
 volumes:
   mysql:
+  grafana-config-data:
 
 networks:
   my_network:
