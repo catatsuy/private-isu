@@ -63,14 +63,46 @@ services:
       - my_network
 
   grafana:
-    image: grafana/grafana-enterprise
-    container_name: grafana
-    restart: unless-stopped
+    image: grafana/grafana:11.1.0
     ports:
-     - '3011:3000'
+      - 3011:3000
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_DATABASE_TYPE: mysql
+      GF_DATABASE_HOST: grafana-config:3306
+      GF_DATABASE_NAME: grafana
+      GF_DATABASE_USER: grafana-user
+      GF_DATABASE_PASSWORD: grafana-pass
+      GF_DATABASE_SSL_MODE: disable
+    depends_on:
+      grafana-config:
+        condition: service_healthy
+    networks:
+      - my_network
+
+  grafana-config:
+    image: mysql:8.0
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
+      MYSQL_DATABASE: grafana
+      MYSQL_USER: grafana-user
+      MYSQL_PASSWORD: grafana-pass
+    expose:
+      - "3306"
+    volumes:
+      - grafana-config-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      interval: 1s
+      timeout: 1s
+      retries: 10
+    networks:
+      - my_network
 
 volumes:
   mysql:
+  grafana-config-data:
 
 networks:
   my_network:
