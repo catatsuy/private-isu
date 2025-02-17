@@ -83,6 +83,9 @@ services:
       GF_DATABASE_PASSWORD: root
       GF_DATABASE_SSL_MODE: disable
     restart: unless-stopped
+    volumes:
+      - 'grafana_storage:/var/lib/grafana'
+      - '../grafana/datasources:/etc/grafana/provisioning/datasources'
     networks:
       - my_network
     depends_on:
@@ -91,7 +94,7 @@ services:
 
 volumes:
   mysql:
-  grafana-config-data:
+  grafana_storage: {}
 
 networks:
   my_network:
