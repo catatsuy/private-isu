@@ -14,7 +14,7 @@ services:
 
   app:
     build:
-      # Go実装の場合は golang/ PHP実装の場合は php/
+      # Go実装の場合は golang/ PHP実装の場合は php/ Python実装の場合は python/ に変更
       context: ruby/
       dockerfile: Dockerfile
     depends_on:

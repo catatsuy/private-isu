@@ -1,0 +1,13 @@
+[project]
+name = "private-isu"
+version = "0.1.0"
+description = "private-isu webapp implementation for Python"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "flask>=3.1.0",
+    "flask-session[memcached]>=0.8.0",
+    "gunicorn>=23.0.0",
+    "mysqlclient~=2.2.7",
+    "pymemcache>=4.0.0",
+]
