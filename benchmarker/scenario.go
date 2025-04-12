@@ -11,6 +11,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/catatsuy/private-isu/benchmarker/checker"
 	"github.com/catatsuy/private-isu/benchmarker/util"
+	"slices"
 )
 
 func checkHTML(f func(*goquery.Document) error) func(io.Reader) error {
@@ -103,7 +104,7 @@ func indexMoreAndMoreScenario(s *checker.Session) {
 	loadImages(s, imageURLs)
 
 	offset := util.RandomNumber(10) // 10は適当。URLをバラけさせるため
-	for i := 0; i < 10; i++ {       // 10ページ辿る
+	for i := range 10 {             // 10ページ辿る
 		maxCreatedAt := time.Date(2016, time.January, 2, 11, 46, 21-PostsPerPage*i+offset, 0, time.FixedZone("Asia/Tokyo", 9*60*60))
 
 		imageURLs = []string{}
@@ -149,7 +150,7 @@ func loadIndexScenario(s *checker.Session) {
 	loadAssets(s)
 	loadImages(s, imageURLs)
 
-	for i := 0; i < 4; i++ {
+	for range 4 {
 		// あとの4回はDOMをパースしない。トップページをキャッシュして超高速に返されたとき対策
 		index := checker.NewAction("GET", "/")
 		index.ExpectedLocation = `^/$`
@@ -550,10 +551,8 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 	}
 	login.CheckFunc = checkHTML(func(doc *goquery.Document) error {
 		imageURLs = extractImages(doc)
-		for _, url := range imageURLs {
-			if url == imageURL {
-				return nil // 投稿した画像が正しく表示されている
-			}
+		if slices.Contains(imageURLs, imageURL) {
+			return nil // 投稿した画像が正しく表示されている
 		}
 		return errors.New("投稿した画像が表示されていません")
 	})
@@ -597,10 +596,8 @@ func banScenario(s1, s2 *checker.Session, u user, admin user, image *checker.Ass
 	index.Description = "トップページに禁止ユーザーの画像が表示されていないこと"
 	index.CheckFunc = checkHTML(func(doc *goquery.Document) error {
 		imageURLs = extractImages(doc)
-		for _, url := range imageURLs {
-			if url == imageURL {
-				return errors.New("禁止ユーザーの画像が表示されています")
-			}
+		if slices.Contains(imageURLs, imageURL) {
+			return errors.New("禁止ユーザーの画像が表示されています")
 		}
 		return nil
 	})
