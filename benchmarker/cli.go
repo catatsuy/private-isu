@@ -220,7 +220,7 @@ func outputNeedToContactUs(message string) {
 
 func makeChanBool(len int) chan bool {
 	ch := make(chan bool, len)
-	for i := 0; i < len; i++ {
+	for range len {
 		ch <- true
 	}
 	return ch

@@ -33,7 +33,7 @@ func RandomLUNStr(n int) string {
 
 func randomStr(n int, s []rune) string {
 	buf := make([]byte, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		buf[i] = byte(s[mrand.IntN(len(s))])
 	}
 	return string(buf)
