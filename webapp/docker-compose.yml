@@ -1,7 +1,7 @@
 name: private-isu
 services:
   nginx:
-    image: nginx:1.26
+    image: nginx:1.28
     depends_on:
       - app
     volumes:
