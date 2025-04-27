@@ -45,7 +45,7 @@ Ubuntu 24.04
 
 ## 起動方法
 
-* Ruby/Go/PHPの3言語が用意されており、デフォルトはRubyが起動する
+* Ruby/Go/PHP/Pythonの4言語が用意されており、デフォルトはRubyが起動する
   * Node.jsは現状メンテナンスされていない
   * AMI・Vagrantで他の言語の実装を動かす場合は[manual.md](/manual.md)を参考にする
 * AMI・Docker Compose・Vagrantが用意されている
@@ -228,7 +228,5 @@ https://gist.github.com/tohutohu/024551682a9004da286b0abd6366fa55 を参照
 
 ## 他の言語実装
 
-* Python実装 https://github.com/methane/pixiv-isucon2016-python
-  * provisioning code https://github.com/x-tech5/aws-isucon-book-tutorial
 * Rust実装 https://github.com/Romira915/private-isu-rust
 * Scala実装 https://github.com/catatsuy/private-isu/pull/140
