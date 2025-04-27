@@ -20,6 +20,12 @@
         creates: /home/isucon/.local/node/bin/node
       tags:
         - nodejs
+    # datasource=python-version depName=python
+    - command: /home/isucon/.xbuild/python-install 3.13.3 /home/isucon/.local/python
+      args:
+        creates: /home/isucon/.local/python/bin/python
+      tags:
+        - python3
     # golang
     # datasource=golang-version depName=golang
     - shell: /home/isucon/.xbuild/go-install 1.24.2 /home/isucon/.local/go $(uname -s | tr [A-Z] [a-z]) $(dpkg --print-architecture)

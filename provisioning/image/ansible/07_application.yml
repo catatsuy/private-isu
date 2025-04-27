@@ -73,6 +73,42 @@
 
 - hosts: guests:extras
   become: yes
+  become_user: isucon
+  gather_facts: no
+  tasks:
+    - name: Create Python virtualenv
+      shell: /home/isucon/.local/python/bin/python3 -m venv .venv
+      args:
+        chdir: /home/isucon/private_isu/webapp/python
+        creates: /home/isucon/private_isu/webapp/python/.venv/bin/activate
+      tags:
+        - python3
+    - name: Bootstrap pip in the virtualenv
+      shell: .venv/bin/python -m ensurepip --upgrade
+      args:
+        chdir: /home/isucon/private_isu/webapp/python
+        creates: /home/isucon/private_isu/webapp/python/.venv/bin/pip
+      tags:
+        - python3
+    - name: Install UV CLI into virtualenv
+      pip:
+        virtualenv: /home/isucon/private_isu/webapp/python/.venv
+        name:
+          - uv
+      args:
+        chdir: /home/isucon/private_isu/webapp/python
+      tags:
+        - python3
+
+    - name: Sync Python dependencies via UV
+      shell: /home/isucon/private_isu/webapp/python/.venv/bin/uv sync --compile-bytecode
+      args:
+        chdir: /home/isucon/private_isu/webapp/python
+      tags:
+        - python3
+
+- hosts: guests:extras
+  become: yes
   gather_facts: yes
   tasks:
     - copy: src=../files/home/isucon/env.sh dest=/home/isucon/env.sh owner=isucon mode=644
@@ -84,6 +120,14 @@
       copy: src=../files/etc/systemd/system/isu-node.service dest=/etc/systemd/system/isu-node.service owner=root mode=644
       tags:
         - nodejs
+    - name: python app (systemd)
+      copy:
+        src: ../files/etc/systemd/system/isu-python.service
+        dest: /etc/systemd/system/isu-python.service
+        owner: root
+        mode: 0644
+      tags:
+        - python3
     - name: php app (systemd)
       when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
       lineinfile:

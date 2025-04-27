@@ -118,6 +118,27 @@ $ sudo journalctl -f -u isu-go
 
 などで見ることができます。
 
+#### Python への切り替え方
+
+起動する実装を Python（Gunicorn）に切り替えるには、以下の操作を行います。
+
+```bash
+# 既存の Ruby 実装を停止・無効化
+$ sudo systemctl stop isu-ruby
+$ sudo systemctl disable isu-ruby
+
+# Python 用 systemd ユニットを有効化・起動
+$ sudo systemctl start isu-python
+$ sudo systemctl enable isu-python
+```
+
+プログラムの詳しい起動方法は、`/etc/systemd/system/isu-python.service`を参照してください。
+
+```bash
+# リアルタイムでログを追う
+$ sudo journalctl -f -u isu-python
+```
+
 ### MySQL
 
 3306番ポートでMySQLが起動しています。初期状態では以下のユーザが設定されています。
