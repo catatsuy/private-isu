@@ -68,7 +68,7 @@ $ sudo su - isucon
 $ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://<target IP>
 ```
 
-競技者用インスタンス上でのベンチマーカー実行方法（アプリケーションと同居する形になるため非推奨）
+競技者用インスタンス上でのベンチマーカー実行方法
 
 ```sh
 $ sudo su - isucon
@@ -77,21 +77,11 @@ $ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_i
 
 最初はRuby実装が起動しているので、他の言語を使用する場合は[manual.md](/manual.md)を見て作業すること。
 
-以下のAMI IDで起動する。リージョンは『Asia Pacific (Tokyo)』。
+AMIはベンチマーカーを同梱した競技者用インスタンスのみ配布している。
 
-競技者用 (Ubuntu 24.04):
+以下のAMI IDで起動する。リージョンは『Asia Pacific (Tokyo)』。推奨インスタンスサイズは競技者用はc7a.large、ベンチマーカー用はc7a.xlarge。
 
-| Arch   |                                                                      AMI ID                                                                      | 推奨インスタンスタイプ |
-| ------ | :----------------------------------------------------------------------------------------------------------------------------------------------: | ---------------------- |
-| x86_64 | [ami-047fdc2b851e73cad](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-047fdc2b851e73cad) | c7a.large              |
-| arm64  | [ami-0bed62bba4100a4b7](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-0bed62bba4100a4b7) | c7g.large              |
-
-ベンチマーカー (Ubuntu 24.04):
-
-| Arch   |                                                                      AMI ID                                                                      | 推奨インスタンスタイプ |
-| ------ | :----------------------------------------------------------------------------------------------------------------------------------------------: | ---------------------- |
-| x86_64 | [ami-037be39355baf1f2e](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-037be39355baf1f2e) | c7a.xlarge             |
-| arm64  | [ami-034a457f6af55d65d](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-034a457f6af55d65d) | c7g.xlarge             |
+競技者用 (Ubuntu 24.04, amd64): [catatsuy_private_isu_amd64_20250427](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-0505850c059a7302e)
 
 ### 手元で動かす
 
