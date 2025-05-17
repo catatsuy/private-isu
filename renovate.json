@@ -5,8 +5,8 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "provisioning/image/ansible/04_xbuild.yml"
+      "managerFilePatterns": [
+        "/provisioning/image/ansible/04_xbuild.yml/"
       ],
       "matchStrings": [
         "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\n.*?-install (?<currentValue>[0-9.]*).*\n"
@@ -14,8 +14,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "provisioning/bench/ansible/02_golang.yml"
+      "managerFilePatterns": [
+        "/provisioning/bench/ansible/02_golang.yml/"
       ],
       "datasourceTemplate": "golang-version",
       "depNameTemplate": "golang",
