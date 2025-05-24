@@ -829,6 +829,12 @@ func main() {
 	}
 	defer db.Close()
 
+	root, err := os.OpenRoot("../public")
+	if err != nil {
+		log.Fatalf("failed to open root: %v", err)
+	}
+	defer root.Close()
+
 	r := chi.NewRouter()
 
 	r.Get("/initialize", getInitialize)
@@ -847,7 +853,7 @@ func main() {
 	r.Post("/admin/banned", postAdminBanned)
 	r.Get(`/@{accountName:[a-zA-Z]+}`, getAccountName)
 	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
-		http.FileServer(http.Dir("../public")).ServeHTTP(w, r)
+		http.FileServerFS(root.FS()).ServeHTTP(w, r)
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", r))
