@@ -190,7 +190,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 			return nil, err
 		}
 
-		for i := 0; i < len(comments); i++ {
+		for i := range comments {
 			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
 			if err != nil {
 				return nil, err
@@ -467,8 +467,8 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		}
 		placeholder := strings.Join(s, ", ")
 
-		// convert []int -> []interface{}
-		args := make([]interface{}, len(postIDs))
+		// convert []int -> []any
+		args := make([]any, len(postIDs))
 		for i, v := range postIDs {
 			args[i] = v
 		}
