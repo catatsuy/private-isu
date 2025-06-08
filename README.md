@@ -29,9 +29,9 @@
 ## ディレクトリ構成
 
 ```
-├── ansible_old  # ベンチマーカー・portal用ansible（非推奨）
+├── ansible_old  # [非推奨] 旧バージョンのベンチマーカー・portal用ansible
 ├── benchmarker  # ベンチマーカーのソースコード
-├── portal       # portal（非推奨）
+├── portal       # [非推奨] 旧バージョンのportal
 ├── provisioning # 競技者用・ベンチマーカーインスタンスセットアップ用ansible
 └── webapp       # 各言語の参考実装
 ```
@@ -43,25 +43,37 @@
 
 Ubuntu 24.04
 
+## 対応言語と状況
+
+本環境では、以下の言語による参考実装が提供されています。
+* Ruby (デフォルトで起動)
+* Go
+* PHP
+* Python
+
+Node.js の参考実装も同梱されていますが、こちらは現在メンテナンスされておらず、AMIや一部の起動方法ではセットアップが省略されています。
+
 ## 起動方法
 
-* Ruby/Go/PHP/Pythonの4言語が用意されており、デフォルトはRubyが起動する
-  * Node.jsは現状メンテナンスされていない
-  * AMI・Vagrantで他の言語の実装を動かす場合は[manual.md](/manual.md)を参考にする
-* AMI・Docker Compose・Vagrantが用意されている
-  * 手元で適当に動かすことも難しくない
-  * Ansibleを動かせば、他の環境でも動くはず
+**重要:** 以下のいずれの手順を実行する前にも、まずプロジェクトのルートディレクトリで `make init` を実行して初期データを準備してください。
+
+* Ruby、Go、PHP、Pythonの4言語の参考実装が用意されており、デフォルトではRubyが起動します。
+  * Node.jsの参考実装は現状メンテナンスされていません。
+  * AMIまたはVagrantで他の言語の参考実装を動作させる場合は、[`manual.md`](/manual.md)を参照してください。
+* 起動方法として、AMI、Docker Compose、Vagrantが用意されています。
+  * ローカル環境で手軽に動作させることも比較的簡単です。
+  * Ansibleを利用すれば、その他の環境でも動作するはずです。
   * cloud-initも利用可能
 
 ### AMI
 
-セキュリティのアップデートなどは行わないので自己責任で利用してください。Node.jsのセットアップはskipしているので、Ruby/PHP/Goのみ利用可能。
+セキュリティアップデートは行われないため、自己責任で利用してください。Node.jsのセットアップは省略されているため、Ruby、PHP、Goのみ利用可能です。また、Node.jsの参考実装は現在メンテナンスされていません。
 
-* 競技者用インスタンスはSecurity groupで80番ポートを公開する必要がある
-  * Network settingsで「Allow HTTP traffic from the internet」にチェックを入れてもよい
-* ベンチマーカー用インスタンスはコンピューティング最適化インスタンスでそれなりのスペックでの利用を推奨
+* 競技者用インスタンスでは、セキュリティグループでTCP/80番ポートへのアクセスを許可する必要があります。
+  * EC2インスタンス作成時のネットワーク設定で「インターネットからのHTTPトラフィックを許可する」といったオプションにチェックを入れても構いません。
+* ベンチマーカー用インスタンスには、コンピューティング最適化インスタンスなど、十分なスペックのマシンを利用することを推奨します。
 
-ベンチマーカー用インスタンスのベンチマーカー実行方法
+ベンチマーカーインスタンス上での実行方法
 
 ```sh
 $ sudo su - isucon
@@ -75,36 +87,28 @@ $ sudo su - isucon
 $ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_isu/benchmarker/userdata -t http://localhost
 ```
 
-最初はRuby実装が起動しているので、他の言語を使用する場合は[manual.md](/manual.md)を見て作業すること。
+起動直後はRubyの参考実装が動作しています。他の言語を使用する場合は、[`manual.md`](/manual.md)を参照して必要な作業を行ってください。
 
-AMIはベンチマーカーを同梱した競技者用インスタンスのみ配布している。
+現在配布しているAMIは、競技者用インスタンスにベンチマーカーを同梱したものです。
 
-以下のAMI IDで起動する。リージョンは『Asia Pacific (Tokyo)』。推奨インスタンスサイズは競技者用はc7a.large、ベンチマーカー用はc7a.xlarge。
+以下のAMI IDで起動できます（リージョンは `ap-northeast-1` （アジアパシフィック (東京)））。これは特定日時のスナップショットのため、より新しいAMIが利用可能になっている場合があります。AWSコンソールで最新情報を確認することをお勧めします。推奨インスタンスタイプは、競技者用が`c7a.large`、ベンチマーカー用が`c7a.xlarge`です。
 
-競技者用 (Ubuntu 24.04, amd64): [catatsuy_private_isu_amd64_20250427](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-0505850c059a7302e)
+競技者用 (Ubuntu 24.04, amd64): [`catatsuy_private_isu_amd64_20250427`](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-0505850c059a7302e)
 
 ### 手元で動かす
 
-__いずれの手順もディスク容量が十分にあるマシン上で行うこと__
+**注意:** いずれの手順も、ディスク容量に十分な空きがあるマシン上で行ってください。
 
-* アプリケーションは各言語の開発環境とMySQL・memcachedがインストールされていれば動くはず
-* ベンチマーカーはGoの開発環境とuserdataがあれば動く
-* Dockerとvagrantはメモリが潤沢なマシンで実行すること
-
-#### 初期データを用意する
-
-必要になるので、以下の手順を行う前に必ず実行すること。
-
-```sh
-make init
-```
+* アプリケーションは、各言語の実行環境とMySQL、memcachedがインストールされていれば動作するはずです。
+* ベンチマーカーは、Goの実行環境と`userdata`ディレクトリがあれば動作します。
+* DockerおよびVagrantを使用する場合は、メモリを潤沢に搭載したマシンで実行してください。
 
 #### MacやLinux上で適当に動かす
 
-MySQLとmemcachedを起動した上で以下の手順を実行。
+MySQLとmemcachedを起動した上で、以下の手順を実行してください。
 
-* Ruby実装以外は各言語実装の動かし方を各自調べること
-* MySQLのrootユーザーのパスワードが設定されていない前提になっているので、設定されている場合は適宜読み替えること
+* Ruby以外の言語については、それぞれの言語の実行方法を別途確認してください。
+* MySQLのrootユーザーにパスワードが設定されていない前提です。設定されている場合は、適宜手順を読み替えてください。
 
 ```sh
 bunzip2 -c webapp/sql/dump.sql.bz2 | mysql -uroot
@@ -125,16 +129,16 @@ make
 
 #### Docker Compose
 
-アプリケーションは以下の手順で実行できる。dump.sql.bz2を配置しないとMySQLに初期データがimportされないので注意。
+アプリケーションは以下の手順で実行できます。`webapp/sql/dump.sql.bz2`が配置されていないとMySQLに初期データがインポートされないため注意してください。
 
 ```sh
 cd webapp
 docker compose up
 ```
 
-（もしうまく動かなければ`docker-compose up`を使うとよいかもしれません）
+（もし `docker compose up` でうまく動作しない場合は、代わりに `docker compose up` を試してみてください）
 
-デフォルトはRubyのため、他言語にする場合は`docker-compose.yml`ファイル内のappのbuildを変更する必要がある。PHPはそれに加えて以下の作業が必要。
+デフォルトはRubyの参考実装です。Node.jsの参考実装は現状メンテナンスされていません。他の言語に変更する場合は、`docker-compose.yml`ファイル内の`app`サービスの`build`設定を変更してください。PHPの参考実装を利用する場合は、それに加えて以下の作業が必要です。
 
 ```sh
 cd webapp/etc
@@ -142,7 +146,7 @@ mv nginx/conf.d/default.conf nginx/conf.d/default.conf.org
 mv nginx/conf.d/php.conf.org nginx/conf.d/php.conf
 ```
 
-ベンチマーカーは以下の手順で実行できる。
+ベンチマーカーは以下の手順で実行できます。
 
 ```sh
 cd benchmarker
@@ -152,7 +156,7 @@ docker run --network host -i private-isu-benchmarker /bin/benchmarker -t http://
 docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata
 ```
 
-動かない場合は`ip a`してdocker0のインタフェースでホストのIPアドレスを調べて`host.docker.internal`の代わりに指定する。以下の場合は`172.17.0.1`を指定する。
+動作しない場合は、`ip a`コマンドなどで`docker0`インタフェースに割り当てられたホスト側のIPアドレスを確認し、`host.docker.internal`の代わりにそのIPアドレスを指定してください。例えば、以下の出力の場合は`172.17.0.1`を指定します。
 
 ```
 3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default
@@ -165,12 +169,12 @@ docker run --network host --add-host host.docker.internal:host-gateway -i privat
 
 #### Vagrant
 
-手元にansibleをインストールして`vagrant up`すればprovisioningが実行される。
+ローカルマシンにAnsibleをインストールし、`vagrant up`を実行すると、プロビジョニングが自動的に行われます。
 
-benchからappのIPアドレスを指定して負荷をかける。
+`bench`ノードから`app`ノードのIPアドレスを指定して負荷をかけてください。
 
 ```shell
-# appのIPアドレスを調べる
+# appノードのIPアドレスを調べる
 $ vagrant ssh app
 $ ip a
 
@@ -181,33 +185,33 @@ $ ip a
     inet6 fe80::a00:27ff:fe37:2b2c/64 scope link
        valid_lft forever preferred_lft forever
 
-# benchで負荷をかける
+# benchノードで負荷を実行する
 $ vagrant ssh bench
 $ sudo su - isucon
 $ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://172.28.128.6
 ```
 
-最初はRuby実装が起動しているので、他の言語を使用する場合は[manual.md](/manual.md)を見て作業すること。
+起動直後はRubyの参考実装が動作しています。Node.jsの参考実装は現状メンテナンスされていません。他の言語を使用する場合は、[`manual.md`](/manual.md)を参照して必要な作業を行ってください。
 
-#### cloud-init を利用して環境を構築する
+### cloud-init を利用して環境を構築する
 
-matsuuさんの[cloud-initに対応した環境でISUCONの過去問を構築するためのcloud-config集](https://github.com/matsuu/cloud-init-isucon/)を利用して競技者用・ベンチマーカーインスタンスの構築ができます。
+matsuu氏が提供する[`cloud-init`に対応したISUCON過去問題環境構築用のcloud-config集](https://github.com/matsuu/cloud-init-isucon/)を利用して、競技者用およびベンチマーカーインスタンスを構築できます。
 
-cloud-initに対応した環境、例えばAWS、Azure、Google Cloud、Oracle Cloud、さくらのクラウド、Multipass、VMwareなど、クラウドからローカルまで幅広く環境構築が可能です。
+`cloud-init`に対応した多様な環境（例: AWS、Azure、Google Cloud、Oracle Cloud、さくらのクラウド、Multipass、VMwareなど）、つまりクラウドからローカル環境まで幅広く対応しています。
 
-Apple Silicon搭載のマシン上で動作させる場合はMultipassを利用することを推奨します。
+Apple Silicon搭載のマシン上でローカル環境を構築する場合、Multipassの利用を推奨します。
 
 https://github.com/matsuu/cloud-init-isucon/tree/main/private-isu
 
 ISUCON過去問題の環境を「さくらのクラウド」で構築する | さくらのナレッジ https://knowledge.sakura.ad.jp/31520/
 
-#### Cloud Formationを利用して構築する
+### Cloud Formationを利用して構築する
 
 https://gist.github.com/tohutohu/024551682a9004da286b0abd6366fa55 を参照
 
 ### 競技者用・ベンチマーカーインスタンスのセットアップ方法
 
-自分で立ち上げたい人向け。`provisioning/`ディレクトリ以下参照。
+自身でインスタンスをセットアップしたい場合は、`provisioning/`ディレクトリ以下のスクリプトを参照してください。
 
 ## 事例集
 
