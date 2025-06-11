@@ -234,7 +234,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 	userMap := make(map[int]User)
 	queryUsers := "SELECT * FROM `users` WHERE `id` IN (?)"
-	query, args, err := sqlx.In(queryUsers, allUserIDs)
+	query, args, err = sqlx.In(queryUsers, allUserIDs)
 	if err != nil {
 		return nil, err
 	}
