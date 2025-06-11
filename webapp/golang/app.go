@@ -444,7 +444,7 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		"SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at FROM posts"+
 			" JOIN users ON users.id = posts.user_id"+
 			" WHERE users.del_flg = 0"+
-			" ORDER BY posts.created_at DESC LIMIT 20")
+			" ORDER BY posts.created_at DESC")
 	if err != nil {
 		log.Print(err)
 		return
@@ -537,7 +537,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		"SELECT posts.id, posts.user_id, posts.body, posts.mime, posts.created_at FROM posts"+
 			" JOIN users ON users.id = posts.user_id"+
 			" WHERE users.del_flg = 0"+
-			" ORDER BY posts.created_at DESC LIMIT 20")
+			" ORDER BY posts.created_at")
 	if err != nil {
 		log.Print(err)
 		return
