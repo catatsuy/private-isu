@@ -207,11 +207,44 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 		p.Comments = comments
 
-		err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		if err != nil {
-			return nil, err
+	userMap := make(map[int]User)
+	queryUsers := "SELECT * FROM `users` WHERE `id` IN (?)"
+	query, args, err = sqlx.In(queryUsers, allUserIDs)
+	if err != nil {
+		return nil, err
+	}
+	query = db.Rebind(query)
+	var users []User
+	if err := db.Select(&users, query, args...); err != nil {
+		return nil, err
+	}
+	for _, u := range users {
+		userMap[u.ID] = u
+	}
+
+	// --- 4. 取得したデータをマージ ---
+
+	// コメントをPostIDごとにグループ化しておく
+	commentsByPostID := make(map[int][]Comment)
+	for _, c := range allCommentsList {
+		c.User = userMap[c.UserID];
+		commentsByPostID[c.PostID] = append(commentsByPostID[c.PostID], c)
+	}
+
+	var posts []Post
+	for _, p := range results {
+		// 投稿者情報をマージ
+		if user, ok := userMap[p.UserID]; ok && user.DelFlg == 0 {
+			p.User = user
+		} else {
+			continue // ユーザーが存在しないか削除済みなら投稿をスキップ
 		}
 
+		// コメント数とコメント本体をマージ
+		p.CommentCount = commentCountsMap[p.ID]
+		comments := commentsByPostID[p.ID]
+		
+		p.Comments = comments
 		p.CSRFToken = csrfToken
 
 		if p.User.DelFlg == 0 {
