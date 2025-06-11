@@ -178,10 +178,10 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 	// --- 1. IDの一括抽出 ---
 	postIDs := make([]int, 0, len(results))
-	initialUserIDs := make(map[int]struct{}) // ユーザーIDの重複をなくすためmapを使用
+	allUserIDs := make(map[int]struct{}) // ユーザーIDの重複をなくすためmapを使用
 	for _, p := range results {
 		postIDs = append(postIDs, p.ID)
-		initialUserIDs[p.UserID] = struct{}{}
+		allUserIDs[p.UserID] = struct{}{}
 	}
 
 	// --- 2. コメント関連データの一括取得 ---
@@ -208,11 +208,10 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 	// 2b. コメントをpost_idごとに一括取得
 	var allCommentsList []Comment
-	commentUserIDs := make(map[int]struct{})
 
 	// allCommentsフラグによってクエリを分岐
 	var queryComments string
-		queryComments = "SELECT * FROM `comments` WHERE `post_id` IN (?) ORDER BY `created_at` DESC"
+		queryComments = "SELECT * FROM `comments` WHERE `post_id` IN (?) ORDER BY `created_at` ASC"
 	if !allComments {
 		queryComments += " LIMIT 3"
 	}
@@ -228,37 +227,24 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 	// 取得したコメントからユーザーIDを収集
 	for _, c := range allCommentsList {
-		commentUserIDs[c.UserID] = struct{}{}
+		allUserIDs[c.UserID] = struct{}{}
 	}
 
 	// --- 3. ユーザー情報の一括取得 ---
 
-	// 投稿者とコメント投稿者のIDをマージ
-	allUserIDs := make([]int, 0, len(initialUserIDs)+len(commentUserIDs))
-	for id := range initialUserIDs {
-		allUserIDs = append(allUserIDs, id)
-	}
-	for id := range commentUserIDs {
-		if _, exists := initialUserIDs[id]; !exists {
-			allUserIDs = append(allUserIDs, id)
-		}
-	}
-
 	userMap := make(map[int]User)
-	if len(allUserIDs) > 0 {
-		queryUsers := "SELECT * FROM `users` WHERE `id` IN (?)"
-		query, args, err := sqlx.In(queryUsers, allUserIDs)
-		if err != nil {
-			return nil, err
-		}
-		query = db.Rebind(query)
-		var users []User
-		if err := db.Select(&users, query, args...); err != nil {
-			return nil, err
-		}
-		for _, u := range users {
-			userMap[u.ID] = u
-		}
+	queryUsers := "SELECT * FROM `users` WHERE `id` IN (?)"
+	query, args, err := sqlx.In(queryUsers, allUserIDs)
+	if err != nil {
+		return nil, err
+	}
+	query = db.Rebind(query)
+	var users []User
+	if err := db.Select(&users, query, args...); err != nil {
+		return nil, err
+	}
+	for _, u := range users {
+		userMap[u.ID] = u
 	}
 
 	// --- 4. 取得したデータをマージ ---
@@ -266,9 +252,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 	// コメントをPostIDごとにグループ化しておく
 	commentsByPostID := make(map[int][]Comment)
 	for _, c := range allCommentsList {
-		if user, ok := userMap[c.UserID]; ok {
-			c.User = user
-		}
+		c.User = userMap[c.UserID];
 		commentsByPostID[c.PostID] = append(commentsByPostID[c.PostID], c)
 	}
 
@@ -285,65 +269,13 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 		p.CommentCount = commentCountsMap[p.ID]
 		comments := commentsByPostID[p.ID]
 		
-		// 元のコードの reverse 処理を再現
-		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
-			comments[i], comments[j] = comments[j], comments[i]
-		}
 		p.Comments = comments
 		p.CSRFToken = csrfToken
 
 		posts = append(posts, p)
-		if len(posts) >= postsPerPage {
-			break
-		}
-	}
 
-	return posts, nil
-
-	var posts []Post
-
-	for _, p := range results {
-		err := db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
-		if !allComments {
-			query += " LIMIT 3"
-		}
-		var comments []Comment
-		err = db.Select(&comments, query, p.ID)
-		if err != nil {
-			return nil, err
-		}
-
-		for i := range comments {
-			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// reverse
-		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
-			comments[i], comments[j] = comments[j], comments[i]
-		}
-
-		p.Comments = comments
-
-		err = db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		if err != nil {
-			return nil, err
-		}
-
-		p.CSRFToken = csrfToken
-
-		if p.User.DelFlg == 0 {
-			posts = append(posts, p)
-		}
-		if len(posts) >= postsPerPage {
-			break
+		if (len(posts) >= postsPerPage) {
+			break;
 		}
 	}
 
