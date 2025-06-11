@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"sync"
 
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
@@ -27,6 +28,8 @@ import (
 var (
 	db    *sqlx.DB
 	store *gsm.MemcacheStore
+	userCache = sync.Map{}  // ← 追加
+    postCache = sync.Map{}  // ← 追加
 )
 
 const (
@@ -66,6 +69,16 @@ type Comment struct {
 	User      User
 }
 
+type CacheItem struct {
+    Value     User
+    ExpiresAt time.Time
+}
+
+type PostCacheItem struct {
+    Value     []Post
+    ExpiresAt time.Time
+}
+
 func init() {
 	memdAddr := os.Getenv("ISUCONP_MEMCACHED_ADDRESS")
 	if memdAddr == "" {
@@ -88,6 +101,8 @@ func dbInitialize() {
 	for _, sql := range sqls {
 		db.Exec(sql)
 	}
+	userCache = sync.Map{}
+    postCache = sync.Map{}
 }
 
 func tryLogin(accountName, password string) *User {
@@ -141,6 +156,25 @@ func getSession(r *http.Request) *sessions.Session {
 	return session
 }
 
+func getCachedPosts(key string) ([]Post, bool) {
+    if cached, found := postCache.Load(key); found {
+        cacheItem := cached.(PostCacheItem)
+        if time.Now().Before(cacheItem.ExpiresAt) {
+            return cacheItem.Value, true
+        }
+        postCache.Delete(key)
+    }
+    return nil, false
+}
+
+// ← ここに追加
+func setCachedPosts(key string, posts []Post, ttl time.Duration) {
+    postCache.Store(key, PostCacheItem{
+        Value:     posts,
+        ExpiresAt: time.Now().Add(ttl),
+    })
+}
+
 func getSessionUser(r *http.Request) User {
 	session := getSession(r)
 	uid, ok := session.Values["user_id"]
@@ -148,12 +182,35 @@ func getSessionUser(r *http.Request) User {
 		return User{}
 	}
 
+	    var userID int64
+    switch v := uid.(type) {
+    case int:
+        userID = int64(v)
+    case int64:
+        userID = v
+    default:
+        return User{}
+    }
+
+	if cached, found := userCache.Load(userID); found {
+        cacheItem := cached.(CacheItem)
+        if time.Now().Before(cacheItem.ExpiresAt) {
+            return cacheItem.Value
+        }
+        userCache.Delete(userID)
+    }
+
 	u := User{}
 
-	err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", uid)
+	err := db.Get(&u, "SELECT * FROM `users` WHERE `id` = ?", userID)
 	if err != nil {
 		return User{}
 	}
+
+	userCache.Store(userID, CacheItem{
+        Value:     u,
+        ExpiresAt: time.Now().Add(5 * time.Minute),
+    })
 
 	return u
 }
@@ -255,7 +312,7 @@ func secureRandomStr(b int) string {
 	}
 	return fmt.Sprintf("%x", k)
 }
-
+	
 func getTemplPath(filename string) string {
 	return path.Join("templates", filename)
 }
@@ -374,6 +431,19 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 
 func getLogout(w http.ResponseWriter, r *http.Request) {
 	session := getSession(r)
+
+	    if uid, ok := session.Values["user_id"]; ok && uid != nil {
+        var userID int64
+        switch v := uid.(type) {
+        case int:
+            userID = int64(v)
+        case int64:
+            userID = v
+        }
+        if userID > 0 {
+            userCache.Delete(userID)
+        }
+    }
 	delete(session.Values, "user_id")
 	session.Options = &sessions.Options{MaxAge: -1}
 	session.Save(r, w)
@@ -383,6 +453,29 @@ func getLogout(w http.ResponseWriter, r *http.Request) {
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
+
+	    cacheKey := "index_posts"
+    
+    // ← キャッシュから取得を試行（ここを追加）
+    if posts, found := getCachedPosts(cacheKey); found {
+        fmap := template.FuncMap{
+            "imageURL": imageURL,
+        }
+
+        template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
+            getTemplPath("layout.html"),
+            getTemplPath("index.html"),
+            getTemplPath("posts.html"),
+            getTemplPath("post.html"),
+        )).Execute(w, struct {
+            Posts     []Post
+            Me        User
+            CSRFToken string
+            Flash     string
+        }{posts, me, getCSRFToken(r), getFlash(w, r, "notice")})
+        return
+    }
+
 
 	results := []Post{}
 
@@ -397,6 +490,8 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
+
+	setCachedPosts(cacheKey, posts, 3*time.Minute)
 
 	fmap := template.FuncMap{
 		"imageURL": imageURL,
@@ -666,6 +761,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
+	postCache.Delete("index_posts")
 
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
 }
@@ -727,6 +823,8 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	postCache.Delete("index_posts")
+
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }
 
@@ -786,7 +884,12 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 
 	for _, id := range r.Form["uid[]"] {
 		db.Exec(query, 1, id)
-	}
+		if userID, err := strconv.ParseInt(id, 10, 64); err == nil {
+            userCache.Delete(userID)
+        }
+    }
+
+	postCache.Delete("index_posts")
 
 	http.Redirect(w, r, "/admin/banned", http.StatusFound)
 }
