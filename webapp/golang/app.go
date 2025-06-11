@@ -3,13 +3,13 @@ package main
 import (
 	crand "crypto/rand"
 	"fmt"
-	"crypto/sha512"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strconv"
@@ -117,8 +117,6 @@ func escapeshellarg(arg string) string {
 }
 
 func digest(src string) string {
-	return fmt.Sprintf("%x", sha512.Sum512([]byte(src)))
-	/*
 	// opensslのバージョンによっては (stdin)= というのがつくので取る
 	out, err := exec.Command("/bin/bash", "-c", `printf "%s" `+escapeshellarg(src)+` | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
 	if err != nil {
@@ -127,7 +125,6 @@ func digest(src string) string {
 	}
 
 	return strings.TrimSuffix(string(out), "\n")
-	*/
 }
 
 func calculateSalt(accountName string) string {
@@ -616,26 +613,27 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mime := ""
-	if file != nil {
-		// 投稿のContent-Typeからファイルのタイプを決定する
-		contentType := header.Header["Content-Type"][0]
-		if strings.Contains(contentType, "jpeg") {
-			mime = "image/jpeg"
-		} else if strings.Contains(contentType, "png") {
-			mime = "image/png"
-		} else if strings.Contains(contentType, "gif") {
-			mime = "image/gif"
-		} else {
-			session := getSession(r)
-			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
-			session.Save(r, w)
+	defer file.Close()
 
-			http.Redirect(w, r, "/", http.StatusFound)
-			return
-		}
+	// Determine MIME type
+	contentType := header.Header.Get("Content-Type")
+	var ext string
+	switch {
+	case strings.Contains(contentType, "jpeg"):
+		ext = "jpg"
+	case strings.Contains(contentType, "png"):
+		ext = "png"
+	case strings.Contains(contentType, "gif"):
+		ext = "gif"
+	default:
+		session := getSession(r)
+		session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
+		session.Save(r, w)
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
 	}
 
+	// Read file data
 	filedata, err := io.ReadAll(file)
 	if err != nil {
 		log.Print(err)
@@ -651,12 +649,11 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
+	query := "INSERT INTO `posts` (`user_id`, `mime`, `body`) VALUES (?,?,?)"
 	result, err := db.Exec(
 		query,
 		me.ID,
-		mime,
-		filedata,
+		contentType,
 		r.FormValue("body"),
 	)
 	if err != nil {
@@ -667,6 +664,14 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	pid, err := result.LastInsertId()
 	if err != nil {
 		log.Print(err)
+		return
+	}
+
+	// Save file to disk
+	filename := fmt.Sprintf("/home/isucon/private_isu/webapp/public/image/%d.%s", pid, ext)
+	err = os.WriteFile(filename, filedata, 0644)
+	if err != nil {
+		log.Printf("Failed to save image to disk: %v", err)
 		return
 	}
 
