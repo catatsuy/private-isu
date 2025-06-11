@@ -16,7 +16,6 @@ import (
 	"strings"
 	"time"
 	"sync"
-
 	
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
