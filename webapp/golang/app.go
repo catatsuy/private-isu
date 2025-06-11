@@ -653,7 +653,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	result, err := db.Exec(
 		query,
 		me.ID,
-		filedata,
+		contentType,
 		r.FormValue("body"),
 	)
 	if err != nil {
