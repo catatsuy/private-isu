@@ -172,6 +172,134 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 }
 
 func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, error) {
+	if len(results) == 0 {
+		return []Post{}, nil
+	}
+
+	// --- 1. IDの一括抽出 ---
+	postIDs := make([]int, 0, len(results))
+	initialUserIDs := make(map[int]struct{}) // ユーザーIDの重複をなくすためmapを使用
+	for _, p := range results {
+		postIDs = append(postIDs, p.ID)
+		initialUserIDs[p.UserID] = struct{}{}
+	}
+
+	// --- 2. コメント関連データの一括取得 ---
+
+	// 2a. コメント数をpost_idごとに一括取得
+	commentCountsMap := make(map[int]int)
+	queryCount := "SELECT `post_id`, COUNT(*) AS `count` FROM `comments` WHERE `post_id` IN (?) GROUP BY `post_id`"
+	type postCommentCount struct {
+		PostID int `db:"post_id"`
+		Count  int `db:"count"`
+	}
+	var counts []postCommentCount
+	query, args, err := sqlx.In(queryCount, postIDs)
+	if err != nil {
+		return nil, err
+	}
+	query = db.Rebind(query)
+	if err := db.Select(&counts, query, args...); err != nil {
+		return nil, err
+	}
+	for _, c := range counts {
+		commentCountsMap[c.PostID] = c.Count
+	}
+
+	// 2b. コメントをpost_idごとに一括取得
+	var allCommentsList []Comment
+	commentUserIDs := make(map[int]struct{})
+
+	// allCommentsフラグによってクエリを分岐
+	var queryComments string
+		queryComments = "SELECT * FROM `comments` WHERE `post_id` IN (?) ORDER BY `created_at` DESC"
+	if !allComments {
+		queryComments += " LIMIT 3"
+	}
+
+	query, args, err = sqlx.In(queryComments, postIDs)
+	if err != nil {
+		return nil, err
+	}
+	query = db.Rebind(query)
+	if err := db.Select(&allCommentsList, query, args...); err != nil {
+		return nil, err
+	}
+
+	// 取得したコメントからユーザーIDを収集
+	for _, c := range allCommentsList {
+		commentUserIDs[c.UserID] = struct{}{}
+	}
+
+	// --- 3. ユーザー情報の一括取得 ---
+
+	// 投稿者とコメント投稿者のIDをマージ
+	allUserIDs := make([]int, 0, len(initialUserIDs)+len(commentUserIDs))
+	for id := range initialUserIDs {
+		allUserIDs = append(allUserIDs, id)
+	}
+	for id := range commentUserIDs {
+		if _, exists := initialUserIDs[id]; !exists {
+			allUserIDs = append(allUserIDs, id)
+		}
+	}
+
+	userMap := make(map[int]User)
+	if len(allUserIDs) > 0 {
+		queryUsers := "SELECT * FROM `users` WHERE `id` IN (?)"
+		query, args, err := sqlx.In(queryUsers, allUserIDs)
+		if err != nil {
+			return nil, err
+		}
+		query = db.Rebind(query)
+		var users []User
+		if err := db.Select(&users, query, args...); err != nil {
+			return nil, err
+		}
+		for _, u := range users {
+			userMap[u.ID] = u
+		}
+	}
+
+	// --- 4. 取得したデータをマージ ---
+
+	// コメントをPostIDごとにグループ化しておく
+	commentsByPostID := make(map[int][]Comment)
+	for _, c := range allCommentsList {
+		if user, ok := userMap[c.UserID]; ok {
+			c.User = user
+		}
+		commentsByPostID[c.PostID] = append(commentsByPostID[c.PostID], c)
+	}
+
+	var posts []Post
+	for _, p := range results {
+		// 投稿者情報をマージ
+		if user, ok := userMap[p.UserID]; ok && user.DelFlg == 0 {
+			p.User = user
+		} else {
+			continue // ユーザーが存在しないか削除済みなら投稿をスキップ
+		}
+
+		// コメント数とコメント本体をマージ
+		p.CommentCount = commentCountsMap[p.ID]
+		comments := commentsByPostID[p.ID]
+		
+		// 元のコードの reverse 処理を再現
+		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
+			comments[i], comments[j] = comments[j], comments[i]
+		}
+		p.Comments = comments
+		p.CSRFToken = csrfToken
+
+		posts = append(posts, p)
+		if len(posts) >= postsPerPage {
+			break
+		}
+	}
+
+	return posts, nil
+
 	var posts []Post
 
 	for _, p := range results {
