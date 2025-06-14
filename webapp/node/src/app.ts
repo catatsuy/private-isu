@@ -33,7 +33,7 @@ app.use(
     resave: true,
     saveUninitialized: true,
     secret: process.env.ISUCONP_SESSION_SECRET || 'sendagaya',
-    store: new MemcachedStore({ hosts: ['127.0.0.1:11211'] })
+    store: new MemcachedStore({ hosts: [process.env.ISUCONP_MEMCACHED_ADDRESS || 'localhost:11211'] })
   })
 );
 
