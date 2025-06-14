@@ -139,6 +139,8 @@ docker compose up
 
 デフォルトはRubyの参考実装です。Node.js(TypeScript) を利用する場合は、`docker-compose.yml` の `app` サービスの `build` コンテキストを `node/` に変更してください。PHPの参考実装を利用する場合は、それに加えて以下の作業が必要です。
 
+Node.js 実装は Node 20 ベースの TypeScript です。開発時は `webapp/node` ディレクトリで `npm run dev` を実行するとホットリロードで動作を確認できます。
+
 ```sh
 cd webapp/etc
 mv nginx/conf.d/default.conf nginx/conf.d/default.conf.org

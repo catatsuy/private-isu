@@ -68,6 +68,8 @@
   tasks:
     - name: npm install
       shell: cd /home/isucon/private_isu/webapp/node; bash -lc "npm install"
+    - name: build TypeScript
+      shell: cd /home/isucon/private_isu/webapp/node; bash -lc "npm run build"
   tags:
     - nodejs
 
