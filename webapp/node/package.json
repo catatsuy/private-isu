@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node-dev --respawn src/app.ts"
+    "dev": "ts-node-dev --respawn src/app.ts",
+    "start": "node dist/app.js"
   },
   "dependencies": {
     "connect-memcached": "^2.0.0",
