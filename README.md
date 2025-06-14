@@ -51,14 +51,13 @@ Ubuntu 24.04
 * PHP
 * Python
 
-Node.js の参考実装も同梱されていますが、こちらは現在メンテナンスされておらず、AMIや一部の起動方法ではセットアップが省略されています。
+Node.js の参考実装は TypeScript で書き直され、`webapp/node` に配置されています。Docker Compose からも利用可能です。
 
 ## 起動方法
 
 **重要:** 以下のいずれの手順を実行する前にも、まずプロジェクトのルートディレクトリで `make init` を実行して初期データを準備してください。
 
-* Ruby、Go、PHP、Pythonの4言語の参考実装が用意されており、デフォルトではRubyが起動します。
-  * Node.jsの参考実装は現状メンテナンスされていません。
+* Ruby、Go、PHP、Python、Node.js(TypeScript)の5言語の参考実装が用意されており、デフォルトではRubyが起動します。
   * AMIまたはVagrantで他の言語の参考実装を動作させる場合は、[`manual.md`](/manual.md)を参照してください。
 * 起動方法として、AMI、Docker Compose、Vagrantが用意されています。
   * ローカル環境で手軽に動作させることも比較的簡単です。
@@ -67,7 +66,7 @@ Node.js の参考実装も同梱されていますが、こちらは現在メン
 
 ### AMI
 
-セキュリティアップデートは行われないため、自己責任で利用してください。Node.jsのセットアップは省略されているため、Ruby、PHP、Goのみ利用可能です。また、Node.jsの参考実装は現在メンテナンスされていません。
+セキュリティアップデートは行われないため、自己責任で利用してください。AMI では Ruby、PHP、Go のみ自動セットアップされます。Node.js(TypeScript) を利用する場合は自身で環境を整える必要があります。
 
 * 競技者用インスタンスでは、セキュリティグループでTCP/80番ポートへのアクセスを許可する必要があります。
   * EC2インスタンス作成時のネットワーク設定で「インターネットからのHTTPトラフィックを許可する」といったオプションにチェックを入れても構いません。
@@ -138,7 +137,7 @@ docker compose up
 
 （もし `docker compose up` でうまく動作しない場合は、代わりに `docker compose up` を試してみてください）
 
-デフォルトはRubyの参考実装です。Node.jsの参考実装は現状メンテナンスされていません。他の言語に変更する場合は、`docker-compose.yml`ファイル内の`app`サービスの`build`設定を変更してください。PHPの参考実装を利用する場合は、それに加えて以下の作業が必要です。
+デフォルトはRubyの参考実装です。Node.js(TypeScript) を利用する場合は、`docker-compose.yml` の `app` サービスの `build` コンテキストを `node/` に変更してください。PHPの参考実装を利用する場合は、それに加えて以下の作業が必要です。
 
 ```sh
 cd webapp/etc
@@ -191,7 +190,7 @@ $ sudo su - isucon
 $ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://172.28.128.6
 ```
 
-起動直後はRubyの参考実装が動作しています。Node.jsの参考実装は現状メンテナンスされていません。他の言語を使用する場合は、[`manual.md`](/manual.md)を参照して必要な作業を行ってください。
+起動直後はRubyの参考実装が動作しています。Node.js(TypeScript) を含む他の言語を利用する場合は、[`manual.md`](/manual.md)を参照して必要な作業を行ってください。
 
 ### cloud-init を利用して環境を構築する
 
