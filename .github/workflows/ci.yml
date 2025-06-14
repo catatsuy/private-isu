@@ -6,6 +6,8 @@ on:
       - "webapp/golang/**"
       - "webapp/ruby/**"
       - "webapp/php/**"
+      - "webapp/python/**"
+      - "webapp/node/**"
       - "benchmarker/**"
       - ".github/workflows/ci.yml"
       - "Makefile"
