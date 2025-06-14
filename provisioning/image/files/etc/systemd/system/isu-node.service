@@ -10,7 +10,7 @@ PIDFile=/home/isucon/private_isu/webapp/node/server.pid
 
 User=isucon
 Group=isucon
-ExecStart=/home/isucon/.local/node/bin/node app.js
+ExecStart=/home/isucon/.local/node/bin/node dist/app.js
 ExecStop=/bin/kill -s QUIT $MAINPID
 
 [Install]
