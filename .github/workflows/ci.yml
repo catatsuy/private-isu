@@ -46,6 +46,10 @@ jobs:
             echo "Changes detected in python directory"
             echo "python_changes_detected=true" >> $GITHUB_OUTPUT
           fi
+          if echo "$CHANGED_FILES" | grep 'node/'; then
+            echo "Changes detected in node directory"
+            echo "node_changes_detected=true" >> $GITHUB_OUTPUT
+          fi
 
       - name: Download purl
         run: |
@@ -71,6 +75,11 @@ jobs:
         if: steps.check-changes.outputs.python_changes_detected == 'true'
         run: |
           purl -fail -overwrite -replace '@context: ruby/@context: python/@' ./webapp/docker-compose.yml
+
+      - name: Update compose.yml if changes are detected
+        if: steps.check-changes.outputs.node_changes_detected == 'true'
+        run: |
+          purl -fail -overwrite -replace '@context: ruby/@context: node/@' ./webapp/docker-compose.yml
 
       - name: Start the server
         run: |

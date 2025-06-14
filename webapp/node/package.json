@@ -1,0 +1,28 @@
+{
+  "name": "private-isu-node",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node-dev --respawn src/app.ts"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-session": "^1.17.3",
+    "connect-memcached": "^0.2.3",
+    "mysql2": "^3.9.4",
+    "multer": "^1.4.5-lts.1",
+    "ejs": "^3.1.9",
+    "express-flash": "^0.0.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/express-session": "^1.17.7",
+    "@types/connect-memcached": "^0.2.1",
+    "@types/multer": "^1.4.7",
+    "@types/ejs": "^3.1.4",
+    "@types/express-flash": "^0.0.4",
+    "typescript": "^5.4.2",
+    "ts-node-dev": "^2.0.0"
+  }
+}
