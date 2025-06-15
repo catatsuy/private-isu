@@ -50,7 +50,7 @@ EC2インスタンスのパブリックIPアドレスにブラウザでアクセ
 
 ### 参考実装の言語切り替え方法
 
-初期状態ではRubyによる参考実装が起動しています。これをベースに最適化を進めるか、必要に応じてPHP、Go、またはPythonの参考実装に切り替えることができます。一度に起動できるアプリケーション言語は1つだけです。基本的な切り替え手順は、現在動作しているRubyのサービス(`isu-ruby`)を停止・無効化し、その後、目的の言語のサービスを起動・有効化します。PHPへ切り替える場合、またはPHPからRubyへ戻す場合は、Nginxの設定変更も伴います。
+初期状態ではRubyによる参考実装が起動しています。これをベースに最適化を進めるか、必要に応じてPHP、Go、Node.js、またはPythonの参考実装に切り替えることができます。一度に起動できるアプリケーション言語は1つだけです。基本的な切り替え手順は、現在動作しているRubyのサービス(`isu-ruby`)を停止・無効化し、その後、目的の言語のサービスを起動・有効化します。PHPへ切り替える場合、またはPHPからRubyへ戻す場合は、Nginxの設定変更も伴います。
 
 80番ポートでアクセスできるので、ブラウザから動作確認をすることができます。
 
@@ -147,6 +147,26 @@ $ sudo systemctl enable isu-python
 ```bash
 # リアルタイムでログを追う
 $ sudo journalctl -f -u isu-python
+```
+
+#### Node.js (isu-node) への切り替え方
+
+Ruby実装からNode.js実装に切り替えるには、以下の操作を行います。まず、Rubyサービスを停止・無効化します:
+
+```bash
+$ sudo systemctl stop isu-ruby
+$ sudo systemctl disable isu-ruby
+```
+
+```bash
+$ sudo systemctl start isu-node
+$ sudo systemctl enable isu-node
+```
+
+プログラムの詳しい起動方法は、 /etc/systemd/system/isu-node.service を参照してください。
+
+```bash
+$ sudo journalctl -f -u isu-node
 ```
 
 ### MySQL
