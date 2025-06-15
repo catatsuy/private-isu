@@ -91,7 +91,7 @@ $ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_i
 
 以下のAMI IDで起動できます（リージョンは `ap-northeast-1` （アジアパシフィック (東京)））。これは特定日時のスナップショットのため、より新しいAMIが利用可能になっている場合があります。AWSコンソールで最新情報を確認することをお勧めします。推奨インスタンスタイプは、競技者用が`c7a.large`、ベンチマーカー用が`c7a.xlarge`です。
 
-競技者用 (Ubuntu 24.04, amd64): [`catatsuy_private_isu_amd64_20250427`](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-0505850c059a7302e)
+競技者用 (Ubuntu 24.04, amd64): [`catatsuy_private_isu_amd64_20250615`](https://ap-northeast-1.console.aws.amazon.com/ec2/home?region=ap-northeast-1#ImageDetails:imageId=ami-002d61d6436f85f12)
 
 ### 手元で動かす
 
