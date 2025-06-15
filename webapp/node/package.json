@@ -8,6 +8,8 @@
     "start": "node dist/app.js"
   },
   "dependencies": {
+    "@types/connect-memcached": "^1.0.3",
+    "@types/express-session": "^1.18.2",
     "connect-memcached": "^2.0.0",
     "ejs": "^3.1.9",
     "express": "^5.0.0",
@@ -20,7 +22,6 @@
     "@types/ejs": "^3.1.4",
     "@types/express": "^5.0.0",
     "@types/express-flash": "^0.0.5",
-    "@types/express-session": "^1.18.2",
     "@types/multer": "^1.4.7",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.2"
