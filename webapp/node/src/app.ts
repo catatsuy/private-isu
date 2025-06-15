@@ -1,9 +1,14 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import session from 'express-session';
 import flash from 'express-flash';
-import ejs from 'ejs';
+import ejs, { Data as EjsData } from 'ejs';
 import multer from 'multer';
-import {createPool, Pool} from 'mysql2/promise';
+import {
+  createPool,
+  Pool,
+  RowDataPacket,
+  ResultSetHeader,
+} from 'mysql2/promise';
 import crypto from 'crypto';
 import connectMemcached from 'connect-memcached';
 
@@ -24,7 +29,48 @@ const db: Pool = createPool({
   charset: 'utf8mb4'
 });
 
-app.engine('ejs', ejs.renderFile as any);
+interface User {
+  id: number;
+  account_name: string;
+  passhash: string;
+  authority: number;
+  del_flg: number;
+  created_at: Date;
+  csrfToken?: string;
+}
+
+interface Post {
+  id: number;
+  user_id: number;
+  imgdata: Buffer;
+  body: string;
+  mime: string;
+  created_at: Date;
+  comment_count?: number;
+  comments?: Comment[];
+  user?: User;
+}
+
+interface Comment {
+  id: number;
+  post_id: number;
+  user_id: number;
+  comment: string;
+  created_at: Date;
+  user?: User;
+}
+
+interface CountRow {
+  count: number;
+}
+
+interface IdRow {
+  id: number;
+}
+
+app.engine('ejs', (path, options, callback) => {
+  ejs.renderFile(path, options as EjsData, {}, callback);
+});
 app.use(express.urlencoded({ extended: true }));
 app.set('etag', false);
 
@@ -39,13 +85,13 @@ app.use(
 
 app.use(flash());
 
-async function getSessionUser(req: express.Request) {
+async function getSessionUser(req: Request): Promise<User | undefined> {
   if (!req.session.userId) return undefined;
-  const [rows] = await db.query<any[]>(
+  const [rows] = await db.query<RowDataPacket[]>(
     'SELECT * FROM `users` WHERE `id` = ?',
     [req.session.userId]
   );
-  const user = rows[0];
+  const user = rows[0] as User;
   if (user) user.csrfToken = req.session.csrfToken;
   return user;
 }
@@ -66,12 +112,12 @@ function calculatePasshash(accountName: string, password: string) {
   return digest(`${password}:${salt}`);
 }
 
-async function tryLogin(accountName: string, password: string) {
-  const [rows] = await db.query<any[]>(
+async function tryLogin(accountName: string, password: string): Promise<User | undefined> {
+  const [rows] = await db.query<RowDataPacket[]>(
     'SELECT * FROM users WHERE account_name = ? AND del_flg = 0',
     [accountName]
   );
-  const user = rows[0];
+  const user = rows[0] as User;
   if (!user) return undefined;
   const passhash = calculatePasshash(accountName, password);
   if (passhash === user.passhash) return user;
@@ -79,11 +125,11 @@ async function tryLogin(accountName: string, password: string) {
 }
 
 async function getUser(userId: number) {
-  const [rows] = await db.query<any[]>(
+  const [rows] = await db.query<RowDataPacket[]>(
     'SELECT * FROM `users` WHERE `id` = ?',
     [userId]
   );
-  return rows[0];
+  return rows[0] as User;
 }
 
 async function dbInitialize() {
@@ -93,11 +139,11 @@ async function dbInitialize() {
     'DELETE FROM comments WHERE id > 100000',
     'UPDATE users SET del_flg = 0'
   ];
-  await Promise.all(sqls.map((sql) => db.query(sql)));
-  await db.query('UPDATE users SET del_flg = 1 WHERE id % 50 = 0');
+  await Promise.all(sqls.map((sql) => db.query<ResultSetHeader>(sql)));
+  await db.query<ResultSetHeader>('UPDATE users SET del_flg = 1 WHERE id % 50 = 0');
 }
 
-function imageUrl(post: any) {
+function imageUrl(post: Pick<Post, 'id' | 'mime'>) {
   let ext = '';
   switch (post.mime) {
     case 'image/jpeg':
@@ -113,38 +159,38 @@ function imageUrl(post: any) {
   return `/image/${post.id}${ext}`;
 }
 
-async function makeComment(comment: any) {
+async function makeComment(comment: Comment): Promise<Comment> {
   comment.user = await getUser(comment.user_id);
   return comment;
 }
 
-async function makePost(post: any, options: { allComments?: boolean } = {}) {
-  const [[countRow]] = await db.query<any[]>(
+async function makePost(post: Post, options: { allComments?: boolean } = {}): Promise<Post> {
+  const [[countRow]] = await db.query<RowDataPacket[]>(
     'SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?',
     [post.id]
   );
-  post.comment_count = countRow.count || 0;
+  post.comment_count = (countRow as CountRow | undefined)?.count || 0;
   let query =
     'SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC';
   if (!options.allComments) {
     query += ' LIMIT 3';
   }
-  const [comments] = await db.query<any[]>(query, [post.id]);
-  post.comments = await Promise.all(comments.map(makeComment));
+  const [commentRows] = await db.query<RowDataPacket[]>(query, [post.id]);
+  post.comments = await Promise.all((commentRows as Comment[]).map(makeComment));
   post.user = await getUser(post.user_id);
   return post;
 }
 
-function filterPosts(posts: any[]) {
-  return posts.filter((p) => p.user.del_flg === 0).slice(0, POSTS_PER_PAGE);
+function filterPosts(posts: Post[]): Post[] {
+  return posts.filter((p) => p.user && p.user.del_flg === 0).slice(0, POSTS_PER_PAGE);
 }
 
-async function makePosts(posts: any[], options: { allComments?: boolean } = {}) {
+async function makePosts(posts: Post[], options: { allComments?: boolean } = {}): Promise<Post[]> {
   if (posts.length === 0) return [];
   return Promise.all(posts.map((p) => makePost(p, options)));
 }
 
-app.get('/initialize', async (_req, res) => {
+app.get('/initialize', async (_req: Request, res: Response) => {
   try {
     await dbInitialize();
     res.send('OK');
@@ -154,7 +200,7 @@ app.get('/initialize', async (_req, res) => {
   }
 });
 
-app.get('/login', async (req, res) => {
+app.get('/login', async (req: Request, res: Response) => {
   const me = await getSessionUser(req);
   if (me) {
     res.redirect('/');
@@ -163,7 +209,7 @@ app.get('/login', async (req, res) => {
   res.render('login.ejs', { me });
 });
 
-app.post('/login', async (req, res) => {
+app.post('/login', async (req: Request, res: Response) => {
   const me = await getSessionUser(req);
   if (me) {
     res.redirect('/');
@@ -188,7 +234,7 @@ app.post('/login', async (req, res) => {
   }
 });
 
-app.get('/register', async (req, res) => {
+app.get('/register', async (req: Request, res: Response) => {
   const me = await getSessionUser(req);
   if (me) {
     res.redirect('/');
@@ -197,7 +243,7 @@ app.get('/register', async (req, res) => {
   res.render('register.ejs', { me });
 });
 
-app.post('/register', async (req, res) => {
+app.post('/register', async (req: Request, res: Response) => {
   const me = await getSessionUser(req);
   if (me) {
     res.redirect('/');
@@ -210,7 +256,7 @@ app.post('/register', async (req, res) => {
     res.redirect('/register');
     return;
   }
-  const [rows] = await db.query<any[]>(
+  const [rows] = await db.query<RowDataPacket[]>(
     'SELECT 1 FROM users WHERE `account_name` = ?',
     [accountName]
   );
@@ -224,11 +270,11 @@ app.post('/register', async (req, res) => {
     'INSERT INTO `users` (`account_name`, `passhash`) VALUES (?, ?)',
     [accountName, passhash]
   );
-  const [meRow] = await db.query<any[]>(
+  const [meRow] = await db.query<RowDataPacket[]>(
     'SELECT * FROM `users` WHERE `account_name` = ?',
     [accountName]
   );
-  const newUser = meRow[0];
+  const newUser = meRow[0] as User;
   req.session.userId = newUser.id;
   req.session.csrfToken = crypto.randomBytes(16).toString('hex');
   res.redirect('/');
@@ -240,13 +286,14 @@ app.get('/logout', (req, res) => {
   });
 });
 
-app.get('/', async (req, res) => {
+app.get('/', async (req: Request, res: Response) => {
   try {
     const me = await getSessionUser(req);
-    const [posts] = await db.query<any[]>(
-      'SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC'
-    );
-    const enriched = await makePosts(posts.slice(0, POSTS_PER_PAGE * 2));
+  const [postRows] = await db.query<RowDataPacket[]>(
+    'SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC'
+  );
+  const posts = postRows as Post[];
+  const enriched = await makePosts(posts.slice(0, POSTS_PER_PAGE * 2));
     res.render('index.ejs', { posts: filterPosts(enriched), me, imageUrl });
   } catch (e) {
     console.error(e);
@@ -254,40 +301,40 @@ app.get('/', async (req, res) => {
   }
 });
 
-app.get('/@:accountName/', async (req, res) => {
+app.get('/@:accountName/', async (req: Request, res: Response) => {
   try {
-    const [urows] = await db.query<any[]>(
+    const [urows] = await db.query<RowDataPacket[]>(
       'SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0',
       [req.params.accountName]
     );
-    const user = urows[0];
+    const user = urows[0] as User;
     if (!user) {
       res.status(404).send('not_found');
       return;
     }
-    const [postRows] = await db.query<any[]>(
+    const [postRowData] = await db.query<RowDataPacket[]>(
       'SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC',
       [user.id]
     );
-    const posts = await makePosts(postRows);
-    const [commentCountRows] = await db.query<any[]>(
+    const posts = await makePosts(postRowData as Post[]);
+    const [commentCountRows] = await db.query<RowDataPacket[]>(
       'SELECT COUNT(*) AS count FROM `comments` WHERE `user_id` = ?',
       [user.id]
     );
-    const commentCount = commentCountRows[0] ? commentCountRows[0].count : 0;
-    const [postIdRows] = await db.query<any[]>(
+    const commentCount = (commentCountRows[0] as CountRow | undefined)?.count ?? 0;
+    const [postIdRows] = await db.query<RowDataPacket[]>(
       'SELECT `id` FROM `posts` WHERE `user_id` = ?',
       [user.id]
     );
-    const postIds = postIdRows.map((r: any) => r.id);
+    const postIds = (postIdRows as IdRow[]).map((r) => r.id);
     const postCount = postIds.length;
     let commentedCount = 0;
     if (postCount > 0) {
-      const [countRows] = await db.query<any[]>(
+      const [countRows] = await db.query<RowDataPacket[]>(
         'SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN (?)',
         [postIds]
       );
-      commentedCount = countRows[0] ? countRows[0].count : 0;
+      commentedCount = (countRows[0] as CountRow | undefined)?.count ?? 0;
     }
     const me = await getSessionUser(req);
     res.render('user.ejs', {
@@ -305,26 +352,28 @@ app.get('/@:accountName/', async (req, res) => {
   }
 });
 
-app.get('/posts', async (req, res) => {
+app.get('/posts', async (req: Request, res: Response) => {
   let maxCreatedAt = new Date(req.query.max_created_at as string);
   if (maxCreatedAt.toString() === 'Invalid Date') {
     maxCreatedAt = new Date();
   }
-  const [posts] = await db.query<any[]>(
+  const [postRows] = await db.query<RowDataPacket[]>(
     'SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC',
     [maxCreatedAt]
   );
+  const posts = postRows as Post[];
   const enriched = await makePosts(posts.slice(0, POSTS_PER_PAGE * 2));
   const me = await getSessionUser(req);
   res.render('posts.ejs', { me, imageUrl, posts: filterPosts(enriched) });
 });
 
-app.get('/posts/:id', async (req, res) => {
-  const [posts] = await db.query<any[]>(
+app.get('/posts/:id', async (req: Request, res: Response) => {
+  const [postRows] = await db.query<RowDataPacket[]>(
     'SELECT * FROM `posts` WHERE `id` = ?',
     [req.params.id]
   );
-  const enriched = await makePosts(posts as any[], { allComments: true });
+  const posts = postRows as Post[];
+  const enriched = await makePosts(posts, { allComments: true });
   const post = enriched[0];
   if (!post) {
     res.status(404).send('not found');
@@ -334,7 +383,7 @@ app.get('/posts/:id', async (req, res) => {
   res.render('post.ejs', { imageUrl, post, me });
 });
 
-app.post('/', upload.single('file'), async (req, res) => {
+app.post('/', upload.single('file'), async (req: Request, res: Response) => {
   const me = await getSessionUser(req);
   if (!me) {
     res.redirect('/login');
@@ -366,21 +415,21 @@ app.post('/', upload.single('file'), async (req, res) => {
     res.redirect('/');
     return;
   }
-  const [result] = await db.query<any>(
+  const [result] = await db.query<ResultSetHeader>(
     'INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)',
     [me.id, mime, req.file.buffer, req.body.body]
   );
-  const insertId = (result as any).insertId;
+  const insertId = result.insertId;
   res.redirect(`/posts/${encodeURIComponent(insertId)}`);
 });
 
-app.get('/image/:id.:ext', async (req, res) => {
+app.get('/image/:id.:ext', async (req: Request, res: Response) => {
   try {
-    const [posts] = await db.query<any[]>(
+    const [posts] = await db.query<RowDataPacket[]>(
       'SELECT * FROM `posts` WHERE `id` = ?',
       [req.params.id]
     );
-    const post = posts[0];
+    const post = (posts as Post[])[0];
     if (!post) {
       res.status(404).send('image not found');
       return;
@@ -399,7 +448,7 @@ app.get('/image/:id.:ext', async (req, res) => {
   }
 });
 
-app.post('/comment', async (req, res) => {
+app.post('/comment', async (req: Request, res: Response) => {
   const me = await getSessionUser(req);
   if (!me) {
     res.redirect('/login');
@@ -413,14 +462,14 @@ app.post('/comment', async (req, res) => {
     res.send('post_idは整数のみです');
     return;
   }
-  await db.query(
+  await db.query<ResultSetHeader>(
     'INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)',
     [req.body.post_id, me.id, req.body.comment || '']
   );
   res.redirect(`/posts/${encodeURIComponent(req.body.post_id)}`);
 });
 
-app.get('/admin/banned', async (req, res) => {
+app.get('/admin/banned', async (req: Request, res: Response) => {
   const me = await getSessionUser(req);
   if (!me) {
     res.redirect('/login');
@@ -430,13 +479,14 @@ app.get('/admin/banned', async (req, res) => {
     res.status(403).send('authority is required');
     return;
   }
-  const [users] = await db.query<any[]>(
+  const [userRows] = await db.query<RowDataPacket[]>(
     'SELECT * FROM `users` WHERE `authority` = 0 AND `del_flg` = 0 ORDER BY `created_at` DESC'
   );
+  const users = userRows as User[];
   res.render('banned.ejs', { me, users });
 });
 
-app.post('/admin/banned', async (req, res) => {
+app.post('/admin/banned', async (req: Request, res: Response) => {
   const me = await getSessionUser(req);
   if (!me) {
     res.redirect('/');
@@ -451,8 +501,8 @@ app.post('/admin/banned', async (req, res) => {
     return;
   }
   const query = 'UPDATE `users` SET `del_flg` = ? WHERE `id` = ?';
-  const ids = Array.isArray(req.body.uid) ? req.body.uid : [req.body.uid];
-  await Promise.all(ids.map((id: any) => db.query(query, [1, id])));
+  const ids: string[] = Array.isArray(req.body.uid) ? req.body.uid : [req.body.uid];
+  await Promise.all(ids.map((id: string) => db.query<ResultSetHeader>(query, [1, id])));
   res.redirect('/admin/banned');
 });
 
