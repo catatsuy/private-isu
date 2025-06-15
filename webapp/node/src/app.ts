@@ -279,7 +279,7 @@ app.get('/', async (c) => {
   }
 })
 
-app.get('/@:accountName/', async (c) => {
+const userHandler = async (c: any) => {
   try {
     const accountName = c.req.param('accountName')
     const [urows] = await db.query<RowDataPacket[]>('SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', [accountName])
@@ -303,7 +303,10 @@ app.get('/@:accountName/', async (c) => {
     console.error(e)
     return c.text('ERROR', 500)
   }
-})
+}
+
+app.get('/@:accountName', userHandler)
+app.get('/@:accountName/', userHandler)
 
 app.get('/posts', async (c) => {
   let maxCreatedAt = new Date(String(c.req.query('max_created_at') || ''))
@@ -358,9 +361,9 @@ app.get('/image/:id.:ext', async (c) => {
     const ext = c.req.param('ext')
     const [posts] = await db.query<RowDataPacket[]>('SELECT * FROM `posts` WHERE `id` = ?', [id])
     const post = (posts as Post[])[0]
-    if (!post) return c.text('image not found', 404)
-    if ((ext === 'jpg' && post.mime === 'image/jpeg') || (ext === 'png' && post.mime === 'image/png') || (ext === 'gif' && post.mime === 'image/gif')) {
-      return new Response(post.imgdata, { headers: { 'Content-Type': post.mime } })
+  if (!post) return c.text('image not found', 404)
+  if ((ext === 'jpg' && post.mime === 'image/jpeg') || (ext === 'png' && post.mime === 'image/png') || (ext === 'gif' && post.mime === 'image/gif')) {
+      return c.body(post.imgdata, 200, { 'Content-Type': post.mime })
     }
   } catch (e) {
     console.error(e)
@@ -403,6 +406,6 @@ app.post('/admin/banned', async (c) => {
 
 app.use('/*', serveStatic({ root: '../public' }))
 
-serve(app, (info) => {
+serve({ fetch: app.fetch, port: 8080 }, (info) => {
   console.log(`server started on ${info.port}`)
 })
