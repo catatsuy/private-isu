@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { serve } from '@hono/node-server'
 import { getCookie, setCookie } from 'hono/cookie'
 import { serveStatic } from '@hono/node-server/serve-static'
@@ -15,6 +15,7 @@ type Variables = {
 }
 
 const app = new Hono<{ Variables: Variables }>()
+type AppContext = Context<{ Variables: Variables }>
 
 const POSTS_PER_PAGE = 20
 const UPLOAD_LIMIT = 10 * 1024 * 1024
@@ -174,7 +175,7 @@ async function makePosts(posts: Post[], options: { allComments?: boolean } = {})
   return Promise.all(posts.map((p) => makePost(p, options)))
 }
 
-async function render(c: any, view: string, params: Record<string, unknown>) {
+async function render(c: AppContext, view: string, params: Record<string, unknown>) {
   const session = c.get('session') as SessionData
   const messages = { notice: session.flashNotice }
   session.flashNotice = undefined
@@ -182,7 +183,7 @@ async function render(c: any, view: string, params: Record<string, unknown>) {
   return c.html(html)
 }
 
-async function getSessionUser(c: any): Promise<User | undefined> {
+async function getSessionUser(c: AppContext): Promise<User | undefined> {
   const session = c.get('session') as SessionData
   if (!session.userId) return undefined
   const [rows] = await db.query<RowDataPacket[]>('SELECT * FROM `users` WHERE `id` = ?', [session.userId])
