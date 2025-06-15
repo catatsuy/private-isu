@@ -279,9 +279,9 @@ app.get('/', async (c) => {
   }
 })
 
-app.get('/@:accountName/', async (c) => {
+app.get('/:accountName{@[A-Za-z0-9_]+}', async (c) => {
   try {
-    const accountName = c.req.param('accountName')
+    const accountName = c.req.param('accountName').slice(1)
     const [urows] = await db.query<RowDataPacket[]>('SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', [accountName])
     const user = urows[0] as User
     if (!user) return c.text('not_found', 404)
@@ -352,10 +352,9 @@ app.post('/', async (c) => {
   return c.redirect(`/posts/${encodeURIComponent(String(insertId))}`)
 })
 
-app.get('/image/:id.:ext', async (c) => {
+app.get('/image/:filename{[0-9]+\\.(png|jpg|gif)}', async (c) => {
   try {
-    const id = c.req.param('id')
-    const ext = c.req.param('ext')
+    const [id, ext] = c.req.param('filename').split('.')
     const [posts] = await db.query<RowDataPacket[]>('SELECT * FROM `posts` WHERE `id` = ?', [id])
     const post = (posts as Post[])[0]
     if (!post) return c.text('image not found', 404)
@@ -403,6 +402,9 @@ app.post('/admin/banned', async (c) => {
 
 app.use('/*', serveStatic({ root: '../public' }))
 
-serve(app, (info) => {
-  console.log(`server started on ${info.port}`)
-})
+serve(
+  { fetch: app.fetch, port: 8080 },
+  info => {
+    console.log(`server started on ${info.port}`)
+  }
+)
