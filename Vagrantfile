@@ -17,7 +17,6 @@ Vagrant.configure("2") do |config|
     app.vm.provision "ansible" do |ansible|
       ansible.verbose = "v"
       ansible.playbook = "./provisioning/image/ansible/playbooks.yml"
-      ansible.skip_tags = "nodejs"
 
       ansible.groups = {
         "guests"  => ["app"]
