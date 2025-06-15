@@ -1,0 +1,59 @@
+name: Build AMI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ami:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible jq
+
+      - name: Prepare SSH key
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
+          chmod 600 key.pem
+
+      - name: Build AMI
+        id: build
+        env:
+          BASE_AMI: ${{ secrets.BASE_AMI }}
+          SSH_KEY_NAME: ${{ secrets.SSH_KEY_NAME }}
+          SECURITY_GROUP: ${{ secrets.SECURITY_GROUP }}
+          SUBNET_ID: ${{ secrets.SUBNET_ID }}
+          SSH_PRIVATE_KEY: ${{ github.workspace }}/key.pem
+        run: |
+          scripts/build_ami.sh
+
+      - name: Commit and create PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sed -i -E "s/ami-[0-9a-f]+/${{ steps.build.outputs.ami_id }}/" README.md
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          BRANCH=ami-update-${{ github.run_id }}
+          git checkout -b "$BRANCH"
+          git add README.md
+          git commit -m "docs: update AMI ID"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "Update AMI ID" \
+            --body "Automated update of AMI ID" \
+            --head "$BRANCH"
