@@ -77,6 +77,13 @@
         line: 'listen = 127.0.0.1:9000'
       when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
       tags: php8
+    - name: Mod clear_env directive in PHP-FPM config
+      lineinfile:
+        path: /etc/php/8.3/fpm/pool.d/www.conf
+        insertafter: '^;clear_env = no'
+        line: 'clear_env = no'
+      when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
+      tags: php8
     - name: stop php-fpm
       service: name=php8.3-fpm state=stopped enabled=no
       when: ansible_distribution == "Ubuntu" and ansible_distribution_version == "24.04"
