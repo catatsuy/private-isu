@@ -1,5 +1,4 @@
 - hosts: guests:extras
-#- hosts: extras
   become: yes
   become_user: isucon
   gather_facts: no
@@ -8,7 +7,6 @@
       shell: cd /home/isucon/private_isu/webapp/ruby; bash -lc "bundle install"
 
 - hosts: guests:extras
-#- hosts: extras
   become: yes
   become_user: isucon
   gather_facts: no

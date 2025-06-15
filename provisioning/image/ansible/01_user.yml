@@ -1,6 +1,5 @@
 ---
 - hosts: guests:extras
-#- hosts: extras
   gather_facts: no
   become: yes
   tasks:

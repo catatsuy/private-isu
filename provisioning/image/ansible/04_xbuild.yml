@@ -1,6 +1,5 @@
 ---
 - hosts: guests:extras
-#- hosts: extras
   become: yes
   become_user: isucon
   gather_facts: no
