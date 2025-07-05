@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@types/ejs": "^3.1.5",
-    "@types/multer": "^1.4.13",
+    "@types/multer": "^2.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3",
     "@types/node": "^24.0.1"
