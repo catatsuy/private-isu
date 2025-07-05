@@ -14,8 +14,18 @@ name: "CodeQL"
 on:
   push:
     branches: ["master"]
+    paths:
+      - "webapp/**"
+      - "benchmarker/**"
+      - "portal/**"
+      - ".github/workflows/codeql.yml"
   pull_request:
     branches: ["master"]
+    paths:
+      - "webapp/**"
+      - "benchmarker/**"
+      - "portal/**"
+      - ".github/workflows/codeql.yml"
   schedule:
     - cron: "37 22 * * 0"
 
