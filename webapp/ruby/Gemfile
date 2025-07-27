@@ -4,7 +4,6 @@ source "https://rubygems.org"
 gem "sinatra"
 gem "sinatra-contrib"
 gem "rack"
-gem "foreman"
 gem "unicorn"
 gem 'bigdecimal'
 gem "mysql2"

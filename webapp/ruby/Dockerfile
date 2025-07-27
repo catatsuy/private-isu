@@ -14,4 +14,4 @@ RUN bundle config set --local path 'vendor/bundle'
 RUN bundle install
 COPY . /home/webapp
 
-ENTRYPOINT [ "bundle", "exec", "foreman", "start" ]
+ENTRYPOINT ["bundle", "exec", "unicorn", "-c", "unicorn_config.rb"]
