@@ -58,20 +58,12 @@ docker compose up
 ```bash
 cd webapp/ruby
 bundle install --path=vendor/bundle
-bundle exec foreman start
+bundle exec unicorn -c unicorn_config.rb
 ```
 
 **Running benchmarker:**
 ```bash
 cd benchmarker
-./bin/benchmarker -t "http://localhost:8080" -u ./userdata
-```
-
-### Testing and Validation
-
-**Run benchmarker against local app:**
-```bash
-# From benchmarker directory
 ./bin/benchmarker -t "http://localhost:8080" -u ./userdata
 ```
 
@@ -149,7 +141,7 @@ Common optimization targets:
 ### Ruby Implementation (webapp/ruby/)
 - Uses `Sinatra` framework with `Unicorn` server
 - Session management via `Rack::Session::Memcache`
-- Start with: `bundle exec foreman start`
+- Start with: `bundle exec unicorn -c unicorn_config.rb`
 
 ### PHP Implementation (webapp/php/)
 - Uses `Slim` framework with `PHP-FPM`
