@@ -360,7 +360,7 @@ app.get('/image/:filename{[0-9]+\\.(png|jpg|gif)}', async (c) => {
     const post = (posts as Post[])[0]
     if (!post) return c.text('image not found', 404)
     if ((ext === 'jpg' && post.mime === 'image/jpeg') || (ext === 'png' && post.mime === 'image/png') || (ext === 'gif' && post.mime === 'image/gif')) {
-      return new Response(post.imgdata, { headers: { 'Content-Type': post.mime } })
+      return new Response(new Uint8Array(post.imgdata), { headers: { 'Content-Type': post.mime } })
     }
   } catch (e) {
     console.error(e)
