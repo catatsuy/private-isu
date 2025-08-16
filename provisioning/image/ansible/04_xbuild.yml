@@ -21,7 +21,7 @@
       tags:
         - nodejs
     # datasource=python-version depName=python
-    - command: /home/isucon/.xbuild/python-install 3.13.6 /home/isucon/.local/python
+    - command: /home/isucon/.xbuild/python-install 3.13.7 /home/isucon/.local/python
       args:
         creates: /home/isucon/.local/python/bin/python
       tags:
