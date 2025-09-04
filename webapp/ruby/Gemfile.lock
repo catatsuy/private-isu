@@ -2,7 +2,7 @@ GEM
   remote: https://rubygems.org/
   specs:
     base64 (0.3.0)
-    bigdecimal (3.2.2)
+    bigdecimal (3.2.3)
     connection_pool (2.5.3)
     dalli (3.2.8)
     kgio (2.11.4)
