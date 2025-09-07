@@ -3,7 +3,7 @@ GEM
   specs:
     base64 (0.3.0)
     bigdecimal (3.2.3)
-    connection_pool (2.5.3)
+    connection_pool (2.5.4)
     dalli (3.2.8)
     kgio (2.11.4)
     logger (1.7.0)
