@@ -122,6 +122,22 @@ function calculatePasshash(accountName: string, password: string) {
   return digest(`${password}:${salt}`)
 }
 
+const escapeMap: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;'
+}
+
+function escapeHtml(src: string) {
+  return src.replace(/[&<>"']/g, (char) => escapeMap[char] || char)
+}
+
+function formatBody(body: string) {
+  return escapeHtml(body).replace(/\r?\n/g, '<br>')
+}
+
 async function tryLogin(accountName: string, password: string): Promise<User | undefined> {
   const [rows] = await db.query<RowDataPacket[]>('SELECT * FROM users WHERE account_name = ? AND del_flg = 0', [accountName])
   const user = rows[0] as User
@@ -176,25 +192,31 @@ async function makePost(post: Post, options: { allComments?: boolean } = {}): Pr
     query += ' LIMIT 3'
   }
   const [commentRows] = await db.query<RowDataPacket[]>(query, [post.id])
-  post.comments = await Promise.all((commentRows as Comment[]).map(makeComment))
+  const comments = await Promise.all((commentRows as Comment[]).map(makeComment))
+  post.comments = comments.reverse()
   post.user = await getUser(post.user_id)
   return post
 }
 
-function filterPosts(posts: Post[]): Post[] {
-  return posts.filter((p) => p.user && p.user.del_flg === 0).slice(0, POSTS_PER_PAGE)
-}
-
 async function makePosts(posts: Post[], options: { allComments?: boolean } = {}): Promise<Post[]> {
-  if (posts.length === 0) return []
-  return Promise.all(posts.map((p) => makePost(p, options)))
+  const built: Post[] = []
+  for (const post of posts) {
+    const enriched = await makePost(post, options)
+    if (enriched.user && enriched.user.del_flg === 0) {
+      built.push(enriched)
+    }
+    if (built.length >= POSTS_PER_PAGE) {
+      break
+    }
+  }
+  return built
 }
 
 async function render(c: AppContext, view: string, params: Record<string, unknown>) {
   const session = c.get('session') as SessionData
   const messages = { notice: session.flashNotice }
   session.flashNotice = undefined
-  const html = await ejs.renderFile(path.join(__dirname, '../views', view), { ...params, messages })
+  const html = await ejs.renderFile(path.join(__dirname, '../views', view), { ...params, messages, formatBody })
   return c.html(html)
 }
 
@@ -287,8 +309,8 @@ app.get('/', async (c) => {
     const me = await getSessionUser(c)
     const [postRows] = await db.query<RowDataPacket[]>('SELECT `id`, `user_id`, `body`, `created_at`, `mime` FROM `posts` ORDER BY `created_at` DESC')
     const posts = postRows as Post[]
-    const enriched = await makePosts(posts.slice(0, POSTS_PER_PAGE * 2))
-    return render(c, 'index.ejs', { posts: filterPosts(enriched), me, imageUrl })
+    const enriched = await makePosts(posts)
+    return render(c, 'index.ejs', { posts: enriched, me, imageUrl })
   } catch (e) {
     console.error(e)
     return c.text(String(e), 500)
@@ -314,7 +336,7 @@ app.get('/:accountName{@[A-Za-z0-9_]+}', async (c) => {
       commentedCount = (countRows[0] as CountRow | undefined)?.count ?? 0
     }
     const me = await getSessionUser(c)
-    return render(c, 'user.ejs', { me, user, posts: filterPosts(posts), post_count: postCount, comment_count: commentCount, commented_count: commentedCount, imageUrl })
+    return render(c, 'user.ejs', { me, user, posts, post_count: postCount, comment_count: commentCount, commented_count: commentedCount, imageUrl })
   } catch (e) {
     console.error(e)
     return c.text('ERROR', 500)
@@ -322,13 +344,20 @@ app.get('/:accountName{@[A-Za-z0-9_]+}', async (c) => {
 })
 
 app.get('/posts', async (c) => {
-  let maxCreatedAt = new Date(String(c.req.query('max_created_at') || ''))
-  if (maxCreatedAt.toString() === 'Invalid Date') maxCreatedAt = new Date()
+  const maxCreatedAtParam = c.req.query('max_created_at')
+  let maxCreatedAt: Date | null = null
+  if (typeof maxCreatedAtParam === 'string' && maxCreatedAtParam.length > 0) {
+    const parsed = new Date(maxCreatedAtParam)
+    if (Number.isNaN(parsed.getTime())) {
+      throw new Error('Invalid max_created_at')
+    }
+    maxCreatedAt = parsed
+  }
   const [postRows] = await db.query<RowDataPacket[]>('SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC', [maxCreatedAt])
   const posts = postRows as Post[]
-  const enriched = await makePosts(posts.slice(0, POSTS_PER_PAGE * 2))
   const me = await getSessionUser(c)
-  return render(c, 'posts.ejs', { me, imageUrl, posts: filterPosts(enriched) })
+  const enriched = await makePosts(posts)
+  return render(c, 'posts.ejs', { me, imageUrl, posts: enriched })
 })
 
 app.get('/posts/:id', async (c) => {
@@ -370,13 +399,18 @@ app.post('/', async (c) => {
 
 app.get('/image/:filename{[0-9]+\\.(png|jpg|gif)}', async (c) => {
   try {
-    const [id, ext] = c.req.param('filename').split('.')
+    const [idString, ext] = c.req.param('filename').split('.')
+    const id = Number(idString)
+    if (id === 0) {
+      return new Response('', { status: 200 })
+    }
     const [posts] = await db.query<RowDataPacket[]>('SELECT * FROM `posts` WHERE `id` = ?', [id])
     const post = (posts as Post[])[0]
     if (!post) return c.text('image not found', 404)
     if ((ext === 'jpg' && post.mime === 'image/jpeg') || (ext === 'png' && post.mime === 'image/png') || (ext === 'gif' && post.mime === 'image/gif')) {
       return new Response(new Uint8Array(post.imgdata), { headers: { 'Content-Type': post.mime } })
     }
+    return c.text('image not found', 404)
   } catch (e) {
     console.error(e)
     return c.text(String(e), 500)
