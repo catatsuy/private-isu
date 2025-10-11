@@ -1,9 +1,11 @@
-FROM ghcr.io/astral-sh/uv:python3.13-bookworm
+FROM python:3.13-slim
 
 RUN \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
   --mount=type=cache,target=/var/cache/apt,sharing=locked \
-  apt-get update -qq && apt-get install -y build-essential default-libmysqlclient-dev
+  apt-get update -qq && apt-get install -y build-essential default-libmysqlclient-dev pkg-config
+
+RUN python -m pip install --upgrade pip && python -m pip install uv
 
 RUN mkdir -p /home/webapp
 WORKDIR /home/webapp
