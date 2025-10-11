@@ -1,6 +1,6 @@
 <div class="isu-post" id="pid_<%= post.id %>" data-created-at="<%= post.created_at.toISOString() %>">
   <div class="isu-post-header">
-    <a href="/@<%= post.user.account_name %>" class="isu-post-account-name"><%= post.user.account_name %></a>
+    <a href="/@<%= encodeURIComponent(post.user.account_name) %>" class="isu-post-account-name"><%= post.user.account_name %></a>
     <a href="/posts/<%= post.id %>" class="isu-post-permalink">
       <time class="timeago" datetime="<%= post.created_at.toISOString() %>"></time>
     </a>
@@ -9,8 +9,8 @@
     <img src="<%= imageUrl(post) %>" class="isu-image">
   </div>
   <div class="isu-post-text">
-    <a href="/@<%= post.user.account_name %>" class="isu-post-account-name"><%= post.user.account_name %></a>
-    <%= post.body %>
+    <a href="/@<%= encodeURIComponent(post.user.account_name) %>" class="isu-post-account-name"><%= post.user.account_name %></a>
+    <%- formatBody(post.body) %>
   </div>
   <div class="isu-post-comment">
     <div class="isu-post-comment-count">
@@ -19,7 +19,7 @@
 
     <% post.comments.forEach(function(comment) { %>
     <div class="isu-comment">
-      <a href="/@<%= comment.user.account_name %>" class="isu-comment-account-name"><%= comment.user.account_name %></a>
+      <a href="/@<%= encodeURIComponent(comment.user.account_name) %>" class="isu-comment-account-name"><%= comment.user.account_name %></a>
       <span class="isu-comment-text"><%= comment.comment %></span>
     </div>
     <% }) %>
