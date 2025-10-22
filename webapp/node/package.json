@@ -11,7 +11,7 @@
     "ejs": "^3.1.10",
     "multer": "^2.0.1",
     "mysql2": "^3.14.1",
-    "hono": "^4.9.6",
+    "hono": "^4.10.2",
     "@hono/node-server": "^1.14.4"
   },
   "devDependencies": {
