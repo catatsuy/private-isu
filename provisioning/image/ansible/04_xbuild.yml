@@ -15,7 +15,7 @@
         creates: /home/isucon/.local/ruby/bin/ruby
     # node
     # datasource=node-version depName=node
-    - command: /home/isucon/.xbuild/node-install v22.21.0 /home/isucon/.local/node
+    - command: /home/isucon/.xbuild/node-install v24.11.0 /home/isucon/.local/node
       args:
         creates: /home/isucon/.local/node/bin/node
       tags:
