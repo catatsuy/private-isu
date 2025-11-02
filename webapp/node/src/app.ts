@@ -3,6 +3,7 @@ import { serve } from '@hono/node-server'
 import { getCookie, setCookie } from 'hono/cookie'
 import { serveStatic } from '@hono/node-server/serve-static'
 import ejs from 'ejs'
+import Memcached from 'memcached'
 import { createPool, Pool, RowDataPacket, ResultSetHeader } from 'mysql2/promise'
 import crypto from 'crypto'
 import { spawnSync } from 'child_process'
@@ -13,6 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 type Variables = {
   session: SessionData
+  sessionId: string
 }
 
 const app = new Hono<{ Variables: Variables }>()
@@ -80,23 +82,122 @@ interface SessionData {
   flashNotice?: string
 }
 
-const sessions: Map<string, SessionData> = new Map()
+const memcachedAddress = process.env.ISUCONP_MEMCACHED_ADDRESS || 'localhost:11211'
+const memcached = new Memcached(memcachedAddress)
+const SESSION_KEY_PREFIX = 'isuconp-node.session:'
+const DEFAULT_SESSION_TTL = 24 * 60 * 60
+const parsedTtl = Number(process.env.ISUCONP_SESSION_TTL)
+const SESSION_TTL = Number.isFinite(parsedTtl) && parsedTtl > 0 ? Math.floor(parsedTtl) : DEFAULT_SESSION_TTL
 
 function generateSessionId(): string {
   return crypto.randomBytes(16).toString('hex')
 }
 
-app.use('*', async (c: AppContext, next: Next): Promise<void> => {
-  let sid = getCookie(c, 'sid')
-  let session = sid ? sessions.get(sid) : undefined
-  if (!sid || !session) {
-    sid = generateSessionId()
-    session = {}
-    sessions.set(sid, session)
-    setCookie(c, 'sid', sid, { httpOnly: true, path: '/' })
+async function getSessionFromStore(sid: string): Promise<SessionData | undefined> {
+  return new Promise((resolve) => {
+    memcached.get(SESSION_KEY_PREFIX + sid, (err, data) => {
+      if (err) {
+        console.error('memcached get error', err)
+        resolve(undefined)
+        return
+      }
+      if (!data) {
+        resolve(undefined)
+        return
+      }
+      try {
+        let raw: string
+        if (typeof data === 'string') {
+          raw = data
+        } else if (Buffer.isBuffer(data)) {
+          raw = data.toString('utf8')
+        } else {
+          resolve(undefined)
+          return
+        }
+        resolve(JSON.parse(raw) as SessionData)
+      } catch (e) {
+        console.error('memcached parse error', e)
+        resolve(undefined)
+      }
+    })
+  })
+}
+
+async function saveSessionToStore(sid: string, session: SessionData): Promise<void> {
+  return new Promise<void>((resolve) => {
+    memcached.set(SESSION_KEY_PREFIX + sid, JSON.stringify(session), SESSION_TTL, (err) => {
+      if (err) {
+        console.error('memcached set error', err)
+      }
+      resolve()
+    })
+  })
+}
+
+async function deleteSessionFromStore(sid: string): Promise<void> {
+  return new Promise<void>((resolve) => {
+    memcached.del(SESSION_KEY_PREFIX + sid, (err) => {
+      if (err) {
+        console.error('memcached delete error', err)
+      }
+      resolve()
+    })
+  })
+}
+
+const SESSION_COOKIE_NAME = 'sid'
+
+async function destroySession(c: AppContext): Promise<void> {
+  const sid = c.get('sessionId')
+  if (sid) {
+    await deleteSessionFromStore(sid)
   }
-  c.set('session', session)
-  await next()
+  setCookie(c, SESSION_COOKIE_NAME, '', { maxAge: 0, path: '/' })
+}
+
+app.use('*', async (c: AppContext, next: Next): Promise<void> => {
+  const existingSid = getCookie(c, SESSION_COOKIE_NAME)
+  const sessionFromStore = existingSid ? await getSessionFromStore(existingSid) : undefined
+  let session = sessionFromStore
+  let isSessionDirty = false
+  let sessionId: string
+  if (session) {
+    sessionId = existingSid as string
+  } else {
+    sessionId = generateSessionId()
+    session = {}
+    isSessionDirty = true
+    setCookie(c, SESSION_COOKIE_NAME, sessionId, { httpOnly: true, path: '/' })
+  }
+  const sessionTarget = session as SessionData
+  // Dirty tracking only observes direct property replacements; nested mutations require
+  // assigning a new object back onto the session to persist.
+  const trackedSession = new Proxy(sessionTarget, {
+    set(target, prop, value) {
+      const current = Reflect.get(target, prop)
+      if (current !== value) {
+        isSessionDirty = true
+      }
+      return Reflect.set(target, prop, value)
+    },
+    deleteProperty(target, prop) {
+      if (Reflect.has(target, prop)) {
+        isSessionDirty = true
+      }
+      return Reflect.deleteProperty(target, prop)
+    }
+  }) as SessionData
+  c.set('session', trackedSession)
+  c.set('sessionId', sessionId)
+  try {
+    await next()
+  } finally {
+    const latestSession = c.get('session') as SessionData | undefined
+    if (latestSession === trackedSession && isSessionDirty) {
+      await saveSessionToStore(sessionId, sessionTarget)
+    }
+  }
 })
 
 function shellEscape(arg: string): string {
@@ -331,10 +432,8 @@ app.post('/register', async (c: AppContext) => {
   return c.redirect('/')
 })
 
-app.get('/logout', (c: AppContext) => {
-  const sid = getCookie(c, 'sid')
-  if (sid) sessions.delete(sid)
-  setCookie(c, 'sid', '', { maxAge: 0, path: '/' })
+app.get('/logout', async (c: AppContext) => {
+  await destroySession(c)
   return c.redirect('/')
 })
 

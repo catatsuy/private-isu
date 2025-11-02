@@ -8,6 +8,7 @@
     "start": "node dist/app.js"
   },
   "dependencies": {
+    "memcached": "^2.2.2",
     "ejs": "^3.1.10",
     "multer": "^2.0.1",
     "mysql2": "^3.14.1",
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@types/ejs": "^3.1.5",
+    "@types/memcached": "^2.2.8",
     "@types/multer": "^2.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.8.3",
