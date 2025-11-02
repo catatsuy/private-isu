@@ -95,9 +95,9 @@ def try_login(account_name, password):
 
 
 def validate_user(account_name: str, password: str):
-    if not re.match(r"[0-9a-zA-Z]{3,}", account_name):
+    if not re.fullmatch(r"[0-9a-zA-Z_]{3,}", account_name):
         return False
-    if not re.match(r"[0-9a-zA-Z_]{6,}", password):
+    if not re.fullmatch(r"[0-9a-zA-Z_]{6,}", password):
         return False
     return True
 
