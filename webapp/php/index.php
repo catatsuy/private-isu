@@ -118,11 +118,13 @@ $container->set('helper', function ($c) {
         }
 
         public function get_session_user() {
-            if (isset($_SESSION['user'], $_SESSION['user']['id'])) {
-                return $this->fetch_first('SELECT * FROM `users` WHERE `id` = ?', $_SESSION['user']['id']);
-            } else {
+            if (!isset($_SESSION['user'], $_SESSION['user']['id'])) {
                 return null;
             }
+
+            $user = $this->fetch_first('SELECT * FROM `users` WHERE `id` = ?', $_SESSION['user']['id']);
+
+            return $user ?: null;
         }
 
         public function make_posts(array $results, $options = []) {
@@ -235,8 +237,9 @@ $app->post('/login', function (Request $request, Response $response) {
 
     if ($user) {
         $_SESSION['user'] = [
-          'id' => $user['id'],
+            'id' => $user['id'],
         ];
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
         return redirect($response, '/', 302);
     } else {
         $this->get('flash')->addMessage('notice', 'アカウント名かパスワードが間違っています');
@@ -285,11 +288,13 @@ $app->post('/register', function (Request $request, Response $response) {
     $_SESSION['user'] = [
         'id' => $db->lastInsertId(),
     ];
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(16));
     return redirect($response, '/', 302);
 });
 
 $app->get('/logout', function (Request $request, Response $response) {
     unset($_SESSION['user']);
+    unset($_SESSION['csrf_token']);
     return redirect($response, '/', 302);
 });
 
@@ -344,11 +349,11 @@ $app->post('/', function (Request $request, Response $response) {
     $me = $this->get('helper')->get_session_user();
 
     if ($me === null) {
-        return redirect($response, '/login', 302);
+        return redirect($response, '/', 302);
     }
 
     $params = $request->getParsedBody();
-    if ($params['csrf_token'] !== session_id()) {
+    if (($params['csrf_token'] ?? null) !== $_SESSION['csrf_token']) {
         $response->getBody()->write('422');
         return $response->withStatus(422);
     }
@@ -410,17 +415,16 @@ $app->post('/comment', function (Request $request, Response $response) {
     $me = $this->get('helper')->get_session_user();
 
     if ($me === null) {
-        return redirect($response, '/login', 302);
+        return redirect($response, '/', 302);
     }
 
     $params = $request->getParsedBody();
-    if ($params['csrf_token'] !== session_id()) {
+    if (($params['csrf_token'] ?? null) !== $_SESSION['csrf_token']) {
         $response->getBody()->write('422');
         return $response->withStatus(422);
     }
 
-    // TODO: /\A[0-9]\Z/ か確認
-    if (preg_match('/[0-9]+/', $params['post_id']) == 0) {
+    if (!preg_match('/\A[0-9]+\z/', $params['post_id'])) {
         $response->getBody()->write('post_idは整数のみです');
         return $response;
     }
@@ -461,7 +465,7 @@ $app->post('/admin/banned', function (Request $request, Response $response) {
     $me = $this->get('helper')->get_session_user();
 
     if ($me === null) {
-        return redirect($response, '/login', 302);
+        return redirect($response, '/', 302);
     }
 
     if ($me['authority'] == 0) {
@@ -470,7 +474,7 @@ $app->post('/admin/banned', function (Request $request, Response $response) {
     }
 
     $params = $request->getParsedBody();
-    if ($params['csrf_token'] !== session_id()) {
+    if (($params['csrf_token'] ?? null) !== $_SESSION['csrf_token']) {
         $response->getBody()->write('422');
         return $response->withStatus(422);
     }
