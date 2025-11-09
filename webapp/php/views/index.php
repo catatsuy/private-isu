@@ -7,7 +7,7 @@
       <textarea name="body"></textarea>
     </div>
     <div class="form-submit">
-      <input type="hidden" name="csrf_token" value="<?= escape_html(session_id()); ?>">
+      <input type="hidden" name="csrf_token" value="<?= escape_html($_SESSION['csrf_token']) ?>">
       <input type="submit" name="submit" value="submit">
     </div>
     <?php if ($flash): ?>
