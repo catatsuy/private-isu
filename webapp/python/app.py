@@ -269,7 +269,7 @@ def post_register():
     cursor.execute(query, (account_name, calculate_passhash(account_name, password)))
 
     flask.session["user"] = {"id": cursor.lastrowid}
-    flask.session["csrf_token"] = os.urandom(8).hex()
+    flask.session["csrf_token"] = os.urandom(16).hex()
     return flask.redirect("/")
 
 
