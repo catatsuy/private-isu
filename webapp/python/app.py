@@ -231,7 +231,7 @@ def post_login():
     user = try_login(flask.request.form["account_name"], flask.request.form["password"])
     if user:
         flask.session["user"] = {"id": user["id"]}
-        flask.session["csrf_token"] = os.urandom(8).hex()
+        flask.session["csrf_token"] = os.urandom(16).hex()
         return flask.redirect("/")
 
     flask.flash("アカウント名かパスワードが間違っています")
@@ -352,17 +352,15 @@ def _parse_iso8601(s):
 @app.route("/posts")
 def get_posts():
     cursor = db().cursor()
-    max_created_at = flask.request.args["max_created_at"] or None
-    if max_created_at:
-        max_created_at = _parse_iso8601(max_created_at)
-        cursor.execute(
-            "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= %s ORDER BY `created_at` DESC",
-            (max_created_at,),
-        )
-    else:
-        cursor.execute(
-            "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE ORDER BY `created_at` DESC"
-        )
+    max_created_at = flask.request.args.get("max_created_at")
+    if not max_created_at:
+        return ""
+
+    max_created_at = _parse_iso8601(max_created_at)
+    cursor.execute(
+        "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= %s ORDER BY `created_at` DESC",
+        (max_created_at,),
+    )
     results = cursor.fetchall()
     posts = make_posts(results)
     return flask.render_template("posts.html", posts=posts)
@@ -472,7 +470,7 @@ def post_comment():
 def get_banned():
     me = get_session_user()
     if not me:
-        flask.redirect("/login")
+        return flask.redirect("/login")
 
     if me["authority"] == 0:
         flask.abort(403)
@@ -490,7 +488,7 @@ def get_banned():
 def post_banned():
     me = get_session_user()
     if not me:
-        flask.redirect("/login")
+        return flask.redirect("/login")
 
     if me["authority"] == 0:
         flask.abort(403)
