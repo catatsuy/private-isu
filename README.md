@@ -56,9 +56,10 @@ Ubuntu 24.04
 
 **重要:** 以下のいずれの手順を実行する前にも、まずプロジェクトのルートディレクトリで `make init` を実行して初期データを準備してください。
 
+* 以前提供していたVagrant環境はメンテナンスしていないため削除しました。ローカルではDocker Composeや手動セットアップ、クラウドではAMIやcloud-initなどを利用してください。
 * Ruby、Go、PHP、Python、Node.jsの5言語の参考実装が用意されており、デフォルトではRubyが起動します。
-  * AMIまたはVagrantで他の言語の参考実装を動作させる場合は、[`manual.md`](/manual.md)を参照してください。
-* 起動方法として、AMI、Docker Compose、Vagrantが用意されています。
+  * AMIで他の言語の参考実装を動作させる場合は、[`manual.md`](/manual.md)を参照してください。
+* 起動方法として、AMI、Docker Composeなどが用意されています。
   * ローカル環境で手軽に動作させることも比較的簡単です。
   * Ansibleを利用すれば、その他の環境でも動作するはずです。
   * cloud-initも利用可能
@@ -99,7 +100,7 @@ $ /home/isucon/private_isu/benchmarker/bin/benchmarker -u /home/isucon/private_i
 
 * アプリケーションは、各言語の実行環境とMySQL、memcachedがインストールされていれば動作するはずです。
 * ベンチマーカーは、Goの実行環境と`userdata`ディレクトリがあれば動作します。
-* DockerおよびVagrantを使用する場合は、メモリを潤沢に搭載したマシンで実行してください。
+* Docker Composeを使用する場合は、メモリを潤沢に搭載したマシンで実行してください。
 
 #### MacやLinux上で適当に動かす
 
@@ -164,32 +165,6 @@ docker run --network host --add-host host.docker.internal:host-gateway -i privat
     inet6 fe80::42:caff:fe63:c59/64 scope link
        valid_lft forever preferred_lft forever
 ```
-
-#### Vagrant
-
-ローカルマシンにAnsibleをインストールし、`vagrant up`を実行すると、プロビジョニングが自動的に行われます。
-
-`bench`ノードから`app`ノードのIPアドレスを指定して負荷をかけてください。
-
-```shell
-# appノードのIPアドレスを調べる
-$ vagrant ssh app
-$ ip a
-
-3: enp0s8: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
-    link/ether 08:00:27:37:2b:2c brd ff:ff:ff:ff:ff:ff
-    inet 172.28.128.6/24 brd 172.28.128.255 scope global dynamic enp0s8
-       valid_lft 444sec preferred_lft 444sec
-    inet6 fe80::a00:27ff:fe37:2b2c/64 scope link
-       valid_lft forever preferred_lft forever
-
-# benchノードで負荷を実行する
-$ vagrant ssh bench
-$ sudo su - isucon
-$ /home/isucon/private_isu.git/benchmarker/bin/benchmarker -u /home/isucon/private_isu.git/benchmarker/userdata -t http://172.28.128.6
-```
-
-起動直後はRubyの参考実装が動作しています。他の言語を使用する場合は、[`manual.md`](/manual.md)を参照して必要な作業を行ってください。
 
 ### cloud-init を利用して環境を構築する
 
