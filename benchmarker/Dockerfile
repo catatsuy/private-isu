@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/go/pkg/mod/ \
   CGO_ENABLED=0 GOARCH=$TARGETARCH go build -o /bin/benchmarker .
 
 ################################################################################
-FROM alpine:3.22 AS final
+FROM alpine:3.23 AS final
 
 # Install any runtime dependencies that are needed to run your application.
 # Leverage a cache mount to /var/cache/apk/ to speed up subsequent builds.
