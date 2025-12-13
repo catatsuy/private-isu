@@ -10,7 +10,7 @@ RUN python -m pip install --upgrade pip && python -m pip install uv
 RUN mkdir -p /home/webapp
 WORKDIR /home/webapp
 
-COPY pyproject.toml uv.lock .
+COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
   uv sync --compile-bytecode
 COPY . .
