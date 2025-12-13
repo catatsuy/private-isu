@@ -49,7 +49,7 @@ jobs:
           echo "Dockerfiles to lint:"
           echo "$CHANGED_DOCKERFILES"
           {
-            echo "CHANGED_DOCKERFILES<<'EOF'"
+            echo "CHANGED_DOCKERFILES<<EOF"
             echo "$CHANGED_DOCKERFILES"
             echo "EOF"
           } >> "$GITHUB_ENV"
