@@ -1,0 +1,64 @@
+name: Hadolint Dockerfiles
+
+on:
+  pull_request:
+    paths:
+      - "**/Dockerfile"
+      - ".github/workflows/hadolint.yml"
+
+jobs:
+  hadolint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fetch merge base and ensure availability
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          echo "Base SHA: ${BASE_SHA}"
+          echo "Head SHA: ${HEAD_SHA}"
+          MERGE_BASE_SHA=$(curl -s \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/compare/${BASE_SHA}...${HEAD_SHA}" | jq -r '.merge_base_commit.sha')
+          if [ "$MERGE_BASE_SHA" = "null" ] || [ -z "$MERGE_BASE_SHA" ]; then
+            echo "Error: Could not retrieve merge base commit SHA."
+            exit 1
+          fi
+          echo "Merge base commit SHA: ${MERGE_BASE_SHA}"
+          echo "MERGE_BASE_SHA=${MERGE_BASE_SHA}" >> $GITHUB_ENV
+          echo "HEAD_SHA=${HEAD_SHA}" >> $GITHUB_ENV
+          git fetch --depth=1 origin "${MERGE_BASE_SHA}"
+
+      - name: Find changed Dockerfiles
+        run: |
+          MERGE_BASE=${{ env.MERGE_BASE_SHA }}
+          HEAD_SHA=${{ env.HEAD_SHA }}
+          echo "Using merge base: ${MERGE_BASE}"
+          CHANGED_DOCKERFILES=$(git diff --name-only "${MERGE_BASE}" "${HEAD_SHA}" -- '**/Dockerfile')
+          if [ -z "$CHANGED_DOCKERFILES" ]; then
+            echo "No Dockerfile changes detected; skipping hadolint."
+            echo "SKIP_LINT=true" >> $GITHUB_ENV
+            exit 0
+          fi
+          echo "Dockerfiles to lint:"
+          echo "$CHANGED_DOCKERFILES"
+          {
+            echo "CHANGED_DOCKERFILES<<'EOF'"
+            echo "$CHANGED_DOCKERFILES"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Lint changed Dockerfiles
+        if: env.SKIP_LINT != 'true'
+        run: |
+          echo "${CHANGED_DOCKERFILES}" | while read -r file; do
+            [ -z "$file" ] && continue
+            echo "Linting $file"
+            docker run --rm -i -v "$PWD:/work" -w /work hadolint/hadolint < "$file"
+          done
