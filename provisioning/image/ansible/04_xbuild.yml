@@ -10,7 +10,7 @@
         update=yes
     # ruby
     # datasource=ruby-version depName=ruby
-    - command: /home/isucon/.xbuild/ruby-install 3.4.7 /home/isucon/.local/ruby
+    - command: /home/isucon/.xbuild/ruby-install 3.4.8 /home/isucon/.local/ruby
       args:
         creates: /home/isucon/.local/ruby/bin/ruby
     # node
