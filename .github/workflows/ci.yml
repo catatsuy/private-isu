@@ -11,7 +11,7 @@ on:
       - "benchmarker/**"
       - ".github/workflows/ci.yml"
       - "Makefile"
-      - "webapp/docker-compose.yml"
+      - "webapp/compose.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -64,24 +64,24 @@ jobs:
       - name: Update compose.yml if changes are detected
         if: steps.check-changes.outputs.go_changes_detected == 'true'
         run: |
-          purl -fail -overwrite -replace '@context: ruby/@context: golang/@' ./webapp/docker-compose.yml
+          purl -fail -overwrite -replace '@context: ruby/@context: golang/@' ./webapp/compose.yml
 
       - name: Update compose.yml if changes are detected
         if: steps.check-changes.outputs.php_changes_detected == 'true'
         run: |
-          purl -fail -overwrite -replace '@context: ruby/@context: php/@' ./webapp/docker-compose.yml
+          purl -fail -overwrite -replace '@context: ruby/@context: php/@' ./webapp/compose.yml
           mv webapp/etc/nginx/conf.d/default.conf webapp/etc/nginx/conf.d/default.conf.org
           mv webapp/etc/nginx/conf.d/php.conf.org webapp/etc/nginx/conf.d/php.conf
 
       - name: Update compose.yml if changes are detected
         if: steps.check-changes.outputs.python_changes_detected == 'true'
         run: |
-          purl -fail -overwrite -replace '@context: ruby/@context: python/@' ./webapp/docker-compose.yml
+          purl -fail -overwrite -replace '@context: ruby/@context: python/@' ./webapp/compose.yml
 
       - name: Update compose.yml if changes are detected
         if: steps.check-changes.outputs.node_changes_detected == 'true'
         run: |
-          purl -fail -overwrite -replace '@context: ruby/@context: node/@' ./webapp/docker-compose.yml
+          purl -fail -overwrite -replace '@context: ruby/@context: node/@' ./webapp/compose.yml
 
       - name: Start the server
         run: |
