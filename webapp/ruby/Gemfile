@@ -4,7 +4,7 @@ source "https://rubygems.org"
 gem "sinatra"
 gem "sinatra-contrib"
 gem "rack"
-gem "unicorn"
+gem "unicorn", git: "https://github.com/defunkt/unicorn.git", ref: "e9862718a7e98d3cbec74fc92ffc17a1023e18da"
 gem 'bigdecimal'
 gem "mysql2"
 gem "rack-flash3"
