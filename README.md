@@ -128,6 +128,8 @@ make
 
 #### Docker Compose
 
+注：`docker-compose.yml`は、`compose.yml`にリネームされました。
+
 アプリケーションは以下の手順で実行できます。`webapp/sql/dump.sql.bz2`が配置されていないとMySQLに初期データがインポートされないため注意してください。
 
 ```sh
@@ -137,7 +139,7 @@ docker compose up
 
 （もし `docker compose up` でうまく動作しない場合は、代わりに `docker compose up` を試してみてください）
 
-デフォルトはRubyの参考実装です。他の言語に変更する場合は、`docker-compose.yml`ファイル内の`app`サービスの`build`設定を変更してください。PHPの参考実装を利用する場合は、それに加えて以下の作業が必要です。
+デフォルトはRubyの参考実装です。他の言語に変更する場合は、`compose.yml`ファイル内の`app`サービスの`build`設定を変更してください。PHPの参考実装を利用する場合は、それに加えて以下の作業が必要です。
 
 ```sh
 cd webapp/etc
