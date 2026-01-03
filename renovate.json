@@ -61,6 +61,12 @@
         "npm"
       ],
       "rangeStrategy": "bump"
+    },
+    {
+      "matchManagers": [
+        "pep621"
+      ],
+      "rangeStrategy": "bump"
     }
   ],
   "postUpdateOptions": [
