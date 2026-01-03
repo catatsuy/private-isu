@@ -18,3 +18,8 @@ permissions:
 jobs:
   scan-pr:
     uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.3.1"
+    with:
+      scan-args: |-
+        -r
+        ./
+        --config=osv-scanner.toml
