@@ -15,5 +15,5 @@ dependencies = [
     "msgspec==0.20.0",
     "packaging==25.0",
     "pymemcache>=4.0.0",
-    "werkzeug==3.1.4",
+    "werkzeug==3.1.5",
 ]
