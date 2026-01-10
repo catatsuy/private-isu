@@ -7,7 +7,7 @@ GEM
     dalli (3.2.8)
     kgio (2.11.4)
     logger (1.7.0)
-    multi_json (1.17.0)
+    multi_json (1.19.1)
     mustermann (3.0.4)
       ruby2_keywords (~> 0.0.1)
     mysql2 (0.5.7)
