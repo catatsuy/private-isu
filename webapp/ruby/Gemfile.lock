@@ -1,3 +1,11 @@
+GIT
+  remote: https://github.com/defunkt/unicorn.git
+  revision: e9862718a7e98d3cbec74fc92ffc17a1023e18da
+  ref: e9862718a7e98d3cbec74fc92ffc17a1023e18da
+  specs:
+    unicorn (6.1.0)
+      raindrops (~> 0.7)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -5,7 +13,6 @@ GEM
     bigdecimal (4.0.1)
     connection_pool (3.0.2)
     dalli (3.2.8)
-    kgio (2.11.4)
     logger (1.7.0)
     multi_json (1.19.1)
     mustermann (3.0.4)
@@ -38,9 +45,6 @@ GEM
       sinatra (= 4.2.1)
       tilt (~> 2.0)
     tilt (2.6.1)
-    unicorn (6.1.0)
-      kgio (~> 2.6)
-      raindrops (~> 0.7)
 
 PLATFORMS
   aarch64-linux
@@ -55,7 +59,7 @@ DEPENDENCIES
   rack-flash3
   sinatra
   sinatra-contrib
-  unicorn
+  unicorn!
 
 BUNDLED WITH
    2.6.2
