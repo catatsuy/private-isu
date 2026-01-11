@@ -61,6 +61,18 @@
     },
     {
       "matchManagers": [
+        "bundler"
+      ],
+      "rangeStrategy": "update-lockfile"
+    },
+    {
+      "matchManagers": [
+        "composer"
+      ],
+      "rangeStrategy": "update-lockfile"
+    },
+    {
+      "matchManagers": [
         "npm"
       ],
       "rangeStrategy": "bump"
