@@ -130,14 +130,44 @@ make
 
 注：`docker-compose.yml`は、`compose.yml`にリネームされました。
 
-アプリケーションは以下の手順で実行できます。`webapp/sql/dump.sql.bz2`が配置されていないとMySQLに初期データがインポートされないため注意してください。
+起動前に`webapp/sql/dump.sql.bz2`が配置されていないとMySQLに初期データがインポートされないため注意してください。
 
 ```sh
 cd webapp
 docker compose up
 ```
 
-（もし `docker compose up` でうまく動作しない場合は、代わりに `docker compose up` を試してみてください）
+##### ポートの競合
+
+このDocker Composeによる環境ではTCPのポート80と3306をホストにマッピングする設定になっています。ホスト側で別のプロセスがポート80と3306を使用していると起動できないため、それらのプロセスがある場合は一旦停止するか、`compose.yml`を編集してマッピングするポートを変更する必要があります。
+
+ポートを変更する場合は、`compose.yml`内の`services`以下、`nginx`と`mysql`のセクションに定義されている`ports`の定義を変更してください。ホスト側のポート80, 3306をそれぞれ8080, 13306に変更する場合は、次のように修正します。
+
+```yaml
+services:
+  nginx:
+    # 略
+    ports:
+      - "80:80"
+  mysql:
+    # 略
+    ports:
+      - "3306:3306"
+```
+
+```yaml
+services:
+  nginx:
+    # 略
+    ports:
+      - "8080:80" # nginxがホストに開くポートを8080に変更
+  mysql:
+    # 略
+    ports:
+      - "13306:3306" # mysqlがホストに開くポートを13306に変更
+```
+
+##### 言語切り替え
 
 デフォルトはRubyの参考実装です。他の言語に変更する場合は、`compose.yml`ファイル内の`app`サービスの`build`設定を変更してください。PHPの参考実装を利用する場合は、それに加えて以下の作業が必要です。
 
@@ -146,6 +176,10 @@ cd webapp/etc
 mv nginx/conf.d/default.conf nginx/conf.d/default.conf.org
 mv nginx/conf.d/php.conf.org nginx/conf.d/php.conf
 ```
+
+##### 変更の反映
+
+`compose.yml`や言語実装の変更を反映するためには、`docker compose down`で一旦停止し、再度`docker compose up --build`で起動し直してください。`--build`オプションを付与することで、アプリケーションコンテナのイメージが再構築され、言語実装の変更が反映されます。
 
 ベンチマーカーは以下の手順で実行できます。
 
@@ -157,7 +191,7 @@ docker run --network host -i private-isu-benchmarker /bin/benchmarker -t http://
 docker run --network host --add-host host.docker.internal:host-gateway -i private-isu-benchmarker /bin/benchmarker -t http://host.docker.internal -u /opt/userdata
 ```
 
-動作しない場合は、`ip a`コマンドなどで`docker0`インタフェースに割り当てられたホスト側のIPアドレスを確認し、`host.docker.internal`の代わりにそのIPアドレスを指定してください。例えば、以下の出力の場合は`172.17.0.1`を指定します。
+`host.docker.internal`で動作しない場合は、`ip a`コマンドなどで`docker0`インタフェースに割り当てられたホスト側のIPアドレスを確認し、`host.docker.internal`の代わりにそのIPアドレスを指定してください。例えば、以下の出力の場合は`172.17.0.1`を指定します。
 
 ```
 3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default
