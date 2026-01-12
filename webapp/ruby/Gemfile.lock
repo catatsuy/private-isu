@@ -4,7 +4,8 @@ GEM
     base64 (0.3.0)
     bigdecimal (4.0.1)
     connection_pool (3.0.2)
-    dalli (3.2.8)
+    dalli (4.0.0)
+      logger
     kgio (2.11.4)
     logger (1.7.0)
     multi_json (1.19.1)
