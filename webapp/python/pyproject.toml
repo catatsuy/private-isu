@@ -3,11 +3,17 @@ name = "private-isu"
 version = "0.1.0"
 description = "private-isu webapp implementation for Python"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14.2"
 dependencies = [
-    "flask>=3.1.0",
+    "click==8.3.1",
+    "flask>=3.1.2",
     "flask-session[memcached]>=0.8.0",
-    "gunicorn>=23.0.0",
+    "gunicorn>=24.1.1",
+    "jinja2==3.1.6",
+    "markupsafe==3.0.3",
     "mysqlclient~=2.2.7",
+    "msgspec==0.20.0",
+    "packaging==26.0",
     "pymemcache>=4.0.0",
+    "werkzeug==3.1.5",
 ]
