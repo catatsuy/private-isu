@@ -37,7 +37,6 @@ const (
 
 	failErrorScore     = 10
 	failExceptionScore = 20
-	failDelayPostScore = 100
 )
 
 type Asset struct {
