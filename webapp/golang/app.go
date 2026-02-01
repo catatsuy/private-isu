@@ -20,7 +20,7 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
 	"github.com/go-chi/chi/v5"
-	_ "github.com/go-sql-driver/mysql"
+	mysql "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 )
@@ -831,14 +831,18 @@ func main() {
 		dbname = "isuconp"
 	}
 
-	dsn := fmt.Sprintf(
-		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=Local",
-		user,
-		password,
-		host,
-		port,
-		dbname,
-	)
+	cfg := mysql.NewConfig()
+	cfg.User = user
+	cfg.Passwd = password
+	cfg.Net = "tcp"
+	cfg.Addr = fmt.Sprintf("%s:%s", host, port)
+	cfg.DBName = dbname
+	cfg.Params = map[string]string{
+		"charset": "utf8mb4",
+	}
+	cfg.ParseTime = true
+	cfg.Loc = time.Local
+	dsn := cfg.FormatDSN()
 
 	db, err = sqlx.Open("mysql", dsn)
 	if err != nil {
