@@ -1,5 +1,5 @@
 #syntax=docker/dockerfile:1
-FROM ruby:3.4-slim
+FROM ruby:4.0-slim
 
 RUN \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
