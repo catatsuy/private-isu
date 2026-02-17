@@ -13,7 +13,7 @@ GEM
       ruby2_keywords (~> 0.0.1)
     mysql2 (0.5.7)
       bigdecimal
-    rack (3.2.4)
+    rack (3.2.5)
     rack-flash3 (1.0.5)
       rack
     rack-protection (4.2.1)
