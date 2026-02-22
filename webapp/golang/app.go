@@ -19,7 +19,7 @@ import (
 
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
-	"github.com/go-chi/chi/v5"
+	"github.com/catatsuy/saruta"
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
@@ -850,7 +850,7 @@ func main() {
 	}
 	defer db.Close()
 
-	r := chi.NewRouter()
+	r := saruta.New()
 
 	r.Get("/initialize", getInitialize)
 	r.Get("/login", getLogin)
@@ -868,6 +868,7 @@ func main() {
 	r.Post("/admin/banned", postAdminBanned)
 	r.Get(`/@{accountName:[0-9a-zA-Z_]+}`, getAccountName)
 	r.Mount("/", http.FileServer(http.Dir("../public")))
+	r.MustCompile()
 
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
