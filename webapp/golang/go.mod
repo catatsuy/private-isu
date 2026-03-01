@@ -13,6 +13,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.1 // indirect
+	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/memcachier/mc/v3 v3.0.3 // indirect
 )
