@@ -10,7 +10,7 @@
   "dependencies": {
     "memcached": "^2.2.2",
     "ejs": "^4.0.1",
-    "multer": "^2.1.0",
+    "multer": "^2.1.1",
     "mysql2": "^3.18.2",
     "hono": "^4.12.3",
     "@hono/node-server": "^1.19.9"
