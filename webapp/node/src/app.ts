@@ -452,7 +452,7 @@ app.get('/', async (c: AppContext) => {
 
 app.get('/:accountName{@[A-Za-z0-9_]+}', async (c: AppContext) => {
   try {
-    const accountName = c.req.param('accountName').slice(1)
+    const accountName = c.req.param('accountName')!.slice(1)
     const [urows] = await db.query<RowDataPacket[]>('SELECT * FROM `users` WHERE `account_name` = ? AND `del_flg` = 0', [accountName])
     const user = urows[0] as User
     if (!user) return c.text('not_found', 404)
@@ -532,7 +532,7 @@ app.post('/', async (c: AppContext) => {
 
 app.get('/image/:filename{[0-9]+\\.(png|jpg|gif)}', async (c: AppContext) => {
   try {
-    const [idString, ext] = c.req.param('filename').split('.')
+    const [idString, ext] = c.req.param('filename')!.split('.')
     const id = Number(idString)
     if (id === 0) {
       return new Response('', { status: 200 })
