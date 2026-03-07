@@ -9,8 +9,8 @@ RUN \
 
 WORKDIR /home/webapp
 
-COPY package.json tsconfig.json ./
-RUN npm install
+COPY package.json package-lock.json tsconfig.json ./
+RUN npm ci
 
 COPY . .
 RUN npm run build
