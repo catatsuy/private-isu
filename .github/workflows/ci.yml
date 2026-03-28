@@ -20,11 +20,15 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Initialize the project
         run: make init
@@ -32,8 +36,7 @@ jobs:
       - name: Check for changes in golang directory
         id: check-changes
         run: |
-          git fetch origin
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }}...HEAD)
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }})
           if echo "$CHANGED_FILES" | grep 'golang/'; then
             echo "Changes detected in golang directory"
             echo "go_changes_detected=true" >> $GITHUB_OUTPUT

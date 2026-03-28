@@ -9,10 +9,14 @@ on:
 jobs:
   hadolint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Fetch merge base and ensure availability
         env:

@@ -11,10 +11,14 @@ jobs:
   renovate-config-validator:
     timeout-minutes: 10
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: validate renovate.json
         run: npx --package=renovate@latest -c renovate-config-validator
