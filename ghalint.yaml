@@ -1,0 +1,15 @@
+excludes:
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    action_name: actions/checkout
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    action_name: actions/setup-go
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    action_name: github/codeql-action/init
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    action_name: github/codeql-action/autobuild
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    action_name: github/codeql-action/analyze
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    action_name: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml
+  - policy_name: action_ref_should_be_full_length_commit_sha
+    action_name: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml
