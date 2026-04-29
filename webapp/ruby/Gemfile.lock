@@ -8,9 +8,8 @@ GEM
       logger
     kgio (2.11.4)
     logger (1.7.0)
-    multi_json (1.19.1)
-    mustermann (3.0.4)
-      ruby2_keywords (~> 0.0.1)
+    multi_json (1.20.1)
+    mustermann (3.1.1)
     mysql2 (0.5.7)
       bigdecimal
     rack (3.2.6)
@@ -24,7 +23,6 @@ GEM
       base64 (>= 0.1.0)
       rack (>= 3.0.0)
     raindrops (0.20.1)
-    ruby2_keywords (0.0.5)
     sinatra (4.2.1)
       logger (>= 1.6.0)
       mustermann (~> 3.0)
