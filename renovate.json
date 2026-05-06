@@ -51,6 +51,62 @@
   ],
   "packageRules": [
     {
+      "description": [
+        "Keep lock file maintenance PRs split by application."
+      ],
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "matchFileNames": [
+        "webapp/ruby/Gemfile",
+        "webapp/ruby/Gemfile.lock"
+      ],
+      "branchTopic": "ruby-lock-file-maintenance",
+      "commitMessageTopic": "Ruby lock file"
+    },
+    {
+      "description": [
+        "Keep lock file maintenance PRs split by application."
+      ],
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "matchFileNames": [
+        "webapp/php/composer.json",
+        "webapp/php/composer.lock"
+      ],
+      "branchTopic": "php-lock-file-maintenance",
+      "commitMessageTopic": "PHP lock file"
+    },
+    {
+      "description": [
+        "Keep lock file maintenance PRs split by application."
+      ],
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "matchFileNames": [
+        "webapp/node/package.json",
+        "webapp/node/package-lock.json"
+      ],
+      "branchTopic": "node-lock-file-maintenance",
+      "commitMessageTopic": "Node lock file"
+    },
+    {
+      "description": [
+        "Keep lock file maintenance PRs split by application."
+      ],
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
+      ],
+      "matchFileNames": [
+        "webapp/python/pyproject.toml",
+        "webapp/python/uv.lock"
+      ],
+      "branchTopic": "python-lock-file-maintenance",
+      "commitMessageTopic": "Python lock file"
+    },
+    {
       "matchDatasources": [
         "docker"
       ],
