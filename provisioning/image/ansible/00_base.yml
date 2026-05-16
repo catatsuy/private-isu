@@ -8,6 +8,7 @@
     - apt: upgrade=dist
     - apt: name=build-essential state=present
     - apt: name=git state=present
+    - apt: name=ragel state=present
     - apt: name=gcc state=present
     - apt: name=patch state=present
     - apt: name=autoconf state=present

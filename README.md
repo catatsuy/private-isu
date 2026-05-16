@@ -114,6 +114,7 @@ bunzip2 -c webapp/sql/dump.sql.bz2 | mysql -uroot
 
 cd webapp/ruby
 bundle install --path=vendor/bundle
+bundle exec ruby prepare_unicorn.rb
 bundle exec unicorn -c unicorn_config.rb
 cd ../..
 
