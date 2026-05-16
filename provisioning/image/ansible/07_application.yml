@@ -4,7 +4,7 @@
   gather_facts: no
   tasks:
     - name: bundle install
-      shell: cd /home/isucon/private_isu/webapp/ruby; bash -lc "bundle install"
+      shell: cd /home/isucon/private_isu/webapp/ruby; bash -lc "bundle install && bundle exec ruby prepare_unicorn.rb"
 
 - hosts: guests:extras
   become: yes

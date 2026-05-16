@@ -4,6 +4,8 @@ source "https://rubygems.org"
 gem "sinatra"
 gem "sinatra-contrib"
 gem "rack"
+# The released unicorn gem has not been updated for Ruby 4 yet, so use the
+# unreleased git revision until a compatible gem is published.
 gem "unicorn", git: "https://github.com/defunkt/unicorn.git", ref: "e9862718a7e98d3cbec74fc92ffc17a1023e18da"
 gem 'bigdecimal'
 gem "mysql2"
