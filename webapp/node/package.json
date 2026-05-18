@@ -13,7 +13,7 @@
     "multer": "^2.1.1",
     "mysql2": "^3.22.3",
     "hono": "^4.12.19",
-    "@hono/node-server": "^2.0.2"
+    "@hono/node-server": "^2.0.3"
   },
   "devDependencies": {
     "@types/ejs": "^3.1.5",
