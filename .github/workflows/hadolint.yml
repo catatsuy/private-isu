@@ -13,7 +13,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -35,8 +35,8 @@ jobs:
             exit 1
           fi
           echo "Merge base commit SHA: ${MERGE_BASE_SHA}"
-          echo "MERGE_BASE_SHA=${MERGE_BASE_SHA}" >> $GITHUB_ENV
-          echo "HEAD_SHA=${HEAD_SHA}" >> $GITHUB_ENV
+          echo "MERGE_BASE_SHA=${MERGE_BASE_SHA}" >> "$GITHUB_ENV"
+          echo "HEAD_SHA=${HEAD_SHA}" >> "$GITHUB_ENV"
           git fetch --depth=1 origin "${MERGE_BASE_SHA}"
 
       - name: Find changed Dockerfiles
@@ -47,7 +47,7 @@ jobs:
           CHANGED_DOCKERFILES=$(git diff --name-only "${MERGE_BASE}" "${HEAD_SHA}" -- '**/Dockerfile')
           if [ -z "$CHANGED_DOCKERFILES" ]; then
             echo "No Dockerfile changes detected; skipping hadolint."
-            echo "SKIP_LINT=true" >> $GITHUB_ENV
+            echo "SKIP_LINT=true" >> "$GITHUB_ENV"
             exit 0
           fi
           echo "Dockerfiles to lint:"

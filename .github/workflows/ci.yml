@@ -25,7 +25,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -39,21 +39,21 @@ jobs:
           CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }})
           if echo "$CHANGED_FILES" | grep 'golang/'; then
             echo "Changes detected in golang directory"
-            echo "go_changes_detected=true" >> $GITHUB_OUTPUT
+            echo "go_changes_detected=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if echo "$CHANGED_FILES" | grep 'php/'; then
             echo "Changes detected in php directory"
-            echo "php_changes_detected=true" >> $GITHUB_OUTPUT
+            echo "php_changes_detected=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if echo "$CHANGED_FILES" | grep 'python/'; then
             echo "Changes detected in python directory"
-            echo "python_changes_detected=true" >> $GITHUB_OUTPUT
+            echo "python_changes_detected=true" >> "$GITHUB_OUTPUT"
           fi
           if echo "$CHANGED_FILES" | grep 'node/'; then
             echo "Changes detected in node directory"
-            echo "node_changes_detected=true" >> $GITHUB_OUTPUT
+            echo "node_changes_detected=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Download purl
@@ -123,7 +123,7 @@ jobs:
             /bin/benchmarker \
             -t http://host.docker.internal \
             -u /opt/userdata \
-          | tee benchmark_output.json || echo "BENCHMARK_FAILED=true" >> $GITHUB_ENV
+          | tee benchmark_output.json || echo "BENCHMARK_FAILED=true" >> "$GITHUB_ENV"
 
       - name: Show logs
         run: |
