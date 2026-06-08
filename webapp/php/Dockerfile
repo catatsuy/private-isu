@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM php:8.3-fpm-bookworm
+FROM php:8.4-fpm
 
 RUN \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
