@@ -3,7 +3,7 @@ name = "private-isu"
 version = "0.1.0"
 description = "private-isu webapp implementation for Python"
 readme = "README.md"
-requires-python = ">=3.14.5"
+requires-python = ">=3.14.6"
 dependencies = [
     "click==8.4.1",
     "flask>=3.1.3",
