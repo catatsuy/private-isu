@@ -1,0 +1,8 @@
+[mysqld]
+slow_query_log=1
+slow_query_log_file=/var/log/mysql/mysql-slow.log
+long_query_time=0
+skip-log-bin
+innodb_buffer_pool_size = 1G
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT

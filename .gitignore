@@ -16,3 +16,6 @@ portal/tmp
 !/portal/log/.keep
 /portal/tmp
 .vagrant
+
+# ISUCON: generated image files (served by nginx from filesystem)
+webapp/public/image/

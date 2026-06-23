@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	crand "crypto/rand"
+	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"html/template"
 	"io"
@@ -10,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path"
 	"regexp"
 	"strconv"
@@ -112,22 +113,10 @@ func validateUser(accountName, password string) bool {
 		regexp.MustCompile(`\A[0-9a-zA-Z_]{6,}\z`).MatchString(password)
 }
 
-// 今回のGo実装では言語側のエスケープの仕組みが使えないのでOSコマンドインジェクション対策できない
-// 取り急ぎPHPのescapeshellarg関数を参考に自前で実装
-// cf: http://jp2.php.net/manual/ja/function.escapeshellarg.php
-func escapeshellarg(arg string) string {
-	return "'" + strings.Replace(arg, "'", "'\\''", -1) + "'"
-}
-
 func digest(ctx context.Context, src string) string {
-	// opensslのバージョンによっては (stdin)= というのがつくので取る
-	out, err := exec.CommandContext(ctx, "/bin/bash", "-c", `printf "%s" `+escapeshellarg(src)+` | openssl dgst -sha512 | sed 's/^.*= //'`).Output()
-	if err != nil {
-		log.Print(err)
-		return ""
-	}
-
-	return strings.TrimSuffix(string(out), "\n")
+	// openssl dgst -sha512 と同じ小文字hexを返す(外部プロセス起動を排除)
+	sum := sha512.Sum512([]byte(src))
+	return hex.EncodeToString(sum[:])
 }
 
 func calculateSalt(ctx context.Context, accountName string) string {
@@ -176,43 +165,100 @@ func getFlash(w http.ResponseWriter, r *http.Request, key string) string {
 }
 
 func makePosts(ctx context.Context, results []Post, csrfToken string, allComments bool) ([]Post, error) {
-	var posts []Post
+	if len(results) == 0 {
+		return []Post{}, nil
+	}
 
+	postIDs := make([]int, len(results))
+	for i, p := range results {
+		postIDs[i] = p.ID
+	}
+
+	// コメント数をまとめて取得 (N+1解消)
+	commentCount := map[int]int{}
+	{
+		type countRow struct {
+			PostID int `db:"post_id"`
+			Count  int `db:"count"`
+		}
+		query, args, err := sqlx.In("SELECT `post_id`, COUNT(*) AS `count` FROM `comments` WHERE `post_id` IN (?) GROUP BY `post_id`", postIDs)
+		if err != nil {
+			return nil, err
+		}
+		var rows []countRow
+		if err := db.SelectContext(ctx, &rows, query, args...); err != nil {
+			return nil, err
+		}
+		for _, r := range rows {
+			commentCount[r.PostID] = r.Count
+		}
+	}
+
+	// コメント本体をまとめて取得 (新しい順)
+	commentsByPost := map[int][]Comment{}
+	{
+		query, args, err := sqlx.In("SELECT * FROM `comments` WHERE `post_id` IN (?) ORDER BY `created_at` DESC", postIDs)
+		if err != nil {
+			return nil, err
+		}
+		var all []Comment
+		if err := db.SelectContext(ctx, &all, query, args...); err != nil {
+			return nil, err
+		}
+		for _, c := range all {
+			commentsByPost[c.PostID] = append(commentsByPost[c.PostID], c)
+		}
+	}
+
+	// 投稿者・コメント投稿者のユーザーをまとめて取得
+	userIDSet := map[int]struct{}{}
 	for _, p := range results {
-		err := db.GetContext(ctx, &p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
+		userIDSet[p.UserID] = struct{}{}
+	}
+	for _, cs := range commentsByPost {
+		for _, c := range cs {
+			userIDSet[c.UserID] = struct{}{}
+		}
+	}
+	userIDs := make([]int, 0, len(userIDSet))
+	for id := range userIDSet {
+		userIDs = append(userIDs, id)
+	}
+	userByID := map[int]User{}
+	if len(userIDs) > 0 {
+		query, args, err := sqlx.In("SELECT * FROM `users` WHERE `id` IN (?)", userIDs)
 		if err != nil {
 			return nil, err
 		}
-
-		query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
-		if !allComments {
-			query += " LIMIT 3"
-		}
-		var comments []Comment
-		err = db.SelectContext(ctx, &comments, query, p.ID)
-		if err != nil {
+		var users []User
+		if err := db.SelectContext(ctx, &users, query, args...); err != nil {
 			return nil, err
 		}
-
-		for i := range comments {
-			err := db.GetContext(ctx, &comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
-			if err != nil {
-				return nil, err
-			}
+		for _, u := range users {
+			userByID[u.ID] = u
 		}
+	}
 
-		// reverse
-		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
-			comments[i], comments[j] = comments[j], comments[i]
+	posts := make([]Post, 0, len(results))
+	for _, p := range results {
+		p.CommentCount = commentCount[p.ID]
+
+		comments := commentsByPost[p.ID] // 新しい順
+		if !allComments && len(comments) > 3 {
+			comments = comments[:3]
 		}
-
-		p.Comments = comments
-
-		err = db.GetContext(ctx, &p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		if err != nil {
-			return nil, err
+		cs := make([]Comment, len(comments))
+		copy(cs, comments)
+		for i := range cs {
+			cs[i].User = userByID[cs[i].UserID]
 		}
+		// 時系列(古い順)に並べ替え
+		for i, j := 0, len(cs)-1; i < j; i, j = i+1, j-1 {
+			cs[i], cs[j] = cs[j], cs[i]
+		}
+		p.Comments = cs
 
+		p.User = userByID[p.UserID]
 		p.CSRFToken = csrfToken
 
 		if p.User.DelFlg == 0 {
@@ -263,6 +309,14 @@ func secureRandomStr(b int) string {
 func getTemplPath(filename string) string {
 	return path.Join("templates", filename)
 }
+
+// テンプレートは起動時に1回だけパースして使い回す(毎リクエストの再パースを排除)
+var (
+	indexTmpl   = template.Must(template.New("layout.html").Funcs(template.FuncMap{"imageURL": imageURL}).ParseFiles(getTemplPath("layout.html"), getTemplPath("index.html"), getTemplPath("posts.html"), getTemplPath("post.html")))
+	accountTmpl = template.Must(template.New("layout.html").Funcs(template.FuncMap{"imageURL": imageURL}).ParseFiles(getTemplPath("layout.html"), getTemplPath("user.html"), getTemplPath("posts.html"), getTemplPath("post.html")))
+	postsTmpl   = template.Must(template.New("posts.html").Funcs(template.FuncMap{"imageURL": imageURL}).ParseFiles(getTemplPath("posts.html"), getTemplPath("post.html")))
+	postIDTmpl  = template.Must(template.New("layout.html").Funcs(template.FuncMap{"imageURL": imageURL}).ParseFiles(getTemplPath("layout.html"), getTemplPath("post_id.html"), getTemplPath("post.html")))
+)
 
 func getInitialize(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -394,7 +448,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 
-	err := db.SelectContext(ctx, &results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC")
+	err := db.SelectContext(ctx, &results, "SELECT `posts`.`id`, `posts`.`user_id`, `posts`.`body`, `posts`.`mime`, `posts`.`created_at` FROM `posts` FORCE INDEX (`idx_created_at`) JOIN `users` ON `posts`.`user_id` = `users`.`id` WHERE `users`.`del_flg` = 0 ORDER BY `posts`.`created_at` DESC LIMIT 20")
 	if err != nil {
 		log.Print(err)
 		return
@@ -406,16 +460,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmap := template.FuncMap{
-		"imageURL": imageURL,
-	}
-
-	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("index.html"),
-		getTemplPath("posts.html"),
-		getTemplPath("post.html"),
-	)).Execute(w, struct {
+	indexTmpl.Execute(w, struct {
 		Posts     []Post
 		Me        User
 		CSRFToken string
@@ -491,16 +536,7 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 
 	me := getSessionUser(r)
 
-	fmap := template.FuncMap{
-		"imageURL": imageURL,
-	}
-
-	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("user.html"),
-		getTemplPath("posts.html"),
-		getTemplPath("post.html"),
-	)).Execute(w, struct {
+	accountTmpl.Execute(w, struct {
 		Posts          []Post
 		User           User
 		PostCount      int
@@ -530,7 +566,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	err = db.SelectContext(ctx, &results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC", t.Format(ISO8601Format))
+	err = db.SelectContext(ctx, &results, "SELECT `posts`.`id`, `posts`.`user_id`, `posts`.`body`, `posts`.`mime`, `posts`.`created_at` FROM `posts` FORCE INDEX (`idx_created_at`) JOIN `users` ON `posts`.`user_id` = `users`.`id` WHERE `users`.`del_flg` = 0 AND `posts`.`created_at` <= ? ORDER BY `posts`.`created_at` DESC LIMIT 20", t.Format(ISO8601Format))
 	if err != nil {
 		log.Print(err)
 		return
@@ -547,14 +583,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmap := template.FuncMap{
-		"imageURL": imageURL,
-	}
-
-	template.Must(template.New("posts.html").Funcs(fmap).ParseFiles(
-		getTemplPath("posts.html"),
-		getTemplPath("post.html"),
-	)).Execute(w, posts)
+	postsTmpl.Execute(w, posts)
 }
 
 func getPostsID(w http.ResponseWriter, r *http.Request) {
@@ -567,7 +596,7 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	err = db.SelectContext(ctx, &results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	err = db.SelectContext(ctx, &results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `id` = ?", pid)
 	if err != nil {
 		log.Print(err)
 		return
@@ -588,15 +617,7 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 
 	me := getSessionUser(r)
 
-	fmap := template.FuncMap{
-		"imageURL": imageURL,
-	}
-
-	template.Must(template.New("layout.html").Funcs(fmap).ParseFiles(
-		getTemplPath("layout.html"),
-		getTemplPath("post_id.html"),
-		getTemplPath("post.html"),
-	)).Execute(w, struct {
+	postIDTmpl.Execute(w, struct {
 		Post Post
 		Me   User
 	}{p, me})
@@ -680,7 +701,39 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := saveImageToFile(pid, mime, filedata); err != nil {
+		log.Print(err)
+	}
+
 	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
+}
+
+const imageDir = "/home/isucon/private_isu/webapp/public/image"
+
+func extFromMime(mime string) string {
+	switch mime {
+	case "image/jpeg":
+		return "jpg"
+	case "image/png":
+		return "png"
+	case "image/gif":
+		return "gif"
+	}
+	return ""
+}
+
+// saveImageToFile writes the image to the static dir so nginx can serve it directly.
+func saveImageToFile(pid int64, mime string, data []byte) error {
+	ext := extFromMime(mime)
+	if ext == "" {
+		return nil
+	}
+	path := fmt.Sprintf("%s/%d.%s", imageDir, pid, ext)
+	tmp := fmt.Sprintf("%s.%d.tmp", path, pid)
+	if err := os.WriteFile(tmp, data, 0644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, path)
 }
 
 func getImage(w http.ResponseWriter, r *http.Request) {
@@ -704,6 +757,9 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 	if ext == "jpg" && post.Mime == "image/jpeg" ||
 		ext == "png" && post.Mime == "image/png" ||
 		ext == "gif" && post.Mime == "image/gif" {
+		if err := saveImageToFile(int64(post.ID), post.Mime, post.Imgdata); err != nil {
+			log.Print(err)
+		}
 		w.Header().Set("Content-Type", post.Mime)
 		_, err := w.Write(post.Imgdata)
 		if err != nil {
@@ -842,12 +898,16 @@ func main() {
 	}
 	cfg.ParseTime = true
 	cfg.Loc = time.Local
+	cfg.InterpolateParams = true
 	dsn := cfg.FormatDSN()
 
 	db, err = sqlx.Open("mysql", dsn)
 	if err != nil {
 		log.Fatalf("Failed to connect to DB: %s.", err.Error())
 	}
+	db.SetMaxOpenConns(100)
+	db.SetMaxIdleConns(100)
+	db.SetConnMaxLifetime(0)
 	defer db.Close()
 
 	r := chi.NewRouter()
