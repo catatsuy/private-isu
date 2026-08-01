@@ -6,6 +6,15 @@
   "lockFileMaintenance": {
     "enabled": true
   },
+  "customDatasources": {
+    "mysql-lts": {
+      "defaultRegistryUrlTemplate": "https://raw.githubusercontent.com/docker-library/official-images/master/library/mysql",
+      "format": "plain",
+      "transformTemplates": [
+        "( $ltsLine := releases.version[$substring($, 0, 6) = 'Tags: ' and $contains(', ' & $substringAfter($, 'Tags: ') & ', ', ', lts, ')][0]; $minor := $split($substringAfter($ltsLine, 'Tags: '), ', ')[$match($, /^\\d+\\.\\d+$/)][0]; { 'releases': $minor ? [{ 'version': $minor }] : [] } )"
+      ]
+    }
+  },
   "customManagers": [
     {
       "customType": "regex",
@@ -48,6 +57,18 @@
       "matchStrings": [
         "GoVersionOverride = \"?(?<currentValue>[0-9]*.[0-9]*.[0-9]*)\"?"
       ]
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^webapp\\/compose\\.yml$/"
+      ],
+      "matchStrings": [
+        "(?:^|\\r?\\n)[ \\t]+mysql:[ \\t]*\\r?\\n[ \\t]+image:[ \\t]*mysql:(?<currentValue>\\d+\\.\\d+)[ \\t]*(?:#.*)?(?:\\r?\\n|$)"
+      ],
+      "depNameTemplate": "mysql",
+      "datasourceTemplate": "custom.mysql-lts",
+      "versioningTemplate": "semver-coerced"
     }
   ],
   "packageRules": [
@@ -115,6 +136,39 @@
         "nginx"
       ],
       "versioning": "regex:^(?<major>[0-9]+)\\.(?<minor>[0-9]*[02468])(?<patch>\\d*)$"
+    },
+    {
+      "description": [
+        "Let the custom datasource manage the MySQL LTS version in Docker Compose."
+      ],
+      "matchManagers": [
+        "docker-compose"
+      ],
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "mysql"
+      ],
+      "matchFileNames": [
+        "webapp/compose.yml"
+      ],
+      "enabled": false
+    },
+    {
+      "description": [
+        "The MySQL LTS custom datasource does not provide release timestamps, so override the global minimumReleaseAge; otherwise Renovate treats its updates as permanently pending."
+      ],
+      "matchDatasources": [
+        "custom.mysql-lts"
+      ],
+      "matchPackageNames": [
+        "mysql"
+      ],
+      "matchFileNames": [
+        "webapp/compose.yml"
+      ],
+      "minimumReleaseAge": "0 days"
     },
     {
       "matchManagers": [
