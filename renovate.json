@@ -64,7 +64,7 @@
         "/^webapp\\/compose\\.yml$/"
       ],
       "matchStrings": [
-        "(?:^|\\r?\\n)[ \\t]+mysql:[ \\t]*\\r?\\n[ \\t]+image:[ \\t]*mysql:(?<currentValue>\\d+\\.\\d+)(?=[ \\t]*(?:#.*)?(?:\\r?\\n|$))"
+        "(?:^|\\r?\\n)[ \\t]+mysql:[ \\t]*\\r?\\n[ \\t]+image:[ \\t]*mysql:(?<currentValue>\\d+\\.\\d+)[ \\t]*(?:#.*)?(?:\\r?\\n|$)"
       ],
       "depNameTemplate": "mysql",
       "datasourceTemplate": "custom.mysql-lts",
