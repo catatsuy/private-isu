@@ -44,6 +44,15 @@ func NewSession() *Session {
 		Transport: w.Transport,
 		Jar:       jar,
 		Timeout:   time.Duration(10) * time.Second,
+		// ブラウザ同様、リダイレクト先へボディ関連のヘッダを持ち越さない。
+		// multipart の Content-Type が残ると空ボディをパースしようとして 400 になる
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("stopped after 10 redirects")
+			}
+			req.Header.Del("Content-Type")
+			return nil
+		},
 	}
 
 	return w
