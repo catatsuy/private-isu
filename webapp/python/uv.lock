@@ -13,11 +13,11 @@ wheels = [
 
 [[package]]
 name = "cachelib"
-version = "0.15.0"
+version = "0.15.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2a/d3/9d7dbdcbea646f0c31677a19b31b752056af6451de88868370f41ed7c265/cachelib-0.15.0.tar.gz", hash = "sha256:40a387c42d12e90c8a1a2cb87dedcc34fd9143a5b2c7f2daed3d4c56ebf7bdfc", size = 113028, upload-time = "2026-07-30T21:58:22.381Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/71/77/ec3402d4bafa46834557fb369d173be2c0923f4197d01d9d115bc0aff4e3/cachelib-0.15.4.tar.gz", hash = "sha256:66fb75f48f9077713c8a1ce2319f523d08418a1576f2cbdaad8aad15c884afa0", size = 118016, upload-time = "2026-08-08T16:43:35.175Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fd/d2/c629e15fb43079507a9ad0cca27ee038a60e21397d11277b4e507f0480a3/cachelib-0.15.0-py3-none-any.whl", hash = "sha256:14a226c9856a48f1666cdb107fc4573171c1c820cb3fd2528a57f81fde8170e5", size = 23732, upload-time = "2026-07-30T21:58:21.128Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/8a/0a3e1ecc727ce3f747efacf8686164b6526a84232ff3b243bb63ecf21112/cachelib-0.15.4-py3-none-any.whl", hash = "sha256:500f447d6ebf52654bcbb1b7ed1329daf890252227f09933870a01a84798687a", size = 24293, upload-time = "2026-08-08T16:43:33.477Z" },
 ]
 
 [[package]]
