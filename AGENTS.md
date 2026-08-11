@@ -1,35 +1,47 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-- `webapp/` hosts language ports (`golang/`, `ruby/`, `php/`, `python/`, `node/`); focus changes on one port and mirror fixes only when needed.
-- `webapp/sql/` holds schema and fixtures consumed by `make init`; version migrations and data patches here.
-- `benchmarker/` contains the Go load tester, while `provisioning/` tracks Ansible roles for operational parity.
+## Preserve the Exercise Before Improving the Code
 
-## Build, Test, and Development Commands
+`private-isu` is an ISUCON practice problem for learning Web application performance tuning. The initial implementations' inefficiency and slowness are part of the exercise, not ordinary technical debt. In this repository, a generally "good" cleanup can be a regression because it removes a bottleneck that participants are meant to discover.
+
+- Unless the user explicitly requests it, do not perform performance tuning, refactoring, architecture changes, or changes to how data is stored.
+- Do not helpfully fix known teaching examples such as N+1 queries, SQL without `LIMIT`, images stored in the database, hash calculation through external commands, or parsing templates on every request.
+- Distinguish intentionally slow code from code that has actually stopped working after an environment update. If the distinction is unclear, ask the user instead of changing it.
+- Make only changes required by the request. Do not include opportunistic fixes, cleanup, formatting, or modernization.
+
+## Cross-Implementation Compatibility
+
+`webapp/` contains Ruby, Go, PHP, Python, and Node.js implementations. They do not need identical performance, but their externally observable features and behavior must remain aligned.
+
+- For changes affecting routes, the database schema, initialization, sessions, cookies, CSRF, redirects, templates, or time handling, inspect the impact on every language implementation.
+- Passing tests or the benchmark with one language implementation does not prove that the other implementations, or the intended exercise, remain intact.
+- Preserve existing behavior rather than reorganizing an implementation into a preferred handler/repository/service architecture.
+
+## Benchmarker Is Part of the Problem
+
+`benchmarker/` contains the exercise's workload and correctness checks. Its scenarios, concurrency, scoring, and validation behavior are part of the existing problem setting.
+
+- Do not improve, reorganize, or otherwise alter the benchmarker unless explicitly requested.
+- The benchmarker is not a complete specification. A passing benchmark alone is not evidence that a behavior change is safe.
+
+## Dependency and Environment Updates
+
+For updates to dependencies, language runtimes, the OS, MySQL, nginx, Docker, or Ansible, make only the minimum changes necessary to restore or maintain compatibility. Do not combine unrelated application improvements or exercise changes with an environment update.
+
+## Repository Layout
+
+- `webapp/{ruby,golang,php,python,node}/` contains the five application implementations.
+- `webapp/sql/` contains the schema and initial data used by setup.
+- `benchmarker/` contains the Go load generator and correctness checks.
+- `provisioning/` contains Ansible configuration for the exercise environment.
+
+## Verified Commands
+
 - `make init`: download the canonical MySQL dump and image fixtures.
-- `cd webapp/golang && make`: build the Go binary to `./app`; runtime config comes from `ISUCONP_*` env vars.
-- `cd webapp/node && npm install && npm run build`: install and transpile the TypeScript service; use `npm run dev` for hot reload.
-- `cd webapp && docker compose up`: run nginx, the app tier, MySQL, and Memcached locally.
-- `cd benchmarker && make && ./bin/benchmarker -t "http://localhost:8080" -u ./userdata`: rebuild and execute the scorer after optimizations.
+- `cd webapp/golang && make`: build the Go application as `webapp/golang/app`.
+- `cd webapp/node && npm install && npm run build`: install Node.js dependencies and compile TypeScript. Use `npm run dev` for the development server.
+- `cd webapp && docker compose up`: start the local application, nginx, MySQL, and Memcached stack.
+- `cd benchmarker && make`: build `benchmarker/bin/benchmarker`.
+- `cd benchmarker && ./bin/benchmarker -t "http://localhost:8080" -u ./userdata`: run the benchmark against the local target after initialization.
 
-## Coding Style & Naming Conventions
-- Go: enforce `go fmt ./...`; group handlers, repositories, and services by feature under `internal/`.
-- Ruby/Python/PHP: follow existing idioms (Ruby 2-space indent, Python PEP 8, PHP PSR-12); avoid mixing tabs and spaces.
-- Node/TypeScript: ES modules with strict typing; PascalCase classes, camelCase identifiers; run `tsc` before pushing.
-- Shared SQL, template, and static asset filenames stay snake_case; keep uploaded media names space-free.
-
-## Testing Guidelines
-- Supplement changes with language-native unit tests when touching core logic (`go test ./...`, `pytest`, `bundle exec rspec`, `npm test`) even if suites are sparse.
-- Benchmark every performance tweak and note the score delta in your PR description.
-- For schema updates, load `webapp/sql/dump.sql` into local MySQL and smoke-test login plus timeline flows.
-
-## Commit & Pull Request Guidelines
-- Use imperative commit subjects (`optimize timeline query`); dependency bumps often follow `chore(deps):`/`fix(deps):` patterns.
-- Keep commits narrowly scoped so regressions are traceable; include schema files and generated assets with the change.
-- PRs summarize the bottleneck, the fix, benchmark results, and env var updates; link issues when applicable.
-- Attach screenshots or shell snippets for benchmark output or UI adjustments and flag manual deploy steps.
-
-## Security & Configuration Tips
-- Never commit secrets or dumps; reference required env vars (`ISUCONP_DB_HOST`, etc.) instead.
-- Rotate credentials through `provisioning/` and keep sensitive data vaulted.
-- Enforce login checks on new endpoints and prefer filesystem-backed images over raw BLOB responses when optimizing.
+Use the language-native formatter or tests relevant to the requested change, but do not treat their success as authorization to broaden the change. Never commit secrets or downloaded dumps.
