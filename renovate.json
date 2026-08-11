@@ -171,6 +171,22 @@
       "minimumReleaseAge": "0 days"
     },
     {
+      "description": [
+        "Bundler incorrectly passes the RubyGems registry to git-refs dependencies.",
+        "See https://github.com/renovatebot/renovate/issues/37432."
+      ],
+      "matchManagers": [
+        "bundler"
+      ],
+      "matchDatasources": [
+        "git-refs"
+      ],
+      "matchPackageNames": [
+        "https://github.com/defunkt/unicorn.git"
+      ],
+      "registryUrls": []
+    },
+    {
       "matchManagers": [
         "bundler"
       ],
