@@ -188,6 +188,15 @@
     },
     {
       "matchManagers": [
+        "gomod"
+      ],
+      "matchDepTypes": [
+        "indirect"
+      ],
+      "enabled": true
+    },
+    {
+      "matchManagers": [
         "bundler"
       ],
       "rangeStrategy": "update-lockfile"
