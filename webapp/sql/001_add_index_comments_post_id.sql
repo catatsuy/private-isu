@@ -1,0 +1,22 @@
+-- comments.post_id にインデックスを追加する
+--
+-- 背景:
+--   posts 詳細・タイムラインで `WHERE post_id = ?` / `WHERE post_id IN (...)`
+--   が多用され、フルスキャンになっていた。pt-query-digest で
+--   `WHERE post_id = ?` 系が平均 35-41us / Rows examine 3前後まで改善した。
+--
+-- 流し方 (稼働中DBへ適用):
+--   # Docker Compose の場合 (mysql: root/root, DB名 isuconp)
+--   mysql -h 127.0.0.1 -P 3306 -u root -proot isuconp < webapp/sql/001_add_index_comments_post_id.sql
+--
+--   # 確認
+--   mysql -h 127.0.0.1 -P 3306 -u root -proot isuconp -e "SHOW INDEX FROM comments;"
+--   mysql -h 127.0.0.1 -P 3306 -u root -proot isuconp -e "EXPLAIN SELECT * FROM comments WHERE post_id = 1 ORDER BY created_at DESC;"
+--
+-- 注意:
+--   - `webapp/sql/dump.sql.bz2` は外部リリース由来の初期データのため本PRに含めない。
+--     `docker compose down -v` で作り直した場合は本SQLを再適用すること。
+--   - 新規に dump を作り直す場合は `benchmarker/sql/schema.sql` 側に同定義済みのため不要。
+--   - ロールバック: `DROP INDEX idx_comments_post_id ON comments;`
+
+CREATE INDEX `idx_comments_post_id` ON `comments` (`post_id`);
