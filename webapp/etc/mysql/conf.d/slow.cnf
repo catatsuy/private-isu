@@ -1,0 +1,6 @@
+[mysqld]
+slow_query_log      = 1
+slow_query_log_file = /var/log/mysql/slow.log
+# ISUCON では 0 にして全クエリを記録する
+# (1回は速いが大量に走る N+1 を見つけるため)
+long_query_time     = 0
