@@ -29,3 +29,12 @@ log-clean:
 .PHONY: bench
 bench: log-clean
 	cd benchmarker && ./bin/benchmarker -t "$(BENCH_TARGET)" -u ./userdata
+
+# Goの関数単体の速度を測る (go test -bench)。Docker再ビルドやHTTP越しの
+# 計測をせずに済むので、makePosts() や digest() のような特定の処理が
+# 速くなったかどうかの一次確認に使う。最終確認は make bench で行うこと。
+# 例: make go-bench GO_BENCH_PATTERN=Digest
+GO_BENCH_PATTERN ?= .
+.PHONY: go-bench
+go-bench:
+	cd webapp/golang && go test -bench="$(GO_BENCH_PATTERN)" -benchmem -run=^$$ ./...
