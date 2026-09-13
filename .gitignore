@@ -16,3 +16,9 @@ portal/tmp
 !/portal/log/.keep
 /portal/tmp
 .vagrant
+
+# .claude 配下は skills だけ git 管理下に置く。
+# ディレクトリ自体を無視すると git が中に降りず否定パターンが効かないため、
+# `.claude/` ではなく `.claude/*` と書くこと。
+.claude/*
+!.claude/skills/
