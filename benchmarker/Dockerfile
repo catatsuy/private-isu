@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM --platform=$BUILDPLATFORM golang:1.26 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27 AS build
 WORKDIR /src
 
 RUN --mount=type=cache,target=/go/pkg/mod/ \
@@ -43,7 +43,7 @@ RUN adduser \
   --no-create-home \
   --uid "${UID}" \
   appuser
-USER appuser
+USER ${UID}
 
 # Copy the executable from the "build" stage.
 COPY --from=build /bin/benchmarker /bin/
