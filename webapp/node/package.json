@@ -12,7 +12,7 @@
     "ejs": "^6.0.1",
     "multer": "^2.3.0",
     "mysql2": "^3.24.4",
-    "hono": "^4.13.7",
+    "hono": "^4.13.9",
     "@hono/node-server": "^2.1.1"
   },
   "devDependencies": {
