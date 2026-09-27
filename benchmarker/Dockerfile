@@ -43,7 +43,7 @@ RUN adduser \
   --no-create-home \
   --uid "${UID}" \
   appuser
-USER appuser
+USER ${UID}
 
 # Copy the executable from the "build" stage.
 COPY --from=build /bin/benchmarker /bin/
