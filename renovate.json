@@ -227,6 +227,13 @@
         "benchmarker/go.sum"
       ],
       "automerge": true
+    },
+    {
+      "description": "Require manual review for PHP runtime version updates.",
+      "matchPackageNames": [
+        "php"
+      ],
+      "automerge": false
     }
   ],
   "postUpdateOptions": [
