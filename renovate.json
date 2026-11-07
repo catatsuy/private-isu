@@ -242,5 +242,6 @@
   ],
   "automerge": false,
   "automergeType": "pr",
-  "platformAutomerge": false
+  "platformAutomerge": false,
+  "ignoreTests": false
 }
