@@ -218,10 +218,22 @@
         "pep621"
       ],
       "rangeStrategy": "bump"
+    },
+    {
+      "description": "Auto-merge webapp and benchmarker dependencies after passing checks.",
+      "matchFileNames": [
+        "webapp/**",
+        "benchmarker/go.mod",
+        "benchmarker/go.sum"
+      ],
+      "automerge": true
     }
   ],
   "postUpdateOptions": [
     "gomodTidy",
     "gomodUpdateImportPaths"
-  ]
+  ],
+  "automerge": false,
+  "automergeType": "pr",
+  "platformAutomerge": false
 }
