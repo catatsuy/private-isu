@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "memcached": "^2.2.2",
-    "ejs": "^6.0.1",
+    "ejs": "^7.0.2",
     "multer": "^2.5.0",
     "mysql2": "^3.24.6",
     "hono": "^4.13.17",
