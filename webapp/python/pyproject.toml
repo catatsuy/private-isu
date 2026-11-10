@@ -12,7 +12,7 @@ dependencies = [
     "jinja2==3.1.6",
     "markupsafe==3.0.4",
     "mysqlclient~=2.3.0",
-    "msgspec==0.21.1",
+    "msgspec==0.22.0",
     "packaging==26.3",
     "pymemcache>=4.0.0",
     "werkzeug==3.1.9",
