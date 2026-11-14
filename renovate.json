@@ -220,11 +220,12 @@
       "rangeStrategy": "bump"
     },
     {
-      "description": "Auto-merge webapp and benchmarker dependencies after passing checks.",
+      "description": "Auto-merge webapp, benchmarker, and .github dependencies after passing checks.",
       "matchFileNames": [
         "webapp/**",
         "benchmarker/go.mod",
-        "benchmarker/go.sum"
+        "benchmarker/go.sum",
+        ".github/**"
       ],
       "automerge": true
     },
