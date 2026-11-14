@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:24-slim
+FROM node:26-slim
 
 RUN \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
